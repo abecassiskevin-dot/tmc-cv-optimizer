@@ -40,7 +40,8 @@ class TMCUniversalEnricher:
             try:
                 print(">>> Creating anthropic client", flush=True)
                 import anthropic
-                self._anthropic_client = anthropic.Anthropic(api_key=self.api_key)
+                # Création SIMPLE du client, sans arguments supplémentaires
+                self._anthropic_client = anthropic.Client(api_key=self.api_key)
                 print(">>> Anthropic client created OK", flush=True)
             except Exception as e:
                 print(f">>> ERROR creating anthropic client: {repr(e)}", flush=True)
