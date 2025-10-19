@@ -186,7 +186,7 @@ class TMCUniversalEnricher:
     # ========================================
     # MODULE 2 : PARSING INTELLIGENT
     # ========================================
-
+    
     def parse_cv_with_claude(self, cv_text: str) -> Dict[str, Any]:
         """Parser le CV avec Claude pour extraire les infos structurées"""
         print("🤖 Parsing du CV avec Claude AI...", flush=True)
@@ -209,34 +209,47 @@ Extrait et structure en JSON STRICT (sans markdown):
   "nom_complet": "Nom Prénom du candidat (cherche PARTOUT, même dans tableaux/HTML)",
   "titre_professionnel": "Titre/poste actuel",
   "profil_resume": "Résumé du profil si présent (sinon vide)",
-  "lieu_residence": "OBLIGATOIRE - Ville, Pays (ex: Montréal, Canada)",
-  "langues": ["OBLIGATOIRE - Français", "Anglais"],
-  "competences": ["compétence1", "compétence2", "compétence3"],
+  "lieu_residence": "OBLIGATOIRE - Ville, Pays (ex: Montréal, Canada) ou Montreal CA. Cherche codes pays (CA, US, FR). Si vraiment introuvable: 'Location not specified'",
+  "langues": ["OBLIGATOIRE - Français", "Anglais", ... Cherche 'bilingual', 'French', 'English', etc. Si introuvable: ['Not specified']],
+  "competences": ["compétence1", "compétence2", "compétence3", ...],
   "experiences": [
     {{
       "periode": "2020-2023",
       "entreprise": "Nom entreprise",
       "poste": "Titre du poste",
-      "responsabilites": ["tâche 1", "tâche 2"]
+      "responsabilites": ["tâche 1", "tâche 2", "tâche 3"]
     }}
   ],
   "formation": [
     {{
       "diplome": "Nom COMPLET du diplôme",
       "institution": "Nom école/université",
-      "annee": "2020",
+      "annee": "2020 (ou période exacte)",
       "pays": "Canada"
     }}
   ],
-  "certifications": [],
-  "projets": []
+  "certifications": [
+    {{
+      "nom": "Nom certification",
+      "organisme": "Organisme",
+      "annee": "2023"
+    }}
+  ],
+  "projets": [
+    {{
+      "nom": "Nom projet",
+      "description": "Description courte"
+    }}
+  ]
 }}
 
-RÈGLES:
-- Le NOM est PRIORITAIRE
-- LIEU : formats "Ville, Pays", "Montreal CA", "Montréal QC"
-- LANGUES : cherche "Languages", "Langues", "French", "English"
-- Si une section est vide, mets []
+RÈGLES CRITIQUES:
+- Le NOM est PRIORITAIRE - cherche dans tout le texte (tableaux, début, fin)
+- LIEU DE RÉSIDENCE : cherche formats "Ville, Pays", "Montreal CA", "Montréal QC", codes postaux (H2X, etc.)
+- LANGUES : cherche "Languages", "Langues", "French", "English", "Bilingual", même dans sections compétences
+- Pour les diplômes: nom COMPLET + année EXACTE
+- Extrait TOUT (ne rate rien)
+- Si une section est vide, mets une liste vide []
 - Format JSON strict uniquement"""
 
             response = client.messages.create(
@@ -244,13 +257,13 @@ RÈGLES:
                 max_tokens=8000,
                 messages=[{"role": "user", "content": prompt}]
             )
-
+            
         except Exception as e:
             print(f">>> ERROR calling anthropic for parsing: {repr(e)}", flush=True)
             return {}
-
+        
         response_text = response.content[0].text.strip()
-
+        
         # Nettoyer JSON
         if response_text.startswith('```json'):
             response_text = response_text[7:]
@@ -266,6 +279,8 @@ RÈGLES:
             print(f"   Nom: {parsed_data.get('nom_complet', 'N/A')}")
             print(f"   Langues: {', '.join(parsed_data.get('langues', []))}")
             print(f"   Lieu: {parsed_data.get('lieu_residence', 'N/A')}")
+            print(f"   Compétences: {len(parsed_data.get('competences', []))}")
+            print(f"   Expériences: {len(parsed_data.get('experiences', []))}")
             return parsed_data
         except json.JSONDecodeError as e:
             print(f"⚠️ Erreur JSON: {e}")
@@ -292,12 +307,9 @@ RÈGLES:
         
         try:
             client = self._get_anthropic_client()
-        except Exception as e:
-            print(f"❌ Erreur lors de l'initialisation du client Anthropic : {e}")
-            return {}
-        
-        # Reconstruire le CV en texte pour le prompt
-        cv_text = f"""
+            
+            # Reconstruire le CV en texte pour le prompt
+            cv_text = f"""
 PROFIL: {parsed_cv.get('profil_resume', '')}
 
 TITRE: {parsed_cv.get('titre_professionnel', '')}
@@ -307,19 +319,19 @@ COMPÉTENCES:
 
 EXPÉRIENCES:
 """
-        for exp in parsed_cv.get('experiences', []):
-            cv_text += f"\n{exp.get('periode', '')} | {exp.get('entreprise', '')} | {exp.get('poste', '')}\n"
-            for resp in exp.get('responsabilites', []):
-                cv_text += f"  - {resp}\n"
+            for exp in parsed_cv.get('experiences', []):
+                cv_text += f"\n{exp.get('periode', '')} | {exp.get('entreprise', '')} | {exp.get('poste', '')}\n"
+                for resp in exp.get('responsabilites', []):
+                    cv_text += f"  - {resp}\n"
+            
+            cv_text += "\nFORMATION:\n"
+            for form in parsed_cv.get('formation', []):
+                cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
         
-        cv_text += "\nFORMATION:\n"
-        for form in parsed_cv.get('formation', []):
-            cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
-        
-        # PROMPT OPTIMISÉ STYLE CHATGPT
-        language_instruction = f"""\n\n⚠️ IMPORTANT - LANGUE:\nTu DOIS générer TOUT le contenu en {language}.\n- Tous les titres, descriptions, compétences, responsabilités doivent être en {language}.\n- Respecte les conventions professionnelles de la langue {language}.\n- Si la langue cible est English, utilise un ton professionnel américain/canadien.\n"""
-        
-        prompt = f"""Voici la job description et le CV actuel ci-dessous.
+            # PROMPT OPTIMISÉ STYLE CHATGPT
+            language_instruction = f"""\n\n⚠️ IMPORTANT - LANGUE:\nTu DOIS générer TOUT le contenu en {language}.\n- Tous les titres, descriptions, compétences, responsabilités doivent être en {language}.\n- Respecte les conventions professionnelles de la langue {language}.\n- Si la langue cible est English, utilise un ton professionnel américain/canadien.\n"""
+            
+            prompt = f"""Voici la job description et le CV actuel ci-dessous.
 
 🔹 Améliore le CV pour qu'il soit parfaitement aligné avec la job description tout en gardant le format d'origine (titres, mise en page, structure, ton professionnel).
 {language_instruction}
