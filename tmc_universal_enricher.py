@@ -192,9 +192,9 @@ class TMCUniversalEnricher:
         print("🤖 Parsing du CV avec Claude AI...", flush=True)
         
         try:
-            client = self._get_anthropic_client()
-            
-            prompt = f"""Tu es un expert en analyse de CV. Extrait TOUTES les informations de ce CV et structure-les en JSON.
+    client = self._get_anthropic_client()
+    
+    prompt = f"""Tu es un expert en analyse de CV. Extrait TOUTES les informations de ce CV et structure-les en JSON.
 
 CV À ANALYSER:
 {cv_text}
@@ -252,11 +252,15 @@ RÈGLES CRITIQUES:
 - Si une section est vide, mets une liste vide []
 - Format JSON strict uniquement"""
 
-            response = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=8000,
-                messages=[{"role": "user", "content": prompt}]
-            )
+    response = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=8000,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+except Exception as e:
+    print(f">>> ERROR calling anthropic for parsing: {repr(e)}", flush=True)
+    return {}
             
         except Exception as e:
             print(f">>> ERROR calling anthropic for parsing: {repr(e)}", flush=True)
