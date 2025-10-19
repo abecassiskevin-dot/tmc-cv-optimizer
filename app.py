@@ -4,47 +4,17 @@ TMC CV Optimizer — VERSION 2.0 PRO (Streamlit Cloud Safe)
 Interface Streamlit premium pour générer des CVs TMC optimisés
 """
 
-# -------------------------------
-# 🔧 Core Imports
-# -------------------------------
 import streamlit as st
-import tempfile
 import time
-from datetime import datetime
-import os
-import io
-import base64
-
-# -------------------------------
-# 📄 Document Handling
-# -------------------------------
-import docx
-from docxtpl import DocxTemplate
-from docx.shared import Pt
-
-# -------------------------------
-# 📊 Data Handling
-# -------------------------------
-import pandas as pd
-import numpy as np
-
-# -------------------------------
-# 🌐 External APIs
-# -------------------------------
-import requests
 from pathlib import Path
-# -------------------------------
-# 🧠 Optional AI/LLM Integration
-# -------------------------------
-# (tu peux décommenter si tu appelles Anthropic ou OpenAI par la suite)
-# from anthropic import Anthropic
-# import openai
+import base64
+import tempfile
 
 # ==========================================
 # ⚙️ CONFIG PAGE
 # ==========================================
 st.set_page_config(
-    page_title="TMC CV Optimizer 2.0",
+    page_title="CV Optimizer",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -53,11 +23,13 @@ st.set_page_config(
 # ==========================================
 # 🎬 LOADING SCREEN
 # ==========================================
-st.markdown("""
-    <h1 style='text-align: center; color: #004aad;'>🚀 TMC CV Optimizer 2.0</h1>
-    <p style='text-align: center; font-size:18px;'>Générez des CV TMC professionnels alignés sur vos Job Descriptions</p>
-    <hr>
-""", unsafe_allow_html=True)
+st.markdown("### Initialisation de l'application...")
+progress = st.progress(0)
+for pct in range(0, 101, 5):
+    time.sleep(0.02)
+    progress.progress(pct)
+st.success("✅ Interface prête — vous pouvez commencer !")
+st.markdown("<hr>", unsafe_allow_html=True)
 
 # ==========================================
 # 🧠 IMPORT LOURD — Lazy Loading
