@@ -8,6 +8,7 @@ import streamlit as st
 import time
 from pathlib import Path
 import base64
+import tempfile
 
 # ==========================================
 # ⚙️ CONFIG PAGE
