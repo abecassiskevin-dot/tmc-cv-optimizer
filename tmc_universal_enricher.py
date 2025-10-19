@@ -307,6 +307,9 @@ RÈGLES CRITIQUES:
         
         try:
             client = self._get_anthropic_client()
+        except Exception as e:
+            print(f"❌ Erreur lors de l'initialisation du client Anthropic : {e}")
+            return {}
         
         # Reconstruire le CV en texte pour le prompt
         cv_text = f"""
