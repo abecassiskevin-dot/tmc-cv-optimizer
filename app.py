@@ -1,23 +1,42 @@
 #!/usr/bin/env python3
 """
-TMC CV Optimizer — VERSION 2.0 PRO
+TMC CV Optimizer — VERSION 2.0 PRO (Streamlit Cloud Safe)
 Interface Streamlit premium pour générer des CVs TMC optimisés
 """
 
-import sys
-import os
-print(">>> APP BOOT START", flush=True)
-print("PYTHON:", sys.version, "CWD:", os.getcwd(), flush=True)
-
-import io
-import tempfile
-import base64
-import streamlit.components.v1 as components
-from pathlib import Path
-from datetime import datetime
 import streamlit as st
+import time
+from pathlib import Path
+import base64
 
-print(">>> Streamlit imported OK", flush=True)
+# ==========================================
+# ⚙️ CONFIG PAGE
+# ==========================================
+st.set_page_config(
+    page_title="TMC CV Optimizer 2.0",
+    page_icon="🚀",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# ==========================================
+# 🎬 LOADING SCREEN
+# ==========================================
+st.markdown("### Initialisation de l'application...")
+progress = st.progress(0)
+for pct in range(0, 101, 5):
+    time.sleep(0.02)
+    progress.progress(pct)
+st.success("✅ Interface prête — vous pouvez commencer !")
+st.markdown("<hr>", unsafe_allow_html=True)
+
+# ==========================================
+# 🧠 IMPORT LOURD — Lazy Loading
+# ==========================================
+@st.cache_resource
+def load_backend():
+    from tmc_universal_enricher import TMCUniversalEnricher
+    return TMCUniversalEnricher()
 
 # =====================================================
 # 🔧 HELPER FUNCTIONS
@@ -165,16 +184,6 @@ TMC_ORANGE = "#D97104"
 BG_LIGHT = "#F9FAFB"
 TEXT_MAIN = "#111827"
 TEXT_MUTED = "#6B7280"
-
-# =====================================================
-# ⚙️ CONFIGURATION PAGE
-# =====================================================
-st.set_page_config(
-    page_title="TMC CV Optimizer 2.0",
-    page_icon="🚀",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
 
 # =====================================================
 # 🎨 CSS CUSTOM — Design Premium
@@ -543,9 +552,8 @@ if submit:
             timeline_placeholder = st.empty()
         
         try:
-            # Import du backend
-            from tmc_universal_enricher import TMCUniversalEnricher
-            enricher = TMCUniversalEnricher()
+            # Chargement optimisé du backend (lazy loading)
+            enricher = load_backend()
             
             # Étape 1: Extraction
             with timeline_placeholder.container():
