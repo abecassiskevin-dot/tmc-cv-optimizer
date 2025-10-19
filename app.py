@@ -4,7 +4,11 @@ TMC CV Optimizer — VERSION 2.0 PRO
 Interface Streamlit premium pour générer des CVs TMC optimisés
 """
 
+import sys
 import os
+print(">>> APP BOOT START", flush=True)
+print("PYTHON:", sys.version, "CWD:", os.getcwd(), flush=True)
+
 import io
 import tempfile
 import base64
@@ -12,6 +16,8 @@ import streamlit.components.v1 as components
 from pathlib import Path
 from datetime import datetime
 import streamlit as st
+
+print(">>> Streamlit imported OK", flush=True)
 
 # =====================================================
 # 🔧 HELPER FUNCTIONS
