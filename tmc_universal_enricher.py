@@ -186,15 +186,15 @@ class TMCUniversalEnricher:
     # ========================================
     # MODULE 2 : PARSING INTELLIGENT
     # ========================================
-    
+
     def parse_cv_with_claude(self, cv_text: str) -> Dict[str, Any]:
         """Parser le CV avec Claude pour extraire les infos structurées"""
         print("🤖 Parsing du CV avec Claude AI...", flush=True)
         
         try:
-    client = self._get_anthropic_client()
-    
-    prompt = f"""Tu es un expert en analyse de CV. Extrait TOUTES les informations de ce CV et structure-les en JSON.
+            client = self._get_anthropic_client()
+            
+            prompt = f"""Tu es un expert en analyse de CV. Extrait TOUTES les informations de ce CV et structure-les en JSON.
 
 CV À ANALYSER:
 {cv_text}
@@ -209,65 +209,48 @@ Extrait et structure en JSON STRICT (sans markdown):
   "nom_complet": "Nom Prénom du candidat (cherche PARTOUT, même dans tableaux/HTML)",
   "titre_professionnel": "Titre/poste actuel",
   "profil_resume": "Résumé du profil si présent (sinon vide)",
-  "lieu_residence": "OBLIGATOIRE - Ville, Pays (ex: Montréal, Canada) ou Montreal CA. Cherche codes pays (CA, US, FR). Si vraiment introuvable: 'Location not specified'",
-  "langues": ["OBLIGATOIRE - Français", "Anglais", ... Cherche 'bilingual', 'French', 'English', etc. Si introuvable: ['Not specified']],
-  "competences": ["compétence1", "compétence2", "compétence3", ...],
+  "lieu_residence": "OBLIGATOIRE - Ville, Pays (ex: Montréal, Canada)",
+  "langues": ["OBLIGATOIRE - Français", "Anglais"],
+  "competences": ["compétence1", "compétence2", "compétence3"],
   "experiences": [
     {{
       "periode": "2020-2023",
       "entreprise": "Nom entreprise",
       "poste": "Titre du poste",
-      "responsabilites": ["tâche 1", "tâche 2", "tâche 3"]
+      "responsabilites": ["tâche 1", "tâche 2"]
     }}
   ],
   "formation": [
     {{
       "diplome": "Nom COMPLET du diplôme",
       "institution": "Nom école/université",
-      "annee": "2020 (ou période exacte)",
+      "annee": "2020",
       "pays": "Canada"
     }}
   ],
-  "certifications": [
-    {{
-      "nom": "Nom certification",
-      "organisme": "Organisme",
-      "annee": "2023"
-    }}
-  ],
-  "projets": [
-    {{
-      "nom": "Nom projet",
-      "description": "Description courte"
-    }}
-  ]
+  "certifications": [],
+  "projets": []
 }}
 
-RÈGLES CRITIQUES:
-- Le NOM est PRIORITAIRE - cherche dans tout le texte (tableaux, début, fin)
-- LIEU DE RÉSIDENCE : cherche formats "Ville, Pays", "Montreal CA", "Montréal QC", codes postaux (H2X, etc.)
-- LANGUES : cherche "Languages", "Langues", "French", "English", "Bilingual", même dans sections compétences
-- Pour les diplômes: nom COMPLET + année EXACTE
-- Extrait TOUT (ne rate rien)
-- Si une section est vide, mets une liste vide []
+RÈGLES:
+- Le NOM est PRIORITAIRE
+- LIEU : formats "Ville, Pays", "Montreal CA", "Montréal QC"
+- LANGUES : cherche "Languages", "Langues", "French", "English"
+- Si une section est vide, mets []
 - Format JSON strict uniquement"""
 
-    response = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=8000,
-        messages=[{"role": "user", "content": prompt}]
-    )
+            response = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=8000,
+                messages=[{"role": "user", "content": prompt}]
+            )
 
-except Exception as e:
-    print(f">>> ERROR calling anthropic for parsing: {repr(e)}", flush=True)
-    return {}
-            
         except Exception as e:
             print(f">>> ERROR calling anthropic for parsing: {repr(e)}", flush=True)
             return {}
-        
+
         response_text = response.content[0].text.strip()
-        
+
         # Nettoyer JSON
         if response_text.startswith('```json'):
             response_text = response_text[7:]
@@ -283,8 +266,6 @@ except Exception as e:
             print(f"   Nom: {parsed_data.get('nom_complet', 'N/A')}")
             print(f"   Langues: {', '.join(parsed_data.get('langues', []))}")
             print(f"   Lieu: {parsed_data.get('lieu_residence', 'N/A')}")
-            print(f"   Compétences: {len(parsed_data.get('competences', []))}")
-            print(f"   Expériences: {len(parsed_data.get('experiences', []))}")
             return parsed_data
         except json.JSONDecodeError as e:
             print(f"⚠️ Erreur JSON: {e}")
