@@ -90,4 +90,4 @@ Internal TMC use only
 
 ---
 
-Made with ❤️ for TMC Business Managers & Recruiters
+Made by Kevin ABECASSIS
