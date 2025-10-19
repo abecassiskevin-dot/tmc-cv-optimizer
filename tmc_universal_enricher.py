@@ -7,7 +7,6 @@ Lit n'importe quel CV → Enrichit avec IA → Génère CV TMC professionnel
 import os
 import sys
 import json
-import anthropic
 from docxtpl import DocxTemplate, RichText
 from docx import Document
 import jinja2
@@ -16,6 +15,8 @@ import PyPDF2
 import re
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
+
+print(">>> tmc_universal_enricher module loading", flush=True)
 
 
 class TMCUniversalEnricher:
@@ -26,7 +27,25 @@ class TMCUniversalEnricher:
         self.api_key = api_key or os.getenv('ANTHROPIC_API_KEY')
         if not self.api_key:
             raise ValueError("❌ Clé API Claude manquante! Définissez ANTHROPIC_API_KEY dans les secrets Streamlit ou en variable d'environnement.")
-        self.client = anthropic.Anthropic(api_key=self.api_key)
+        
+        # Debug clé API
+        print(f">>> ANTHROPIC_KEY_PRESENT: {bool(self.api_key)}, len: {len(self.api_key) if self.api_key else 0}", flush=True)
+        
+        # Ne crée PAS le client ici (lazy loading)
+        self._anthropic_client = None
+    
+    def _get_anthropic_client(self):
+        """Lazy loading du client Anthropic"""
+        if self._anthropic_client is None:
+            try:
+                print(">>> Creating anthropic client", flush=True)
+                import anthropic
+                self._anthropic_client = anthropic.Anthropic(api_key=self.api_key)
+                print(">>> Anthropic client created OK", flush=True)
+            except Exception as e:
+                print(f">>> ERROR creating anthropic client: {repr(e)}", flush=True)
+                raise
+        return self._anthropic_client
     
     # ========================================
     # MODULE 1 : EXTRACTION UNIVERSELLE
@@ -170,9 +189,12 @@ class TMCUniversalEnricher:
     
     def parse_cv_with_claude(self, cv_text: str) -> Dict[str, Any]:
         """Parser le CV avec Claude pour extraire les infos structurées"""
-        print("🤖 Parsing du CV avec Claude AI...")
+        print("🤖 Parsing du CV avec Claude AI...", flush=True)
         
-        prompt = f"""Tu es un expert en analyse de CV. Extrait TOUTES les informations de ce CV et structure-les en JSON.
+        try:
+            client = self._get_anthropic_client()
+            
+            prompt = f"""Tu es un expert en analyse de CV. Extrait TOUTES les informations de ce CV et structure-les en JSON.
 
 CV À ANALYSER:
 {cv_text}
@@ -230,11 +252,15 @@ RÈGLES CRITIQUES:
 - Si une section est vide, mets une liste vide []
 - Format JSON strict uniquement"""
 
-        response = self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=8000,
-            messages=[{"role": "user", "content": prompt}]
-        )
+            response = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=8000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+        except Exception as e:
+            print(f">>> ERROR calling anthropic for parsing: {repr(e)}", flush=True)
+            return {}
         
         response_text = response.content[0].text.strip()
         
@@ -276,8 +302,11 @@ RÈGLES CRITIQUES:
     
     def enrich_cv_with_prompt(self, parsed_cv: Dict[str, Any], jd_text: str, language: str = "French") -> Dict[str, Any]:
         """Enrichir le CV avec ton prompt exact"""
-        print(f"✨ Enrichissement du CV avec l'IA...")
-        print(f"   Langue cible: {language}")
+        print(f"✨ Enrichissement du CV avec l'IA...", flush=True)
+        print(f"   Langue cible: {language}", flush=True)
+        
+        try:
+            client = self._get_anthropic_client()
         
         # Reconstruire le CV en texte pour le prompt
         cv_text = f"""
@@ -388,11 +417,15 @@ CV ACTUEL:
 
 IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
 
-        response = self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=8000,
-            messages=[{"role": "user", "content": prompt}]
-        )
+            response = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=8000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+        except Exception as e:
+            print(f">>> ERROR calling anthropic for enrichment: {repr(e)}", flush=True)
+            return {}
         
         response_text = response.content[0].text.strip()
         
