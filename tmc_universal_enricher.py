@@ -503,7 +503,7 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
 
         return rt
 
-    def map_to_tmc_structure(self, parsed_cv: Dict[str, Any], enriched_cv: Dict[str, Any]) -> Dict[str, Any]:
+    def map_to_tmc_structure(self, parsed_cv: Dict[str, Any], enriched_cv: Dict[str, Any], template_lang: str = 'FR') -> Dict[str, Any]:
         """Mapper les données enrichies vers la structure TMC"""
         print("🗺️  Mapping vers structure TMC...")
         
@@ -614,6 +614,24 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         titre_professionnel = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', ''))
         lieu_residence = parsed_cv.get('lieu_residence', 'Montréal, Canada')
         langues_list = parsed_cv.get('langues', ['Français', 'Anglais'])
+        
+        # Traduire les langues selon le template
+        if template_lang == 'EN':
+            langue_map = {
+                'Français': 'French',
+                'Anglais': 'English',
+                'Hébreu': 'Hebrew',
+                'Russe': 'Russian',
+                'Espagnol': 'Spanish',
+                'Allemand': 'German',
+                'Italien': 'Italian',
+                'Portugais': 'Portuguese',
+                'Chinois': 'Chinese',
+                'Japonais': 'Japanese',
+                'Arabe': 'Arabic'
+            }
+            langues_list = [langue_map.get(lang, lang) for lang in langues_list]
+        
         langues = ', '.join(langues_list)
         
         context = {
