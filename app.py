@@ -719,9 +719,7 @@ st.markdown("""
 ">
     <strong style="color: #193E92;">🔒 Privacy & Data Protection</strong><br>
     <span style="color: #6B7280; font-size: 0.9rem;">
-        Your data is processed securely and <strong>never stored</strong>. 
-        All files are automatically deleted after processing. 
-        CV data is only sent to Claude AI for optimization and is not retained.
+        Your data is processed securely and <strong>never stored</strong>. All files are automatically deleted after processing.
     </span>
 </div>
 """, unsafe_allow_html=True)
