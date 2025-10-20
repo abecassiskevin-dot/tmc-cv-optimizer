@@ -5,10 +5,10 @@ Interface Streamlit premium pour générer des CVs TMC optimisés
 """
 
 import streamlit as st
-import time
 from pathlib import Path
 import base64
 import tempfile
+from datetime import datetime
 
 # ==========================================
 # ⚙️ CONFIG PAGE
