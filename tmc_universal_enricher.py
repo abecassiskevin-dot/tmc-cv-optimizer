@@ -419,8 +419,10 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
   - Maximum 2-3 mots entre **astérisques**
   
   "score_matching": 85,
-  "points_forts": ["force 1", "force 2", "force 3"]
+  "points_forts": ["ALWAYS in English: key strength 1", "ALWAYS in English: key strength 2", "ALWAYS in English: key strength 3"]
 }}
+
+CRITICAL: The 'points_forts' field MUST ALWAYS be in ENGLISH, regardless of the target language ({language}). This is a non-negotiable requirement for the web interface.
 
 ---
 
