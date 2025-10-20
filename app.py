@@ -567,7 +567,7 @@ if submit:
             # Étape 4: Mapping
             with timeline_placeholder.container():
                 st.markdown(horizontal_progress_timeline(4), unsafe_allow_html=True)
-            tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv)
+            tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
             
             # Étape 5: Génération
             with timeline_placeholder.container():
@@ -626,7 +626,9 @@ if submit:
             # ===== KEY STRENGTHS =====
             points_forts = enriched_cv.get('points_forts', [])
             if points_forts:
-                st.markdown("### 💪 Key Strengths Identified")
+                # Titre selon la langue
+                titre_strengths = "💪 Points forts clés identifiés" if template_lang == "FR" else "💪 Key Strengths Identified"
+                st.markdown(f"### {titre_strengths}")
                 for i, pf in enumerate(points_forts[:5], 1):
                     st.markdown(f"**{i}.** {pf}")
             
@@ -646,10 +648,10 @@ if submit:
                 prenom = nom_parts[0] if nom_parts else 'Candidate'
                 nom = ''
             
-            # Titre court (max 3-4 mots)
-            titre_brut = parsed_cv.get('titre_professionnel', 'Professional')
+            # Titre court (max 3-4 mots) - utiliser le titre enrichi
+            titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
             titre_words = titre_brut.split()
-            titre_court = ' '.join(titre_words[:4]) if len(titre_words) > 4 else titre_brut
+            titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
             
             # Format final: TMC - Alexandra BILENKO - QA Analyst.docx
             if nom:
