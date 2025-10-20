@@ -330,7 +330,23 @@ EXPÉRIENCES:
                 cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
         
             # PROMPT OPTIMISÉ STYLE CHATGPT
-            language_instruction = f"""\n\n⚠️ IMPORTANT - LANGUE:\nTu DOIS générer TOUT le contenu en {language}.\n- Tous les titres, descriptions, compétences, responsabilités doivent être en {language}.\n- Respecte les conventions professionnelles de la langue {language}.\n- Si la langue cible est English, utilise un ton professionnel américain/canadien.\n"""
+            language_instruction = f"""
+⚠️ RÈGLE ABSOLUE - LANGUE {language.upper()}:
+- Tu DOIS générer 100% du contenu en {language}
+- Le TITRE PROFESSIONNEL doit être en {language}
+- TOUTES les descriptions doivent être en {language}
+- TOUS les mots-clés doivent être en {language}
+- Respecte les conventions professionnelles de la langue {language}
+- Si {language} = French: utilise "Analyste", "Gestion", "Configuration", etc.
+- Si {language} = English: utilise "Analyst", "Management", "Configuration", etc.
+
+IMPORTANT TITRE:
+- Adapte le titre professionnel à la Job Description
+- Le titre doit être COURT (3-5 mots maximum)
+- Le titre doit être en {language}
+- Exemple en français: "Analyste QA Senior" ou "Analyste Configuration SharePoint"
+- Exemple en anglais: "Senior QA Analyst" ou "SharePoint Configuration Analyst"
+"""
             
             prompt = f"""Voici la job description et le CV actuel ci-dessous.
 
@@ -357,7 +373,9 @@ Le rendu final doit être :
 
 Réponds en JSON STRICT (sans markdown) avec cette structure:
 {{
-  "profil_enrichi": "Profil NARRATIF en 5-6 lignes (style paragraphe fluide, sans liste à puces). Structure: [Titre/rôle + années] → [Expertise technique clé] → [Soft skills] → [Valeur ajoutée]. Ton professionnel et concis. IMPORTANT: Mettre en **gras** 3-5 MOTS-CLÉS TECHNIQUES UNIQUEMENT (technologies/outils de la JD comme **SharePoint**, **Confluence**, **Teams**, etc.). Exemple: 'Analyste en **configuration** et **gestion documentaire** fort de 25 ans d'expérience...'",
+  "titre_professionnel_enrichi": "TITRE COURT en {language} adapté à la Job Description (3-5 mots max). Ex FR: 'Analyste QA Senior', 'Analyste Configuration SharePoint'. Ex EN: 'Senior QA Analyst', 'SharePoint Configuration Analyst'",
+  
+  "profil_enrichi": "Profil NARRATIF en 5-6 lignes (style paragraphe fluide, sans liste à puces). Structure: [Titre/rôle + années] → [Expertise technique clé] → [Soft skills] → [Valeur ajoutée]. Ton professionnel et concis en {language}. IMPORTANT: Mettre en **gras** 3-5 MOTS-CLÉS TECHNIQUES UNIQUEMENT (technologies/outils de la JD). Exemple FR: 'Analyste en **configuration** et **gestion documentaire** fort de 25 ans d'expérience...'. Exemple EN: 'Analyst with **configuration** and **document management** expertise with 25 years...'"
   
   "mots_cles_a_mettre_en_gras": ["LISTE DE 15-20 TECHNOLOGIES CRITIQUES mentionnées dans la Job Description. Inclure TOUTES les plateformes, outils, langages et technologies clés (ex: Jira, SharePoint, Azure, Confluence, PowerShell, Windows Server, Active Directory, SCCM, Intune, Teams, ServiceNow, SQL, Python, etc.). PAS de verbes, PAS de mots génériques comme 'gestion' ou 'administration'"],
   
@@ -593,7 +611,7 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
             first_name = 'Prénom'
             last_name = 'Nom'
         
-        titre_professionnel = parsed_cv.get('titre_professionnel', '')
+        titre_professionnel = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', ''))
         lieu_residence = parsed_cv.get('lieu_residence', 'Montréal, Canada')
         langues_list = parsed_cv.get('langues', ['Français', 'Anglais'])
         langues = ', '.join(langues_list)
