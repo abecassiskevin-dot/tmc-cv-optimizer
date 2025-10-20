@@ -21,17 +21,6 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎬 LOADING SCREEN
-# ==========================================
-st.markdown("### Initialisation de l'application...")
-progress = st.progress(0)
-for pct in range(0, 101, 5):
-    time.sleep(0.02)
-    progress.progress(pct)
-st.success("✅ Interface prête — vous pouvez commencer !")
-st.markdown("<hr>", unsafe_allow_html=True)
-
-# ==========================================
 # 🧠 IMPORT LOURD — Lazy Loading
 # ==========================================
 @st.cache_resource
