@@ -23,7 +23,7 @@ st.set_page_config(
 # ==========================================
 # 🧠 IMPORT LOURD — Lazy Loading
 # ==========================================
-@st.cache_resource
+@st.cache_resource(show_spinner="🚀 Initializing CV Optimizer...")
 def load_backend():
     from tmc_universal_enricher import TMCUniversalEnricher
     return TMCUniversalEnricher()
@@ -626,9 +626,8 @@ if submit:
             # ===== KEY STRENGTHS =====
             points_forts = enriched_cv.get('points_forts', [])
             if points_forts:
-                # Titre selon la langue
-                titre_strengths = "💪 Points forts clés identifiés" if template_lang == "FR" else "💪 Key Strengths Identified"
-                st.markdown(f"### {titre_strengths}")
+                # Toujours en anglais
+                st.markdown("### 💪 Key Strengths Identified")
                 for i, pf in enumerate(points_forts[:5], 1):
                     st.markdown(f"**{i}.** {pf}")
             
