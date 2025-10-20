@@ -277,9 +277,9 @@ RÈGLES CRITIQUES:
         try:
             parsed_data = json.loads(response_text)
             print(f"✅ Parsing réussi!")
-            print(f"   Nom: {parsed_data.get('nom_complet', 'N/A')}")
+            print(f"   Nom: [ANONYMIZED]")
             print(f"   Langues: {', '.join(parsed_data.get('langues', []))}")
-            print(f"   Lieu: {parsed_data.get('lieu_residence', 'N/A')}")
+            print(f"   Lieu: [ANONYMIZED]")
             print(f"   Compétences: {len(parsed_data.get('competences', []))}")
             print(f"   Expériences: {len(parsed_data.get('experiences', []))}")
             return parsed_data
@@ -626,7 +626,7 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         }
         
         print(f"✅ Mapping terminé!")
-        print(f"   Nom: {first_name} {last_name}")
+        print(f"   Nom: [ANONYMIZED]")
         print(f"   Titre: {titre_professionnel}")
         print(f"   Langues: {langues}")
         print(f"   Profil: RichText généré")
