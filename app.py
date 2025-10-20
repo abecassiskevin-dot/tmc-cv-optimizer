@@ -706,6 +706,26 @@ if submit:
 # 🔚 FOOTER
 # =====================================================
 st.markdown("<br><br>", unsafe_allow_html=True)
+
+# Privacy notice
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #EBF4FF 0%, #E0E7FF 100%);
+    border-left: 4px solid #193E92;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+">
+    <strong style="color: #193E92;">🔒 Privacy & Data Protection</strong><br>
+    <span style="color: #6B7280; font-size: 0.9rem;">
+        Your data is processed securely and <strong>never stored</strong>. 
+        All files are automatically deleted after processing. 
+        CV data is only sent to Claude AI for optimization and is not retained.
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
 st.markdown(
     f"""
     <div class='tmc-footer'>
