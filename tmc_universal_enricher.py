@@ -616,19 +616,20 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         langues_list = parsed_cv.get('langues', ['Français', 'Anglais'])
         
         # Traduire les langues selon le template
-        if template_lang == 'EN':
+        if template_lang == 'FR':
+            # Si template FR, traduire de l'anglais vers le français
             langue_map = {
-                'Français': 'French',
-                'Anglais': 'English',
-                'Hébreu': 'Hebrew',
-                'Russe': 'Russian',
-                'Espagnol': 'Spanish',
-                'Allemand': 'German',
-                'Italien': 'Italian',
-                'Portugais': 'Portuguese',
-                'Chinois': 'Chinese',
-                'Japonais': 'Japanese',
-                'Arabe': 'Arabic'
+                'English': 'Anglais',
+                'French': 'Français',
+                'Hebrew': 'Hébreu',
+                'Russian': 'Russe',
+                'Spanish': 'Espagnol',
+                'German': 'Allemand',
+                'Italian': 'Italien',
+                'Portuguese': 'Portugais',
+                'Chinese': 'Chinois',
+                'Japanese': 'Japonais',
+                'Arabic': 'Arabe'
             }
             langues_list = [langue_map.get(lang, lang) for lang in langues_list]
         
