@@ -43,10 +43,10 @@ def horizontal_progress_timeline(current_step: int = 1) -> str:
     """
     steps = [
         {"num": 1, "icon": "🔍", "label": "Extraction"},
-        {"num": 2, "icon": "🤖", "label": "Analyse"},
-        {"num": 3, "icon": "✨", "label": "Enrichissement"},
-        {"num": 4, "icon": "🗺️", "label": "Structuration"},
-        {"num": 5, "icon": "📝", "label": "Génération"},
+        {"num": 2, "icon": "🤖", "label": "Analysis"},
+        {"num": 3, "icon": "✨", "label": "Enrichment"},
+        {"num": 4, "icon": "🗺️", "label": "Structuring"},
+        {"num": 5, "icon": "📝", "label": "Generation"},
     ]
     
     html_content = """
