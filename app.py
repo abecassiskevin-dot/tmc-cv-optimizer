@@ -735,7 +735,7 @@ if st.session_state.results:
         st.markdown("""
         <style>
         .domain-table-container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             overflow-x: auto;
         }
@@ -747,6 +747,7 @@ if st.session_state.results:
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
             border: 1px solid #e5e7eb;
+            table-layout: fixed;
         }
         .domain-table thead {
             background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
@@ -762,12 +763,31 @@ if st.session_state.results:
             padding: 12px 16px;
             font-size: 0.85rem;
             border-bottom: 1px solid #f3f4f6;
+            vertical-align: top;
+            word-wrap: break-word;
         }
         .domain-table tr:hover {
             background: #f9fafb;
         }
         .domain-table tr:last-child td {
             border-bottom: none;
+        }
+        .domain-table th:nth-child(1),
+        .domain-table td:nth-child(1) {
+            width: 28%;
+        }
+        .domain-table th:nth-child(2),
+        .domain-table td:nth-child(2) {
+            width: 10%;
+            text-align: center;
+        }
+        .domain-table th:nth-child(3),
+        .domain-table td:nth-child(3) {
+            width: 12%;
+        }
+        .domain-table th:nth-child(4),
+        .domain-table td:nth-child(4) {
+            width: 50%;
         }
         .icon-badge {
             width: 20px;
@@ -778,9 +798,11 @@ if st.session_state.results:
             justify-content: center;
             font-size: 0.75rem;
             margin-right: 8px;
+            vertical-align: middle;
         }
         .progress-bar-container {
-            width: 80%;
+            width: 75%;
+            max-width: 120px;
             height: 6px;
             background: #e5e7eb;
             border-radius: 10px;
@@ -804,10 +826,10 @@ if st.session_state.results:
         <table class="domain-table">
             <thead>
                 <tr>
-                    <th style="width: 30%;">Domain</th>
-                    <th style="width: 10%;">Weight</th>
-                    <th style="width: 15%;">Score</th>
-                    <th style="width: 45%;">Comment</th>
+                    <th>Domain</th>
+                    <th>Weight</th>
+                    <th>Score</th>
+                    <th>Comment</th>
                 </tr>
             </thead>
             <tbody>
