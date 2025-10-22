@@ -540,9 +540,16 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
   "points_forts": ["ALWAYS in English: key strength 1", "ALWAYS in English: key strength 2"]
 }}
 
-CRITICAL: 
-- 'domaines_analyses' MUST be completed with 5-8 domains totaling 100%
+🌍 CRITICAL LANGUAGE REQUIREMENT:
+- 'domaines_analyses' (domain names AND comments) MUST ALWAYS be in ENGLISH
+- 'synthese_matching' MUST ALWAYS be in ENGLISH  
 - 'points_forts' MUST ALWAYS be in ENGLISH
+- Example domain: "SQL Data Extraction and Manipulation" NOT "Extraction de données SQL"
+- Example comment: "❌ No demonstrated experience in SQL data extraction..." NOT "❌ Aucune expérience..."
+- Example synthesis: "Java senior profile unsuitable for .NET position..." NOT "Profil Java senior inadapté..."
+
+CRITICAL SCORING RULES:
+- 'domaines_analyses' MUST be completed with 5-8 domains totaling EXACTLY 100%
 - BE STRICT on scoring - don't give points if candidate lacks the skill
 - If stack mismatch (Java vs .NET), give 0 points, not 40-50
 
