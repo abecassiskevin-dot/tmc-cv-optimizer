@@ -756,29 +756,30 @@ if st.session_state.results:
             color: white;
             font-weight: 700;
             font-size: 0.9rem;
-            padding: 12px 16px;
+            padding: 14px 18px;
             text-align: left;
         }
         .domain-table td {
-            padding: 12px 16px;
-            font-size: 0.85rem;
+            padding: 14px 18px;
+            font-size: 0.875rem;
             border-bottom: 1px solid #f3f4f6;
             vertical-align: top;
             word-wrap: break-word;
+            line-height: 1.5;
         }
         .domain-table tr:hover {
-            background: #f9fafb;
+            background: transparent !important;
         }
         .domain-table tr:last-child td {
             border-bottom: none;
         }
         .domain-table th:nth-child(1),
         .domain-table td:nth-child(1) {
-            width: 28%;
+            width: 25%;
         }
         .domain-table th:nth-child(2),
         .domain-table td:nth-child(2) {
-            width: 10%;
+            width: 8%;
             text-align: center;
         }
         .domain-table th:nth-child(3),
@@ -787,7 +788,7 @@ if st.session_state.results:
         }
         .domain-table th:nth-child(4),
         .domain-table td:nth-child(4) {
-            width: 50%;
+            width: 55%;
         }
         .icon-badge {
             width: 20px;
@@ -801,9 +802,9 @@ if st.session_state.results:
             vertical-align: middle;
         }
         .progress-bar-container {
-            width: 75%;
-            max-width: 120px;
-            height: 6px;
+            width: 100%;
+            max-width: 140px;
+            height: 8px;
             background: #e5e7eb;
             border-radius: 10px;
             overflow: hidden;
