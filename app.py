@@ -747,6 +747,7 @@ if st.session_state.results:
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
             border: 1px solid #e5e7eb;
+            table-layout: fixed;
         }
         .domain-table thead {
             background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
@@ -776,28 +777,20 @@ if st.session_state.results:
         }
         .domain-table th:nth-child(1),
         .domain-table td:nth-child(1) {
-            width: 280px;
-            min-width: 280px;
-            max-width: 280px;
+            width: 40%;
         }
         .domain-table th:nth-child(2),
         .domain-table td:nth-child(2) {
-            width: 80px;
-            min-width: 80px;
-            max-width: 80px;
+            width: 10%;
             text-align: center;
         }
         .domain-table th:nth-child(3),
         .domain-table td:nth-child(3) {
-            width: 120px;
-            min-width: 120px;
-            max-width: 120px;
+            width: 10%;
         }
         .domain-table th:nth-child(4),
         .domain-table td:nth-child(4) {
-            width: auto;
-            overflow-wrap: break-word;
-            word-break: break-word;
+            width: 40%;
         }
         .icon-badge {
             width: 18px;
