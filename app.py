@@ -765,7 +765,7 @@ if st.session_state.results:
         .domain-row {
             display: grid;
             grid-template-columns: 2fr 0.8fr 1.2fr 3fr;
-            padding: 16px 20px;
+            padding: 20px 24px;
             border-bottom: 1px solid #f3f4f6;
             transition: all 0.2s ease;
         }
@@ -796,7 +796,10 @@ if st.session_state.results:
         .progress-bar {
             height: 100%;
             border-radius: 10px;
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fillBar 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes fillBar {
+            from { width: 0; }
         }
         .icon-badge {
             width: 24px;
@@ -864,15 +867,91 @@ if st.session_state.results:
                         <div class="progress-bar" style="width: {percentage}%; background: {bar_color};"></div>
                     </div>
                 </div>
-                <div class="domain-cell" style="font-size: 0.9rem; color: #6b7280;">
-                    {row['commentaire']}
+                <div class="domain-cell" style="font-size: 0.9rem; color: #6b7280;" title="{row['commentaire']}">
+                    {row['commentaire'][:150] + '...' if len(row['commentaire']) > 150 else row['commentaire']}
                 </div>
             </div>
             """, unsafe_allow_html=True)
         
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # ===== BLOC RÉSUMÉ STYLISÉ =====
+        # ===== BLOC INSIGHTS ANALYTIQUES =====
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Calculer les insights
+        domaines_critiques = [d for d in df_domaines.to_dict('records') if d['match'] == 'incompatible']
+        domaines_forts = [d for d in df_domaines.to_dict('records') if d['match'] in ['bon', 'excellent']]
+        domaines_partiels = [d for d in df_domaines.to_dict('records') if d['match'] == 'partiel']
+        
+        # Recommandation selon le score
+        if score_global >= 75:
+            recommandation = "✅ Excellent candidate - Strong match for the position"
+            recommandation_color = "#10b981"
+        elif score_global >= 50:
+            recommandation = "⚠️ Good candidate with some gaps - Consider for interview"
+            recommandation_color = "#f59e0b"
+        else:
+            recommandation = "❌ Profile not aligned - Significant skills gap"
+            recommandation_color = "#ef4444"
+        
+        st.markdown(f"""
+        <div style="
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border: 2px solid #f3f4f6;
+        ">
+            <div style="font-size: 1.3rem; font-weight: 700; color: #111827; margin-bottom: 20px;">
+                🧮 Analysis Insights
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                
+                <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px;">
+                    <div style="font-weight: 700; color: #991b1b; margin-bottom: 8px; font-size: 0.95rem;">❌ Critical Gaps</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #dc2626; margin-bottom: 8px;">{len(domaines_critiques)}</div>
+                    <div style="font-size: 0.85rem; color: #7f1d1d;">
+                        {', '.join([d['domaine'].split('(')[0].strip() for d in domaines_critiques[:2]]) if domaines_critiques else 'None'}
+                        {' ...' if len(domaines_critiques) > 2 else ''}
+                    </div>
+                </div>
+                
+                <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
+                    <div style="font-weight: 700; color: #92400e; margin-bottom: 8px; font-size: 0.95rem;">⚠️ Partial Matches</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #d97706; margin-bottom: 8px;">{len(domaines_partiels)}</div>
+                    <div style="font-size: 0.85rem; color: #78350f;">
+                        {', '.join([d['domaine'].split('(')[0].strip() for d in domaines_partiels[:2]]) if domaines_partiels else 'None'}
+                        {' ...' if len(domaines_partiels) > 2 else ''}
+                    </div>
+                </div>
+                
+                <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px;">
+                    <div style="font-weight: 700; color: #065f46; margin-bottom: 8px; font-size: 0.95rem;">✅ Strong Skills</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #059669; margin-bottom: 8px;">{len(domaines_forts)}</div>
+                    <div style="font-size: 0.85rem; color: #064e3b;">
+                        {', '.join([d['domaine'].split('(')[0].strip() for d in domaines_forts[:2]]) if domaines_forts else 'None'}
+                        {' ...' if len(domaines_forts) > 2 else ''}
+                    </div>
+                </div>
+                
+            </div>
+            
+            <div style="
+                background: linear-gradient(135deg, {recommandation_color}15 0%, {recommandation_color}08 100%);
+                border: 2px solid {recommandation_color};
+                border-radius: 12px;
+                padding: 16px 20px;
+                margin-top: 16px;
+            ">
+                <div style="font-weight: 700; color: {recommandation_color}; font-size: 1.05rem;">
+                    📊 Recommendation: {recommandation}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # ===== BLOC RÉSUMÉ TEXTUEL =====
         if results.get('synthese_matching'):
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(f"""
