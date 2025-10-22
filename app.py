@@ -699,7 +699,7 @@ if st.session_state.results:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ===== TABLEAU DE PONDÉRATION HTML SIMPLE ET EFFICACE =====
+    # ===== TABLEAU DE PONDÉRATION PROFESSIONNEL (st.dataframe) =====
     if results.get('domaines_analyses'):
         import pandas as pd
         
@@ -715,148 +715,128 @@ if st.session_state.results:
         # Créer le DataFrame
         df_domaines = pd.DataFrame(results['domaines_analyses'])
         
-        # ===== CSS + DÉBUT DU TABLEAU =====
+        # Ajouter colonne avec icône + domaine
+        def format_domain(row):
+            match = row['match']
+            if match == 'incompatible':
+                icon = "❌"
+            elif match == 'partiel':
+                icon = "⚠️"
+            else:
+                icon = "✅"
+            return f"{icon} {row['domaine']}"
+        
+        df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
+        df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
+        df_domaines['Score'] = df_domaines.apply(
+            lambda row: f"{row['score']}/{row['score_max']}", axis=1
+        )
+        
+        # Tronquer commentaires
+        def truncate(text, max_len=150):
+            if len(text) <= max_len:
+                return text
+            text = text[:max_len]
+            last_space = text.rfind(' ')
+            if last_space > 0:
+                text = text[:last_space]
+            if text and text[-1] not in '.!?':
+                text += '.'
+            return text
+        
+        df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
+        
+        # Sélectionner colonnes finales
+        df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
+        
+        # Fonction de style pour les lignes
+        def style_rows(row):
+            idx = row.name
+            match = df_domaines.loc[idx, 'match']
+            
+            if match == 'incompatible':
+                bg = '#fef2f2'
+            elif match == 'partiel':
+                bg = '#fffbeb'
+            else:
+                bg = '#f0fdf4'
+            
+            return [f'background-color: {bg}'] * len(row)
+        
+        # Appliquer style
+        styled_df = df_display.style.apply(style_rows, axis=1)
+        
+        # CSS pour le dataframe avec couleurs TMC
         st.markdown("""
         <style>
-        .weight-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            background: white;
+        /* Dataframe professionnel avec couleurs TMC */
+        [data-testid="stDataFrame"] {
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
+            border: 2px solid #193E92;
         }
-        .weight-table thead {
+        [data-testid="stDataFrame"] table {
+            border-collapse: collapse;
+        }
+        [data-testid="stDataFrame"] thead {
             background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
         }
-        .weight-table th {
-            color: white;
-            font-weight: 700;
-            font-size: 0.9rem;
-            padding: 16px;
-            text-align: left;
-            border: none;
+        [data-testid="stDataFrame"] thead th {
+            color: white !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+            padding: 18px 16px !important;
+            text-align: left !important;
+            border: none !important;
         }
-        .weight-table td {
-            padding: 16px;
-            font-size: 0.875rem;
-            border-bottom: 1px solid #f3f4f6;
-            vertical-align: middle;
+        [data-testid="stDataFrame"] tbody td {
+            padding: 16px !important;
+            font-size: 0.9rem !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            vertical-align: middle !important;
+            line-height: 1.6 !important;
         }
-        .weight-table tbody tr:last-child td {
-            border-bottom: none;
+        [data-testid="stDataFrame"] tbody tr:last-child td {
+            border-bottom: none !important;
         }
-        .weight-table .col-domain {
-            width: 35%;
-        }
-        .weight-table .col-weight {
-            width: 10%;
-            text-align: center;
-        }
-        .weight-table .col-score {
-            width: 15%;
-        }
-        .weight-table .col-comment {
-            width: 40%;
-        }
-        .icon-cell {
-            font-size: 1.2rem;
-            margin-right: 8px;
-        }
-        .progress-container {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 6px;
-        }
-        .progress-bar {
-            height: 100%;
-            border-radius: 10px;
-            transition: width 1s ease;
+        /* Accent orange TMC sur hover */
+        [data-testid="stDataFrame"] tbody tr:hover {
+            box-shadow: inset 4px 0 0 #D97104;
+            transition: all 0.2s ease;
         }
         </style>
-        
-        <table class="weight-table">
-            <thead>
-                <tr>
-                    <th class="col-domain">Domain</th>
-                    <th class="col-weight">Weight</th>
-                    <th class="col-score">Score</th>
-                    <th class="col-comment">Comment</th>
-                </tr>
-            </thead>
-            <tbody>
         """, unsafe_allow_html=True)
         
-        # ===== LIGNES DU TABLEAU =====
-        for idx, row in df_domaines.iterrows():
-            match = row['match']
-            score = row['score']
-            score_max = row['score_max']
-            poids = row['poids']
-            domaine = row['domaine']
-            commentaire = row['commentaire']
-            
-            # Couleurs et icônes selon le match
-            if match == 'incompatible':
-                bg_color = "#fef2f2"
-                icon = "❌"
-                bar_color = "#ef4444"
-            elif match == 'partiel':
-                bg_color = "#fffbeb"
-                icon = "⚠️"
-                bar_color = "#f59e0b"
-            else:
-                bg_color = "#f0fdf4"
-                icon = "✅"
-                bar_color = "#10b981"
-            
-            # Calculer le pourcentage pour la progress bar
-            percentage = (score / score_max * 100) if score_max > 0 else 0
-            
-            # Tronquer le commentaire intelligemment
-            max_length = 150
-            if len(commentaire) > max_length:
-                commentaire_court = commentaire[:max_length]
-                derniere_espace = commentaire_court.rfind(' ')
-                if derniere_espace > 0:
-                    commentaire_court = commentaire_court[:derniere_espace]
-                if commentaire_court and commentaire_court[-1] not in '.!?':
-                    commentaire_court += '.'
-            else:
-                commentaire_court = commentaire
-            
-            # Ligne du tableau
-            st.markdown(f"""
-            <tr style="background: {bg_color};">
-                <td class="col-domain">
-                    <span class="icon-cell">{icon}</span>
-                    <strong>{domaine}</strong>
-                </td>
-                <td class="col-weight">
-                    <strong>{poids}%</strong>
-                </td>
-                <td class="col-score">
-                    <div><strong>{score}/{score_max}</strong></div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: {percentage}%; background: {bar_color};"></div>
-                    </div>
-                </td>
-                <td class="col-comment" style="color: #6b7280;">
-                    {commentaire_court}
-                </td>
-            </tr>
-            """, unsafe_allow_html=True)
-        
-        # ===== FERMER LE TABLEAU =====
-        st.markdown("""
-            </tbody>
-        </table>
-        """, unsafe_allow_html=True)
+        # Afficher le dataframe
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            height=400,
+            column_config={
+                "Domain": st.column_config.TextColumn(
+                    "Domain",
+                    width="medium",
+                    help="Technical/functional domain"
+                ),
+                "Weight": st.column_config.TextColumn(
+                    "Weight",
+                    width="small",
+                    help="Importance weight (%)"
+                ),
+                "Score": st.column_config.TextColumn(
+                    "Score",
+                    width="small",
+                    help="Candidate score"
+                ),
+                "Comment": st.column_config.TextColumn(
+                    "Comment",
+                    width="large",
+                    help="Detailed assessment"
+                ),
+            }
+        )
         
         # ===== BLOC RÉSUMÉ TEXTUEL =====
         st.markdown("<br>", unsafe_allow_html=True)
