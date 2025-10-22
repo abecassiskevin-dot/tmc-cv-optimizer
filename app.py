@@ -623,6 +623,7 @@ if submit:
                 'score': enriched_cv.get('score_matching', 0),
                 'nom': parsed_cv.get('nom_complet', 'N/A'),
                 'nb_exp': len(enriched_cv.get('experiences_enrichies', [])),
+                'experiences_raw': parsed_cv.get('experiences', []),  # Pour calculer les années
                 'points_forts': enriched_cv.get('points_forts', []),
                 'domaines_analyses': enriched_cv.get('domaines_analyses', []),
                 'synthese_matching': enriched_cv.get('synthese_matching', ''),
@@ -695,7 +696,24 @@ if st.session_state.results:
         st.metric("👤 Candidate", nom_display)
     
     with col_res3:
-        st.metric("💼 Experiences", results['nb_exp'])
+        # Calculer les années d'expérience totales
+        experiences = results.get('experiences_raw', [])
+        total_years = 0
+        
+        for exp in experiences:
+            periode = exp.get('periode', '')
+            # Extraire les années (ex: "2020-2023" ou "2020 - Present")
+            years = [y.strip() for y in periode.replace('Present', '2025').replace('Présent', '2025').split('-')]
+            if len(years) == 2:
+                try:
+                    start = int(years[0][:4])  # Prendre les 4 premiers caractères
+                    end = int(years[1][:4]) if years[1][:4].isdigit() else 2025
+                    total_years += (end - start)
+                except:
+                    pass
+        
+        years_display = f"{total_years} years" if total_years > 0 else "N/A"
+        st.metric("📅 Years of Experience", years_display)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
