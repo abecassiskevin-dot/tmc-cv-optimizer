@@ -808,31 +808,30 @@ if st.session_state.results:
         </style>
         """, unsafe_allow_html=True)
         
-        # Afficher le dataframe
+        # Afficher le dataframe sans lignes vides
         st.dataframe(
             styled_df,
             use_container_width=True,
             hide_index=True,
-            height=400,
             column_config={
                 "Domain": st.column_config.TextColumn(
                     "Domain",
-                    width="medium",
+                    width=400,
                     help="Technical/functional domain"
                 ),
                 "Weight": st.column_config.TextColumn(
                     "Weight",
-                    width="small",
+                    width=70,
                     help="Importance weight (%)"
                 ),
                 "Score": st.column_config.TextColumn(
                     "Score",
-                    width="small",
+                    width=70,
                     help="Candidate score"
                 ),
                 "Comment": st.column_config.TextColumn(
                     "Comment",
-                    width="large",
+                    width=None,  # Prend l'espace restant
                     help="Detailed assessment"
                 ),
             }
