@@ -622,6 +622,8 @@ if submit:
                 'nom': parsed_cv.get('nom_complet', 'N/A'),
                 'nb_exp': len(enriched_cv.get('experiences_enrichies', [])),
                 'points_forts': enriched_cv.get('points_forts', []),
+                'domaines_analyses': enriched_cv.get('domaines_analyses', []),
+                'synthese_matching': enriched_cv.get('synthese_matching', ''),
                 'cv_bytes': cv_bytes,
                 'nom_fichier': nom_fichier
             }
@@ -692,6 +694,56 @@ if st.session_state.results:
     
     with col_res3:
         st.metric("💼 Experiences", results['nb_exp'])
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ===== TABLEAU DE PONDÉRATION =====
+    if results.get('domaines_analyses'):
+        st.markdown("### ⚙️ Weighting Applied to " + results['nom'].split()[0] + " " + results['nom'].split()[-1])
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        import pandas as pd
+        
+        # Créer le DataFrame
+        df_domaines = pd.DataFrame(results['domaines_analyses'])
+        
+        # Formatter les colonnes
+        df_display = pd.DataFrame({
+            'Domain': df_domaines['domaine'],
+            'Weight': df_domaines['poids'].apply(lambda x: f"{x} %"),
+            'Score': df_domaines.apply(lambda row: f"{row['score']}/{row['score_max']}", axis=1),
+            'Comment': df_domaines['commentaire']
+        })
+        
+        # Fonction pour colorier les lignes selon le match
+        def color_row(row):
+            idx = row.name
+            match = df_domaines.iloc[idx]['match']
+            if match == 'incompatible':
+                return ['background-color: #fee2e2'] * len(row)
+            elif match == 'partiel':
+                return ['background-color: #fef3c7'] * len(row)
+            elif match in ['bon', 'excellent']:
+                return ['background-color: #d1fae5'] * len(row)
+            return [''] * len(row)
+        
+        # Appliquer le style
+        styled_df = df_display.style.apply(color_row, axis=1)
+        
+        # Afficher le tableau
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            height=None
+        )
+        
+        # Synthèse matching
+        if results.get('synthese_matching'):
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.info(f"💬 **Summary:** {results['synthese_matching']}")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
     
     # ===== KEY STRENGTHS =====
     if results['points_forts']:
