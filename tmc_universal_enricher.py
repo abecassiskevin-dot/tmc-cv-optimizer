@@ -296,7 +296,9 @@ RÈGLES CRITIQUES:
         """Lire la job description"""
         file_type = self.detect_file_type(jd_path)
         
-        if file_type == 'docx':
+        if file_type == 'pdf':
+            return self.extract_from_pdf(jd_path)
+        elif file_type == 'docx':
             return self.extract_from_docx(jd_path)
         else:
             return self.extract_from_txt(jd_path)
@@ -345,7 +347,7 @@ IMPORTANT TITRE:
 - Le titre doit être COURT (3-5 mots maximum)
 - Le titre doit être en {language}
 - Exemple en français: "Analyste QA Senior" ou "Analyste Configuration SharePoint"
-- Exemple en anglais: "Senior QA Analyst" ou "SharePoint Configuration Analyst"
+- Exemple en anglais: "Senior QA Analyst" or "SharePoint Configuration Analyst"
 """
             
             prompt = f"""Voici la job description et le CV actuel ci-dessous.
@@ -509,19 +511,8 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         """Mapper les données enrichies vers la structure TMC"""
         print("🗺️  Mapping vers structure TMC...")
         
-        # HELPER: Échapper les caractères XML
-        def escape_xml(text):
-            """\u00c9chappe les caract\u00e8res sp\u00e9ciaux XML"""
-            if not isinstance(text, str):
-                return text
-            return (text
-                .replace('&', '&amp;')
-                .replace('<', '&lt;')
-                .replace('>', '&gt;'))
-        
-        # 1. PROFIL - Convertir en RichText pour supporter le gras
+        # 1. PROFIL - Convertir en RichText pour supporter le gras (pas d'échappement)
         profil_brut = enriched_cv.get('profil_enrichi', parsed_cv.get('profil_resume', ''))
-        profil_brut = escape_xml(profil_brut)  # Échapper XML
         profil = self.mdbold_to_richtext(profil_brut) if profil_brut else ''
         
         # 2. COMPÉTENCES - FORMAT CATÉGORISÉ DÉTAILLÉ
@@ -541,12 +532,12 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
             # Supprimer les catégories vides
             skills_categorized = {k: v for k, v in skills_categorized.items() if v}
         
-        # 🔥 Transformation en RichText pour le formatage
+        # 🔥 Transformation en RichText pour le formatage (pas d'échappement)
         skills_categorized_doc = []
         for cat, skills in skills_categorized.items():
             rt_cat = RichText()
-            rt_cat.add(escape_xml(cat), bold=True)  # Échapper catégorie
-            rt_skills = [self.mdbold_to_richtext(escape_xml(s)) for s in skills]  # Échapper compétences
+            rt_cat.add(cat, bold=True)
+            rt_skills = [self.mdbold_to_richtext(s) for s in skills]
             skills_categorized_doc.append((rt_cat, rt_skills))
         
         # 3. EXPÉRIENCES - Texte simple pour les responsabilités, RichText pour environnement
@@ -554,18 +545,17 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         work_experience = []
         
         for exp in experiences_enrichies:
-            # GARDER les responsabilités en TEXTE SIMPLE (pas RichText)
-            responsabilites_text = [escape_xml(r) for r in exp.get('responsabilites', [])]  # Échapper
+            # GARDER les responsabilités en TEXTE SIMPLE (pas RichText) - pas d'échappement
+            responsabilites_text = [r for r in exp.get('responsabilites', [])]
             
-            # Convertir l'environnement en RichText pour le gras
+            # Convertir l'environnement en RichText pour le gras - pas d'échappement
             environment_brut = exp.get('environment', '')
-            environment_brut = escape_xml(environment_brut)  # Échapper
             environment_rt = self.mdbold_to_richtext(environment_brut) if environment_brut else ''
             
             work_exp = {
-                'period': escape_xml(exp.get('periode', '')),
-                'company': escape_xml(exp.get('entreprise', '')),
-                'position': escape_xml(exp.get('poste', '')),
+                'period': exp.get('periode', ''),
+                'company': exp.get('entreprise', ''),
+                'position': exp.get('poste', ''),
                 'general_responsibilities': responsabilites_text,  # Texte simple
                 'environment': environment_rt
             }
@@ -589,16 +579,16 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         certifications = []
         for cert in certifications_raw:
             certifications.append({
-                'name': escape_xml(cert.get('nom', cert.get('name', ''))),
-                'institution': escape_xml(cert.get('organisme', cert.get('institution', ''))),
-                'year': escape_xml(str(cert.get('annee', cert.get('year', '')))),
-                'country': escape_xml(cert.get('pays', cert.get('country', '')))
+                'name': cert.get('nom', cert.get('name', '')),
+                'institution': cert.get('organisme', cert.get('institution', '')),
+                'year': str(cert.get('annee', cert.get('year', ''))),
+                'country': cert.get('pays', cert.get('country', ''))
             })
         
         # 6. PROJETS
         projects = parsed_cv.get('projets', [])
         
-        # 6. INFORMATIONS PERSONNELLES
+        # 7. INFORMATIONS PERSONNELLES
         nom_complet = parsed_cv.get('nom_complet', '')
         
         # Séparer prénom et nom
@@ -638,21 +628,21 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         langues = ', '.join(langues_list)
         
         context = {
-            # Pour le header (minuscules) - AVEC ÉCHAPPEMENT
-            'first_name': escape_xml(first_name),
-            'last_name': escape_xml(last_name),
-            'title': escape_xml(titre_professionnel),
+            # Pour le header (minuscules) - PAS d'échappement
+            'first_name': first_name,
+            'last_name': last_name,
+            'title': titre_professionnel,
             
-            # Pour la page 1 (MAJUSCULES) - AVEC ÉCHAPPEMENT
-            'FIRST_NAME': escape_xml(first_name.upper()),
-            'LAST_NAME': escape_xml(last_name.upper()),
-            'TITLE': escape_xml(titre_professionnel),
-            'RESIDENCY': escape_xml(lieu_residence),
-            'LANGUAGES': escape_xml(langues),
+            # Pour la page 1 (MAJUSCULES) - PAS d'échappement
+            'FIRST_NAME': first_name.upper(),
+            'LAST_NAME': last_name.upper(),
+            'TITLE': titre_professionnel,
+            'RESIDENCY': lieu_residence,
+            'LANGUAGES': langues,
             
             # AUSSI en minuscules pour compatibilité template
-            'residency': escape_xml(lieu_residence),
-            'languages': escape_xml(langues),
+            'residency': lieu_residence,
+            'languages': langues,
             
             # Reste du CV
             'summary': profil,
