@@ -740,34 +740,34 @@ if st.session_state.results:
             overflow-x: auto;
         }
         .domain-table {
-            width: 100%;
-            border-collapse: collapse;
+            width: 100% !important;
+            border-collapse: collapse !important;
             background: white;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
             border: 1px solid #e5e7eb;
-            table-layout: fixed;
+            table-layout: fixed !important;
         }
         .domain-table thead {
             background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
         }
         .domain-table th {
-            color: white;
-            font-weight: 700;
-            font-size: 0.9rem;
-            padding: 14px 18px;
-            text-align: left;
+            color: white !important;
+            font-weight: 700 !important;
+            font-size: 0.9rem !important;
+            padding: 14px 18px !important;
+            text-align: left !important;
         }
         .domain-table td {
-            padding: 14px 18px;
-            font-size: 0.875rem;
+            padding: 14px 18px !important;
+            font-size: 0.875rem !important;
             border-bottom: 1px solid #f3f4f6;
-            vertical-align: top;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            line-height: 1.5;
-            white-space: normal;
+            vertical-align: top !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            line-height: 1.5 !important;
+            white-space: normal !important;
         }
         .domain-table tr:hover {
             background: transparent !important;
@@ -777,20 +777,20 @@ if st.session_state.results:
         }
         .domain-table th:nth-child(1),
         .domain-table td:nth-child(1) {
-            width: 40%;
+            width: 40% !important;
         }
         .domain-table th:nth-child(2),
         .domain-table td:nth-child(2) {
-            width: 10%;
-            text-align: center;
+            width: 10% !important;
+            text-align: center !important;
         }
         .domain-table th:nth-child(3),
         .domain-table td:nth-child(3) {
-            width: 10%;
+            width: 10% !important;
         }
         .domain-table th:nth-child(4),
         .domain-table td:nth-child(4) {
-            width: 40%;
+            width: 40% !important;
         }
         .icon-badge {
             width: 18px;
