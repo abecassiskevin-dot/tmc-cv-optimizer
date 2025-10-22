@@ -31,6 +31,11 @@ def load_backend():
 # =====================================================
 # 🔧 HELPER FUNCTIONS
 # =====================================================
+
+# ===== SESSION STATE INITIALIZATION =====
+if 'results' not in st.session_state:
+    st.session_state.results = None
+
 def get_base64_image(image_path: Path) -> str:
     """Convertit une image en base64 pour l'afficher en HTML."""
     with open(image_path, "rb") as f:
@@ -445,10 +450,10 @@ with left:
 
 with right:
     st.markdown("### 📋 Job Description")
-    st.caption("Accepted formats: TXT, DOCX, DOC")
+    st.caption("Accepted formats: TXT, DOCX, DOC, PDF")
     jd_file = st.file_uploader(
         "Drop the job description here",
-        type=["txt", "docx", "doc"],
+        type=["txt", "docx", "doc", "pdf"],
         key="jd_upload"
     )
 
@@ -585,55 +590,7 @@ if submit:
             with timeline_placeholder.container():
                 st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
             
-            # ===== SUCCÈS ! Badge discret =====
-            col_s1, col_s2, col_s3 = st.columns([2, 1, 2])
-            with col_s2:
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(135deg, #22c55e 0%, #047857 100%);
-                    border-radius: 50px;
-                    padding: 8px 20px;
-                    text-align: center;
-                    box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3);
-                    margin: 12px 0;
-                    display: inline-block;
-                    width: 100%;
-                ">
-                    <span style="color: white; font-size: 0.95rem; font-weight: 600;">
-                        ✅ Success!
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # ===== RESULTS =====
-            col_res1, col_res2, col_res3 = st.columns(3)
-            
-            with col_res1:
-                score = enriched_cv.get('score_matching', 0)
-                st.metric("📊 Matching Score", f"{score}/100")
-            
-            with col_res2:
-                nom = parsed_cv.get('nom_complet', 'N/A')
-                nom_display = nom if len(nom) < 20 else nom[:17] + "..."
-                st.metric("👤 Candidate", nom_display)
-            
-            with col_res3:
-                nb_exp = len(enriched_cv.get('experiences_enrichies', []))
-                st.metric("💼 Experiences", nb_exp)
-            
-            # ===== KEY STRENGTHS =====
-            points_forts = enriched_cv.get('points_forts', [])
-            if points_forts:
-                # Toujours en anglais
-                st.markdown("### 💪 Key Strengths Identified")
-                for i, pf in enumerate(points_forts[:5], 1):
-                    st.markdown(f"**{i}.** {pf}")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # ===== DOWNLOAD =====
+            # ===== STOCKER LES RÉSULTATS DANS SESSION STATE =====
             cv_bytes = read_bytes(out_path)
             
             # Format: TMC - Prénom NOM - Titre Court.docx
@@ -641,45 +598,32 @@ if submit:
             nom_parts = nom_complet.split()
             
             if len(nom_parts) >= 2:
-                prenom = nom_parts[0]  # Première lettre majuscule, reste minuscule
-                nom = ' '.join(nom_parts[1:]).upper()  # NOM EN MAJUSCULES
+                prenom = nom_parts[0]
+                nom = ' '.join(nom_parts[1:]).upper()
             else:
                 prenom = nom_parts[0] if nom_parts else 'Candidate'
                 nom = ''
             
-            # Titre court (max 3-4 mots) - utiliser le titre enrichi
             titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
             titre_words = titre_brut.split()
             titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
             
-            # Format final: TMC - Alexandra BILENKO - QA Analyst.docx
             if nom:
                 nom_fichier = f"TMC - {prenom} {nom} - {titre_court}.docx"
             else:
                 nom_fichier = f"TMC - {prenom} - {titre_court}.docx"
             
-            # Bouton download avec style custom (dégradé vert)
-            st.markdown("""
-            <style>
-            .download-button-container {
-                display: flex;
-                justify-content: center;
-                margin: 20px 0;
+            # Stocker dans session_state
+            st.session_state.results = {
+                'score': enriched_cv.get('score_matching', 0),
+                'nom': parsed_cv.get('nom_complet', 'N/A'),
+                'nb_exp': len(enriched_cv.get('experiences_enrichies', [])),
+                'points_forts': enriched_cv.get('points_forts', []),
+                'cv_bytes': cv_bytes,
+                'nom_fichier': nom_fichier
             }
-            </style>
-            """, unsafe_allow_html=True)
             
-            col_dl1, col_dl2, col_dl3 = st.columns([1.5, 2, 1.5])
-            with col_dl2:
-                st.download_button(
-                    label="📥 Download TMC CV",
-                    data=cv_bytes,
-                    file_name=nom_fichier,
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    use_container_width=True
-                )
-            
-            # Nettoyage
+            # Nettoyage des fichiers temporaires
             try:
                 cv_path.unlink()
                 jd_path.unlink()
@@ -702,6 +646,78 @@ if submit:
             with st.expander("🔍 Technical details (for debug)"):
                 import traceback
                 st.code(traceback.format_exc())
+
+# =====================================================
+# 📊 AFFICHAGE DES RÉSULTATS (en dehors du bloc submit)
+# =====================================================
+if st.session_state.results:
+    results = st.session_state.results
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ===== SUCCÈS ! Badge discret =====
+    col_s1, col_s2, col_s3 = st.columns([2, 1, 2])
+    with col_s2:
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, #22c55e 0%, #047857 100%);
+            border-radius: 50px;
+            padding: 8px 20px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3);
+            margin: 12px 0;
+            display: inline-block;
+            width: 100%;
+        ">
+            <span style="color: white; font-size: 0.95rem; font-weight: 600;">
+                ✅ Success!
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ===== RESULTS =====
+    col_res1, col_res2, col_res3 = st.columns(3)
+    
+    with col_res1:
+        st.metric("📊 Matching Score", f"{results['score']}/100")
+    
+    with col_res2:
+        nom_display = results['nom'] if len(results['nom']) < 20 else results['nom'][:17] + "..."
+        st.metric("👤 Candidate", nom_display)
+    
+    with col_res3:
+        st.metric("💼 Experiences", results['nb_exp'])
+    
+    # ===== KEY STRENGTHS =====
+    if results['points_forts']:
+        st.markdown("### 💪 Key Strengths Identified")
+        for i, pf in enumerate(results['points_forts'][:5], 1):
+            st.markdown(f"**{i}.** {pf}")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ===== DOWNLOAD =====
+    st.markdown("""
+    <style>
+    .download-button-container {
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    col_dl1, col_dl2, col_dl3 = st.columns([1.5, 2, 1.5])
+    with col_dl2:
+        st.download_button(
+            label="📥 Download TMC CV",
+            data=results['cv_bytes'],
+            file_name=results['nom_fichier'],
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True
+        )
 
 # =====================================================
 # 🔚 FOOTER
