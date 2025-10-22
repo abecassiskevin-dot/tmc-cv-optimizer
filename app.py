@@ -717,35 +717,12 @@ if st.session_state.results:
             fit_level = "Moderate Mismatch"
             fit_color = "#ef4444"
         
-        # ===== HEADER AVEC BADGE SCORE =====
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            border: 1px solid #e5e7eb;
-            margin-bottom: 24px;
-        ">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
-                <div>
-                    <h3 style="margin: 0; color: #111827; font-size: 1.5rem; font-weight: 700;">
-                        ⚙️ Weighting Applied to {nom_display}
-                    </h3>
-                </div>
-                <div style="
-                    background: linear-gradient(135deg, {fit_color}15 0%, {fit_color}25 100%);
-                    border: 2px solid {fit_color};
-                    border-radius: 12px;
-                    padding: 12px 24px;
-                    text-align: center;
-                    box-shadow: 0 2px 8px {fit_color}40;
-                ">
-                    <div style="font-size: 0.85rem; color: #6b7280; font-weight: 600; margin-bottom: 4px;">Overall Fit</div>
-                    <div style="font-size: 2rem; color: {fit_color}; font-weight: 800; line-height: 1;">{score_global}%</div>
-                    <div style="font-size: 0.9rem; color: {fit_color}; font-weight: 600; margin-top: 4px;">{fit_level}</div>
-                </div>
-            </div>
+        # ===== TITRE SIMPLE (sans header) =====
+        st.markdown("""
+        <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
+                ⚙️ Detailed Weighting Analysis
+            </h3>
         </div>
         """, unsafe_allow_html=True)
         
@@ -761,13 +738,16 @@ if st.session_state.results:
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
             border: 1px solid #e5e7eb;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .domain-row {
             display: grid;
-            grid-template-columns: 2fr 0.8fr 1.2fr 3fr;
-            padding: 20px 24px;
+            grid-template-columns: 2fr 0.6fr 1fr 2.5fr;
+            padding: 14px 18px;
             border-bottom: 1px solid #f3f4f6;
             transition: all 0.2s ease;
+            font-size: 0.9rem;
         }
         .domain-row:hover {
             background: #f9fafb;
@@ -826,7 +806,7 @@ if st.session_state.results:
         """, unsafe_allow_html=True)
         
         # Lignes du tableau
-        for _, row in df_domaines.iterrows():
+        for idx, row in df_domaines.iterrows():
             match = row['match']
             score = row['score']
             score_max = row['score_max']
@@ -852,11 +832,16 @@ if st.session_state.results:
             # Calculer le pourcentage pour la barre
             percentage = (score / score_max * 100) if score_max > 0 else 0
             
+            # Commentaire tronqué ou complet
+            commentaire = row['commentaire']
+            commentaire_court = commentaire[:120] if len(commentaire) > 120 else commentaire
+            is_long = len(commentaire) > 120
+            
             st.markdown(f"""
             <div class="domain-row" style="background: {bg_color};">
                 <div class="domain-cell">
                     <span class="icon-badge" style="background: {icon_bg};">{icon}</span>
-                    <strong>{row['domaine']}</strong>
+                    <strong style="font-size: 0.9rem;">{row['domaine']}</strong>
                 </div>
                 <div class="domain-cell">
                     <strong>{poids}%</strong>
@@ -867,11 +852,16 @@ if st.session_state.results:
                         <div class="progress-bar" style="width: {percentage}%; background: {bar_color};"></div>
                     </div>
                 </div>
-                <div class="domain-cell" style="font-size: 0.9rem; color: #6b7280;" title="{row['commentaire']}">
-                    {row['commentaire'][:150] + '...' if len(row['commentaire']) > 150 else row['commentaire']}
+                <div class="domain-cell" style="font-size: 0.85rem; color: #6b7280; line-height: 1.4;">
+                    {commentaire_court}{'...' if is_long else ''}
                 </div>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Si commentaire long, ajouter un expander Streamlit
+            if is_long:
+                with st.expander("➡️ Read full comment", expanded=False):
+                    st.markdown(f"<div style='font-size: 0.9rem; color: #374151;'>{commentaire}</div>", unsafe_allow_html=True)
         
         st.markdown("</div>", unsafe_allow_html=True)
         
@@ -894,13 +884,28 @@ if st.session_state.results:
             recommandation = "❌ Profile not aligned - Significant skills gap"
             recommandation_color = "#ef4444"
         
-        st.markdown(f"""
+        # Construire les listes de domaines
+        critiques_text = ', '.join([d['domaine'].split('(')[0].strip() for d in domaines_critiques[:2]]) if domaines_critiques else 'None'
+        if len(domaines_critiques) > 2:
+            critiques_text += ' ...'
+        
+        partiels_text = ', '.join([d['domaine'].split('(')[0].strip() for d in domaines_partiels[:2]]) if domaines_partiels else 'None'
+        if len(domaines_partiels) > 2:
+            partiels_text += ' ...'
+        
+        forts_text = ', '.join([d['domaine'].split('(')[0].strip() for d in domaines_forts[:2]]) if domaines_forts else 'None'
+        if len(domaines_forts) > 2:
+            forts_text += ' ...'
+        
+        insights_html = f"""
         <div style="
             background: white;
             border-radius: 16px;
             padding: 28px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.08);
             border: 2px solid #f3f4f6;
+            max-width: 1200px;
+            margin: 0 auto;
         ">
             <div style="font-size: 1.3rem; font-weight: 700; color: #111827; margin-bottom: 20px;">
                 🧮 Analysis Insights
@@ -911,28 +916,19 @@ if st.session_state.results:
                 <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px;">
                     <div style="font-weight: 700; color: #991b1b; margin-bottom: 8px; font-size: 0.95rem;">❌ Critical Gaps</div>
                     <div style="font-size: 1.8rem; font-weight: 800; color: #dc2626; margin-bottom: 8px;">{len(domaines_critiques)}</div>
-                    <div style="font-size: 0.85rem; color: #7f1d1d;">
-                        {', '.join([d['domaine'].split('(')[0].strip() for d in domaines_critiques[:2]]) if domaines_critiques else 'None'}
-                        {' ...' if len(domaines_critiques) > 2 else ''}
-                    </div>
+                    <div style="font-size: 0.85rem; color: #7f1d1d;">{critiques_text}</div>
                 </div>
                 
                 <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
                     <div style="font-weight: 700; color: #92400e; margin-bottom: 8px; font-size: 0.95rem;">⚠️ Partial Matches</div>
                     <div style="font-size: 1.8rem; font-weight: 800; color: #d97706; margin-bottom: 8px;">{len(domaines_partiels)}</div>
-                    <div style="font-size: 0.85rem; color: #78350f;">
-                        {', '.join([d['domaine'].split('(')[0].strip() for d in domaines_partiels[:2]]) if domaines_partiels else 'None'}
-                        {' ...' if len(domaines_partiels) > 2 else ''}
-                    </div>
+                    <div style="font-size: 0.85rem; color: #78350f;">{partiels_text}</div>
                 </div>
                 
                 <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px;">
                     <div style="font-weight: 700; color: #065f46; margin-bottom: 8px; font-size: 0.95rem;">✅ Strong Skills</div>
                     <div style="font-size: 1.8rem; font-weight: 800; color: #059669; margin-bottom: 8px;">{len(domaines_forts)}</div>
-                    <div style="font-size: 0.85rem; color: #064e3b;">
-                        {', '.join([d['domaine'].split('(')[0].strip() for d in domaines_forts[:2]]) if domaines_forts else 'None'}
-                        {' ...' if len(domaines_forts) > 2 else ''}
-                    </div>
+                    <div style="font-size: 0.85rem; color: #064e3b;">{forts_text}</div>
                 </div>
                 
             </div>
@@ -949,7 +945,9 @@ if st.session_state.results:
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """
+        
+        st.markdown(insights_html, unsafe_allow_html=True)
         
         # ===== BLOC RÉSUMÉ TEXTUEL =====
         if results.get('synthese_matching'):
