@@ -40,8 +40,8 @@ class TMCUniversalEnricher:
             try:
                 print(">>> Creating anthropic client", flush=True)
                 import anthropic
-                # Création SIMPLE du client, sans arguments supplémentaires
-                self._anthropic_client = anthropic.Client(api_key=self.api_key)
+                # Création SIMPLE du client pour version 0.25.9
+                self._anthropic_client = anthropic.Anthropic(api_key=self.api_key)
                 print(">>> Anthropic client created OK", flush=True)
             except Exception as e:
                 print(f">>> ERROR creating anthropic client: {repr(e)}", flush=True)
@@ -331,7 +331,7 @@ EXPÉRIENCES:
             for form in parsed_cv.get('formation', []):
                 cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
         
-            # PROMPT OPTIMISÉ STYLE CHATGPT
+            # PROMPT ULTRA-RENFORCÉ POUR COHÉRENCE ABSOLUE
             language_instruction = f"""
 ⚠️ RÈGLE ABSOLUE - LANGUE {language.upper()}:
 - Tu DOIS générer 100% du contenu en {language}
@@ -348,6 +348,14 @@ IMPORTANT TITRE:
 - Le titre doit être en {language}
 - Exemple en français: "Analyste QA Senior" ou "Analyste Configuration SharePoint"
 - Exemple en anglais: "Senior QA Analyst" or "SharePoint Configuration Analyst"
+
+🎯 RÔLE CRITIQUE - TU ES UN RECRUTEUR SENIOR PROFESSIONNEL:
+- Tu as 15+ ans d'expérience en recrutement technique
+- Tu travailles pour le CLIENT (l'entreprise qui recrute)
+- Ta mission: évaluer si le CANDIDAT correspond EXACTEMENT aux besoins du CLIENT
+- Tu dois être OBJECTIF, RIGOUREUX et REPRODUCTIBLE dans ton évaluation
+- Ton scoring doit être IDENTIQUE si tu analyses le même CV/JD plusieurs fois
+- Tu notes comme un examinateur professionnel, pas comme un vendeur
 """
             
             prompt = f"""Voici la job description et le CV actuel ci-dessous.
@@ -355,33 +363,68 @@ IMPORTANT TITRE:
 🔹 Améliore le CV pour qu'il soit parfaitement aligné avec la job description tout en gardant le format d'origine (titres, mise en page, structure, ton professionnel).
 {language_instruction}
 
-🎯 ANALYSE DE MATCHING PONDÉRÉE (ULTRA-CRITIQUE):
+🎯 ANALYSE DE MATCHING PONDÉRÉE (ULTRA-CRITIQUE - COHÉRENCE ABSOLUE REQUISE):
+
+⚠️ PRINCIPE FONDAMENTAL DE COHÉRENCE:
+- Pour le MÊME CV et la MÊME JD, tu DOIS donner EXACTEMENT le même score
+- Utilise une grille d'évaluation OBJECTIVE et REPRODUCTIBLE
+- Ne sois PAS influencé par l'ordre d'analyse ou des facteurs externes
+- Agis comme un ROBOT OBJECTIF, pas comme un humain subjectif
+- Chaque critère doit avoir des règles BINAIRES (oui/non, présent/absent)
 
 ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES DE LA JD:
-Analyse la Job Description et identifie les domaines techniques/fonctionnels ESSENTIELS.
-Pour chaque domaine, détermine le POIDS (%) basé sur:
-- Fréquence de mention dans la JD
-- Position (début de JD = plus important)
-- Mots-clés "Required", "Must have", "Essential", "Critical"
-- Complexité technique
+Analyse la Job Description avec une méthode SYSTÉMATIQUE:
+1. Lis la JD 2 fois complètement
+2. Identifie les domaines techniques/fonctionnels ESSENTIELS
+3. Pour chaque domaine, détermine le POIDS (%) de manière OBJECTIVE:
+   - Fréquence de mention dans la JD (compter les occurrences)
+   - Position (début de JD = +10% de poids)
+   - Mots-clés "Required", "Must have", "Essential" = +15% de poids
+   - Si c'est le titre du poste = +20% de poids
 
-RÈGLES DE PONDÉRATION:
-- Stack technique principal (langages, frameworks): 30-50%
-- Architecture/Design patterns: 10-25%
-- Cloud/Infrastructure: 10-20%
-- Bases de données: 5-15%
+RÈGLES DE PONDÉRATION STRICTES:
+- Stack technique principal (langages, frameworks mentionnés 3+ fois): 30-50%
+- Architecture/Design patterns (si mentionné explicitement): 10-25%
+- Cloud/Infrastructure (si requis): 10-20%
+- Bases de données (si mentionné): 5-15%
 - Outils/Méthodologies: 5-15%
 - Soft skills/Leadership: 5-10%
-- TOTAL = 100%
+- TOTAL = EXACTEMENT 100% (vérifie 3 fois)
 
-ÉTAPE 2 - SCORER CHAQUE DOMAINE VS CANDIDAT:
-- Score = 0 si AUCUNE expérience
-- Score = 20-40% si expérience LIMITÉE/INDIRECTE
-- Score = 60-80% si expérience PARTIELLE
-- Score = 100% si expérience COMPLÈTE et PROUVÉE
+ÉTAPE 2 - SCORER CHAQUE DOMAINE VS CANDIDAT (GRILLE OBJECTIVE):
+Pour CHAQUE domaine, utilise cette grille STRICTE et REPRODUCTIBLE:
+
+- Score = 0% si:
+  • AUCUNE mention de la technologie/compétence dans le CV
+  • Aucune expérience même indirecte
+  • Technologies complètement différentes (ex: Java vs .NET)
+
+- Score = 20-30% si:
+  • Technologie similaire mais pas identique (ex: PostgreSQL vs SQL Server)
+  • Expérience INDIRECTE ou TRANSFÉRABLE
+  • Formation/certification mais pas d'expérience pratique
+
+- Score = 50-70% si:
+  • Expérience PARTIELLE avec la technologie demandée
+  • Utilisé dans 1-2 projets mais pas maîtrisé
+  • Compétence présente mais niveau junior/intermédiaire
+
+- Score = 80-100% si:
+  • Expérience COMPLÈTE et PROUVÉE (3+ projets)
+  • Maîtrise démontrée avec résultats concrets
+  • Niveau senior confirmé
+
+MÉTHODE DE NOTATION OBJECTIVE:
+1. Pour chaque domaine, compte le nombre de mentions dans le CV
+2. Évalue le niveau (junior/intermédiaire/senior) basé sur les réalisations
+3. Applique la grille ci-dessus de manière MÉCANIQUE
+4. Vérifie 2 fois ton calcul
 
 ÉTAPE 3 - COMMENTAIRE PAR DOMAINE (30-50 mots):
-Utilise ❌ (0-30%), ⚠️ (30-70%), ✅ (70-100%)
+- Utilise ❌ (0-30%), ⚠️ (30-70%), ✅ (70-100%)
+- Sois FACTUEL et OBJECTIF dans tes commentaires
+- Base-toi UNIQUEMENT sur les FAITS présents dans le CV
+- Ne fais PAS d'hypothèses optimistes
 
 EXEMPLE:
 JD demande: ".NET, C#, Azure, SQL Server"
