@@ -697,51 +697,201 @@ if st.session_state.results:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ===== TABLEAU DE PONDÉRATION =====
+    # ===== TABLEAU DE PONDÉRATION PREMIUM =====
     if results.get('domaines_analyses'):
-        st.markdown("### ⚙️ Weighting Applied to " + results['nom'].split()[0] + " " + results['nom'].split()[-1])
-        st.markdown("<br>", unsafe_allow_html=True)
-        
         import pandas as pd
+        
+        # Nom du candidat
+        nom_parts = results['nom'].split()
+        nom_display = f"{nom_parts[0]} {nom_parts[-1]}" if len(nom_parts) >= 2 else results['nom']
+        score_global = results['score']
+        
+        # Déterminer le niveau de match
+        if score_global >= 75:
+            fit_level = "Excellent Match"
+            fit_color = "#10b981"
+        elif score_global >= 50:
+            fit_level = "Good Match"
+            fit_color = "#f59e0b"
+        else:
+            fit_level = "Moderate Mismatch"
+            fit_color = "#ef4444"
+        
+        # ===== HEADER AVEC BADGE SCORE =====
+        st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        ">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div>
+                    <h3 style="margin: 0; color: #111827; font-size: 1.5rem; font-weight: 700;">
+                        ⚙️ Weighting Applied to {nom_display}
+                    </h3>
+                </div>
+                <div style="
+                    background: linear-gradient(135deg, {fit_color}15 0%, {fit_color}25 100%);
+                    border: 2px solid {fit_color};
+                    border-radius: 12px;
+                    padding: 12px 24px;
+                    text-align: center;
+                    box-shadow: 0 2px 8px {fit_color}40;
+                ">
+                    <div style="font-size: 0.85rem; color: #6b7280; font-weight: 600; margin-bottom: 4px;">Overall Fit</div>
+                    <div style="font-size: 2rem; color: {fit_color}; font-weight: 800; line-height: 1;">{score_global}%</div>
+                    <div style="font-size: 0.9rem; color: {fit_color}; font-weight: 600; margin-top: 4px;">{fit_level}</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Créer le DataFrame
         df_domaines = pd.DataFrame(results['domaines_analyses'])
         
-        # Formatter les colonnes
-        df_display = pd.DataFrame({
-            'Domain': df_domaines['domaine'],
-            'Weight': df_domaines['poids'].apply(lambda x: f"{x} %"),
-            'Score': df_domaines.apply(lambda row: f"{row['score']}/{row['score_max']}", axis=1),
-            'Comment': df_domaines['commentaire']
-        })
+        # ===== TABLEAU AVEC BARRES DE PROGRESSION =====
+        st.markdown("""
+        <style>
+        .domain-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid #e5e7eb;
+        }
+        .domain-row {
+            display: grid;
+            grid-template-columns: 2fr 0.8fr 1.2fr 3fr;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: all 0.2s ease;
+        }
+        .domain-row:hover {
+            background: #f9fafb;
+        }
+        .domain-header {
+            background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 14px 20px !important;
+        }
+        .domain-cell {
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+            color: #374151;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .icon-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            font-size: 0.85rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         
-        # Fonction pour colorier les lignes selon le match
-        def color_row(row):
-            idx = row.name
-            match = df_domaines.iloc[idx]['match']
+        # Header du tableau
+        st.markdown("""
+        <div class="domain-table">
+            <div class="domain-row domain-header">
+                <div>Domain</div>
+                <div>Weight</div>
+                <div>Score</div>
+                <div>Comment</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Lignes du tableau
+        for _, row in df_domaines.iterrows():
+            match = row['match']
+            score = row['score']
+            score_max = row['score_max']
+            poids = row['poids']
+            
+            # Couleurs selon le match
             if match == 'incompatible':
-                return ['background-color: #fee2e2'] * len(row)
+                bg_color = "#fef2f2"
+                icon_bg = "#fca5a5"
+                icon = "✕"
+                bar_color = "#ef4444"
             elif match == 'partiel':
-                return ['background-color: #fef3c7'] * len(row)
-            elif match in ['bon', 'excellent']:
-                return ['background-color: #d1fae5'] * len(row)
-            return [''] * len(row)
+                bg_color = "#fffbeb"
+                icon_bg = "#fcd34d"
+                icon = "⚠"
+                bar_color = "#f59e0b"
+            else:
+                bg_color = "#f0fdf4"
+                icon_bg = "#86efac"
+                icon = "✓"
+                bar_color = "#10b981"
+            
+            # Calculer le pourcentage pour la barre
+            percentage = (score / score_max * 100) if score_max > 0 else 0
+            
+            st.markdown(f"""
+            <div class="domain-row" style="background: {bg_color};">
+                <div class="domain-cell">
+                    <span class="icon-badge" style="background: {icon_bg};">{icon}</span>
+                    <strong>{row['domaine']}</strong>
+                </div>
+                <div class="domain-cell">
+                    <strong>{poids}%</strong>
+                </div>
+                <div class="domain-cell" style="flex-direction: column; align-items: flex-start;">
+                    <div><strong>{score}/{score_max}</strong></div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {percentage}%; background: {bar_color};"></div>
+                    </div>
+                </div>
+                <div class="domain-cell" style="font-size: 0.9rem; color: #6b7280;">
+                    {row['commentaire']}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         
-        # Appliquer le style
-        styled_df = df_display.style.apply(color_row, axis=1)
+        st.markdown("</div>", unsafe_allow_html=True)
         
-        # Afficher le tableau
-        st.dataframe(
-            styled_df,
-            use_container_width=True,
-            hide_index=True,
-            height=None
-        )
-        
-        # Synthèse matching
+        # ===== BLOC RÉSUMÉ STYLISÉ =====
         if results.get('synthese_matching'):
             st.markdown("<br>", unsafe_allow_html=True)
-            st.info(f"💬 **Summary:** {results['synthese_matching']}")
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                border-left: 4px solid #3b82f6;
+                border-radius: 12px;
+                padding: 20px 24px;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+            ">
+                <div style="display: flex; align-items: start;">
+                    <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
+                    <div>
+                        <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
+                        <div style="color: #1e3a8a; line-height: 1.6;">{results['synthese_matching']}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
