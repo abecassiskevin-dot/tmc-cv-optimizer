@@ -523,6 +523,9 @@ def read_bytes(path: Path) -> bytes:
 # ⚙️ PIPELINE PRINCIPALE
 # =====================================================
 if submit:
+    # Réinitialiser les résultats précédents dès qu'on clique sur Generate
+    st.session_state.results = None
+    
     if not can_run:
         st.error("❌ Please upload **the resume** and **the job description**.")
         st.stop()
