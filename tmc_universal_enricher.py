@@ -355,31 +355,104 @@ IMPORTANT TITRE:
 🔹 Améliore le CV pour qu'il soit parfaitement aligné avec la job description tout en gardant le format d'origine (titres, mise en page, structure, ton professionnel).
 {language_instruction}
 
+🎯 ANALYSE DE MATCHING PONDÉRÉE (ULTRA-CRITIQUE):
+
+ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES DE LA JD:
+Analyse la Job Description et identifie les domaines techniques/fonctionnels ESSENTIELS.
+Pour chaque domaine, détermine le POIDS (%) basé sur:
+- Fréquence de mention dans la JD
+- Position (début de JD = plus important)
+- Mots-clés "Required", "Must have", "Essential", "Critical"
+- Complexité technique
+
+RÈGLES DE PONDÉRATION:
+- Stack technique principal (langages, frameworks): 30-50%
+- Architecture/Design patterns: 10-25%
+- Cloud/Infrastructure: 10-20%
+- Bases de données: 5-15%
+- Outils/Méthodologies: 5-15%
+- Soft skills/Leadership: 5-10%
+- TOTAL = 100%
+
+ÉTAPE 2 - SCORER CHAQUE DOMAINE VS CANDIDAT:
+- Score = 0 si AUCUNE expérience
+- Score = 20-40% si expérience LIMITÉE/INDIRECTE
+- Score = 60-80% si expérience PARTIELLE
+- Score = 100% si expérience COMPLÈTE et PROUVÉE
+
+ÉTAPE 3 - COMMENTAIRE PAR DOMAINE (30-50 mots):
+Utilise ❌ (0-30%), ⚠️ (30-70%), ✅ (70-100%)
+
+EXEMPLE:
+JD demande: ".NET, C#, Azure, SQL Server"
+Candidat a: "Java, AWS, PostgreSQL"
+
+RÉSULTAT:
+{{
+  "domaines_analyses": [
+    {{
+      "domaine": "Stack .NET (C#, ASP.NET Core, Entity Framework)",
+      "poids": 40,
+      "score": 0,
+      "score_max": 40,
+      "commentaire": "❌ Aucune expérience .NET/C#. Profil Java exclusivement - incompatibilité majeure sur stack principale.",
+      "match": "incompatible"
+    }},
+    {{
+      "domaine": "Cloud Microsoft Azure",
+      "poids": 20,
+      "score": 8,
+      "score_max": 20,
+      "commentaire": "⚠️ Expérience AWS uniquement. Compétences cloud transférables mais nécessite formation Azure.",
+      "match": "partiel"
+    }},
+    {{
+      "domaine": "SQL Server & T-SQL",
+      "poids": 15,
+      "score": 10,
+      "score_max": 15,
+      "commentaire": "✅ Maîtrise PostgreSQL et MySQL - compétences SQL transférables à SQL Server.",
+      "match": "bon"
+    }}
+  ],
+  "score_matching": 45,
+  "synthese_matching": "Profil Java senior inadapté pour poste .NET. Gap critique sur stack principale (0/40). Compétences transférables en cloud et SQL, mais nécessite reconversion majeure."
+}}
+
 Fais :
 
-1. Une analyse des écarts entre la job description et le CV actuel.
-2. Une version réécrite et enrichie du CV, en conservant le style et le format de mise en page (ex. sections : Profil, Compétences, Expériences, Formation, etc.).
+1. ANALYSE PONDÉRÉE OBLIGATOIRE (voir ci-dessus)
+2. Une version réécrite et enrichie du CV
 
-2b. PROFIL exceptionnel : écris un paragraphe NARRATIF fluide (pas de liste), 5-6 lignes avec progression logique. Commence par "Titre/rôle + expérience", enchaîne avec expertise technique, puis soft skills et valeur. Style : Administrateur de plateformes Atlassian fort de 10 ans d'expérience...
+2b. PROFIL exceptionnel : écris un paragraphe NARRATIF fluide (pas de liste), 5-6 lignes avec progression logique.
 
-2c. GRAS ULTRA-SÉLECTIF : identifie UNIQUEMENT 3-5 technologies CRITIQUES (noms de plateformes/outils demandés explicitement dans la JD). Évite les mots génériques comme "gestion", "configuration", "documentation". Exemples: Jira, SharePoint, Azure, Confluence.
+2c. GRAS ULTRA-SÉLECTIF : identifie UNIQUEMENT 3-5 technologies CRITIQUES.
 
-3. Intègre naturellement les mots-clés techniques, fonctionnels et comportementaux issus de la job description (sans sur-optimisation artificielle).
-4. Ajuste les intitulés et formulations pour que le profil paraisse livrable immédiatement pour le poste visé.
-5. N'invente rien — reformule, réorganise et valorise uniquement les éléments déjà présents ou implicitement cohérents avec le parcours.
-6. EXPÉRIENCES : bullets courts et percutants (1 ligne max par bullet), maximum 5-6 bullets par expérience.
-
-Le rendu final doit être :
-✅ clair, professionnel, fluide, et client-ready (format TMC/Desjardins).
-✅ prêt à être copié dans Word sans modification.
+3. Intègre naturellement les mots-clés techniques de la JD
+4. Ajuste les intitulés pour que le profil paraisse livrable immédiatement
+5. N'invente rien — reformule uniquement les éléments présents
+6. EXPÉRIENCES : bullets courts (1 ligne max), maximum 5-6 bullets par expérience
 
 Réponds en JSON STRICT (sans markdown) avec cette structure:
 {{
-  "titre_professionnel_enrichi": "TITRE COURT en {language} adapté à la Job Description (3-5 mots max). Ex FR: 'Analyste QA Senior', 'Analyste Configuration SharePoint'. Ex EN: 'Senior QA Analyst', 'SharePoint Configuration Analyst'",
+  "domaines_analyses": [
+    {{
+      "domaine": "Nom domaine technique/fonctionnel (ex: Stack .NET, Cloud Azure)",
+      "poids": 40,
+      "score": 15,
+      "score_max": 40,
+      "commentaire": "Explication 30-50 mots avec ❌/⚠️/✅",
+      "match": "incompatible|partiel|bon|excellent"
+    }}
+  ],
+  "score_matching": 45,
+  "synthese_matching": "Résumé 2-3 phrases du matching global avec points forts et gaps critiques",
   
-  "profil_enrichi": "Profil NARRATIF en 5-6 lignes (style paragraphe fluide, sans liste à puces). Structure: [Titre/rôle + années] → [Expertise technique clé] → [Soft skills] → [Valeur ajoutée]. Ton professionnel et concis en {language}. IMPORTANT: Mettre en **gras** 3-5 MOTS-CLÉS TECHNIQUES UNIQUEMENT (technologies/outils de la JD). Exemple FR: 'Analyste en **configuration** et **gestion documentaire** fort de 25 ans d'expérience...'. Exemple EN: 'Analyst with **configuration** and **document management** expertise with 25 years...'"
+  "titre_professionnel_enrichi": "TITRE COURT en {language} (3-5 mots max)",
   
-  "mots_cles_a_mettre_en_gras": ["LISTE DE 15-20 TECHNOLOGIES CRITIQUES mentionnées dans la Job Description. Inclure TOUTES les plateformes, outils, langages et technologies clés (ex: Jira, SharePoint, Azure, Confluence, PowerShell, Windows Server, Active Directory, SCCM, Intune, Teams, ServiceNow, SQL, Python, etc.). PAS de verbes, PAS de mots génériques comme 'gestion' ou 'administration'"],
+  "profil_enrichi": "Profil NARRATIF 5-6 lignes en {language} avec **3-5 technologies clés** en gras",
+  
+  "mots_cles_a_mettre_en_gras": ["Liste 15-20 TECHNOLOGIES de la JD - PAS de verbes génériques"],
   
   "competences_enrichies": {{
     "Nom Catégorie 1 (3-6 mots max)": [
@@ -420,11 +493,15 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
   - JAMAIS phrases entières en gras
   - Maximum 2-3 mots entre **astérisques**
   
-  "score_matching": 85,
-  "points_forts": ["ALWAYS in English: key strength 1", "ALWAYS in English: key strength 2", "ALWAYS in English: key strength 3"]
+  "score_matching": 45,
+  "points_forts": ["ALWAYS in English: key strength 1", "ALWAYS in English: key strength 2"]
 }}
 
-CRITICAL: The 'points_forts' field MUST ALWAYS be in ENGLISH, regardless of the target language ({language}). This is a non-negotiable requirement for the web interface.
+CRITICAL: 
+- 'domaines_analyses' MUST be completed with 5-8 domains totaling 100%
+- 'points_forts' MUST ALWAYS be in ENGLISH
+- BE STRICT on scoring - don't give points if candidate lacks the skill
+- If stack mismatch (Java vs .NET), give 0 points, not 40-50
 
 ---
 
@@ -465,7 +542,20 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
             enriched = json.loads(response_text)
             print(f"✅ Enrichissement réussi!")
             print(f"   Score matching: {enriched.get('score_matching', 0)}/100")
+            print(f"   Domaines analysés: {len(enriched.get('domaines_analyses', []))}")
             print(f"   Mots-clés en gras: {len(enriched.get('mots_cles_a_mettre_en_gras', []))}")
+            
+            if enriched.get('domaines_analyses'):
+                print(f"\n   📊 Détail scoring:")
+                for domaine in enriched['domaines_analyses']:
+                    emoji = domaine.get('match', '')
+                    if emoji == 'incompatible':
+                        emoji = '❌'
+                    elif emoji == 'partiel':
+                        emoji = '⚠️'
+                    elif emoji in ['bon', 'excellent']:
+                        emoji = '✅'
+                    print(f"      {emoji} {domaine.get('domaine', 'N/A')}: {domaine.get('score', 0)}/{domaine.get('score_max', 0)} ({domaine.get('poids', 0)}%)")
             
             # DEBUG: Afficher une responsabilité pour voir le format
             if enriched.get('experiences_enrichies'):
@@ -842,7 +932,20 @@ def main():
         print("🎉 ENRICHISSEMENT TERMINÉ!")
         print("=" * 60)
         print(f"📊 Score matching: {enriched_cv.get('score_matching', 0)}/100")
-        print(f"💪 Points forts:")
+        
+        # Afficher les domaines analysés
+        if enriched_cv.get('domaines_analyses'):
+            print(f"\n📊 Analyse par domaine:")
+            for domaine in enriched_cv['domaines_analyses']:
+                match = domaine.get('match', '')
+                emoji = '❌' if match == 'incompatible' else '⚠️' if match == 'partiel' else '✅'
+                print(f"   {emoji} {domaine.get('domaine', 'N/A')}: {domaine.get('score', 0)}/{domaine.get('score_max', 0)} pts ({domaine.get('poids', 0)}%)")
+                print(f"      → {domaine.get('commentaire', 'N/A')}")
+        
+        if enriched_cv.get('synthese_matching'):
+            print(f"\n💬 Synthèse: {enriched_cv['synthese_matching']}")
+        
+        print(f"\n💪 Points forts:")
         for pf in enriched_cv.get('points_forts', [])[:3]:
             print(f"   • {pf}")
         print(f"\n📄 Fichier généré: {args.output}")
