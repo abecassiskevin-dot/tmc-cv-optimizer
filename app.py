@@ -76,8 +76,10 @@ def horizontal_progress_timeline(current_step: int = 1) -> str:
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                width: 100%;
-                max-width: 900px;
+                width: 90%;
+                max-width: 1000px;
+                min-width: 600px;
+                margin: 0 auto;
                 position: relative;
             }
             .step {
@@ -729,45 +731,57 @@ if st.session_state.results:
         # Créer le DataFrame
         df_domaines = pd.DataFrame(results['domaines_analyses'])
         
-        # ===== TABLEAU AVEC BARRES DE PROGRESSION =====
+        # ===== TABLEAU HTML RESPONSIVE =====
         st.markdown("""
         <style>
+        .domain-table-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            overflow-x: auto;
+        }
         .domain-table {
+            width: 100%;
+            border-collapse: collapse;
             background: white;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
             border: 1px solid #e5e7eb;
-            max-width: 1200px;
-            margin: 0 auto;
         }
-        .domain-row {
-            display: grid;
-            grid-template-columns: 2fr 0.6fr 1fr 2.5fr;
-            padding: 14px 18px;
-            border-bottom: 1px solid #f3f4f6;
-            transition: all 0.2s ease;
-            font-size: 0.9rem;
-        }
-        .domain-row:hover {
-            background: #f9fafb;
-        }
-        .domain-header {
+        .domain-table thead {
             background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
+        }
+        .domain-table th {
             color: white;
             font-weight: 700;
             font-size: 0.9rem;
-            padding: 14px 20px !important;
+            padding: 12px 16px;
+            text-align: left;
         }
-        .domain-cell {
-            display: flex;
+        .domain-table td {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .domain-table tr:hover {
+            background: #f9fafb;
+        }
+        .domain-table tr:last-child td {
+            border-bottom: none;
+        }
+        .icon-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
             align-items: center;
-            font-size: 0.95rem;
-            color: #374151;
+            justify-content: center;
+            font-size: 0.75rem;
+            margin-right: 8px;
         }
         .progress-bar-container {
-            width: 100%;
-            height: 8px;
+            width: 80%;
+            height: 6px;
             background: #e5e7eb;
             border-radius: 10px;
             overflow: hidden;
@@ -781,28 +795,22 @@ if st.session_state.results:
         @keyframes fillBar {
             from { width: 0; }
         }
-        .icon-badge {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 8px;
-            font-size: 0.85rem;
-        }
         </style>
         """, unsafe_allow_html=True)
         
-        # Header du tableau
+        # Démarrer le tableau HTML
         st.markdown("""
-        <div class="domain-table">
-            <div class="domain-row domain-header">
-                <div>Domain</div>
-                <div>Weight</div>
-                <div>Score</div>
-                <div>Comment</div>
-            </div>
+        <div class="domain-table-container">
+        <table class="domain-table">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Domain</th>
+                    <th style="width: 10%;">Weight</th>
+                    <th style="width: 15%;">Score</th>
+                    <th style="width: 45%;">Comment</th>
+                </tr>
+            </thead>
+            <tbody>
         """, unsafe_allow_html=True)
         
         # Lignes du tableau
@@ -832,124 +840,48 @@ if st.session_state.results:
             # Calculer le pourcentage pour la barre
             percentage = (score / score_max * 100) if score_max > 0 else 0
             
-            # Commentaire tronqué ou complet
+            # Commentaire tronqué intelligemment (sans "...")
             commentaire = row['commentaire']
-            commentaire_court = commentaire[:120] if len(commentaire) > 120 else commentaire
-            is_long = len(commentaire) > 120
+            max_length = 120
+            
+            if len(commentaire) > max_length:
+                # Tronquer au dernier mot complet avant max_length
+                commentaire_court = commentaire[:max_length]
+                derniere_espace = commentaire_court.rfind(' ')
+                if derniere_espace > 0:
+                    commentaire_court = commentaire_court[:derniere_espace]
+                # Ajouter un point si la phrase n'en a pas
+                if commentaire_court and commentaire_court[-1] not in '.!?':
+                    commentaire_court += '.'
+            else:
+                commentaire_court = commentaire
             
             st.markdown(f"""
-            <div class="domain-row" style="background: {bg_color};">
-                <div class="domain-cell">
+            <tr style="background: {bg_color};">
+                <td>
                     <span class="icon-badge" style="background: {icon_bg};">{icon}</span>
-                    <strong style="font-size: 0.9rem;">{row['domaine']}</strong>
-                </div>
-                <div class="domain-cell">
-                    <strong>{poids}%</strong>
-                </div>
-                <div class="domain-cell" style="flex-direction: column; align-items: flex-start;">
+                    <strong>{row['domaine']}</strong>
+                </td>
+                <td><strong>{poids}%</strong></td>
+                <td>
                     <div><strong>{score}/{score_max}</strong></div>
                     <div class="progress-bar-container">
                         <div class="progress-bar" style="width: {percentage}%; background: {bar_color};"></div>
                     </div>
-                </div>
-                <div class="domain-cell" style="font-size: 0.85rem; color: #6b7280; line-height: 1.4;">
-                    {commentaire_court}{'...' if is_long else ''}
-                </div>
-            </div>
+                </td>
+                <td style="color: #6b7280; line-height: 1.5;">{commentaire_court}</td>
+            </tr>
             """, unsafe_allow_html=True)
-            
-            # Si commentaire long, ajouter un expander Streamlit
-            if is_long:
-                with st.expander("➡️ Read full comment", expanded=False):
-                    st.markdown(f"<div style='font-size: 0.9rem; color: #374151;'>{commentaire}</div>", unsafe_allow_html=True)
         
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # ===== BLOC INSIGHTS ANALYTIQUES =====
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # Calculer les insights
-        domaines_critiques = [d for d in df_domaines.to_dict('records') if d['match'] == 'incompatible']
-        domaines_forts = [d for d in df_domaines.to_dict('records') if d['match'] in ['bon', 'excellent']]
-        domaines_partiels = [d for d in df_domaines.to_dict('records') if d['match'] == 'partiel']
-        
-        # Recommandation selon le score
-        if score_global >= 75:
-            recommandation = "✅ Excellent candidate - Strong match for the position"
-            recommandation_color = "#10b981"
-        elif score_global >= 50:
-            recommandation = "⚠️ Good candidate with some gaps - Consider for interview"
-            recommandation_color = "#f59e0b"
-        else:
-            recommandation = "❌ Profile not aligned - Significant skills gap"
-            recommandation_color = "#ef4444"
-        
-        # Construire les listes de domaines
-        critiques_text = ', '.join([d['domaine'].split('(')[0].strip() for d in domaines_critiques[:2]]) if domaines_critiques else 'None'
-        if len(domaines_critiques) > 2:
-            critiques_text += ' ...'
-        
-        partiels_text = ', '.join([d['domaine'].split('(')[0].strip() for d in domaines_partiels[:2]]) if domaines_partiels else 'None'
-        if len(domaines_partiels) > 2:
-            partiels_text += ' ...'
-        
-        forts_text = ', '.join([d['domaine'].split('(')[0].strip() for d in domaines_forts[:2]]) if domaines_forts else 'None'
-        if len(domaines_forts) > 2:
-            forts_text += ' ...'
-        
-        insights_html = f"""
-        <div style="
-            background: white;
-            border-radius: 16px;
-            padding: 28px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            border: 2px solid #f3f4f6;
-            max-width: 1200px;
-            margin: 0 auto;
-        ">
-            <div style="font-size: 1.3rem; font-weight: 700; color: #111827; margin-bottom: 20px;">
-                🧮 Analysis Insights
-            </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
-                
-                <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px;">
-                    <div style="font-weight: 700; color: #991b1b; margin-bottom: 8px; font-size: 0.95rem;">❌ Critical Gaps</div>
-                    <div style="font-size: 1.8rem; font-weight: 800; color: #dc2626; margin-bottom: 8px;">{len(domaines_critiques)}</div>
-                    <div style="font-size: 0.85rem; color: #7f1d1d;">{critiques_text}</div>
-                </div>
-                
-                <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
-                    <div style="font-weight: 700; color: #92400e; margin-bottom: 8px; font-size: 0.95rem;">⚠️ Partial Matches</div>
-                    <div style="font-size: 1.8rem; font-weight: 800; color: #d97706; margin-bottom: 8px;">{len(domaines_partiels)}</div>
-                    <div style="font-size: 0.85rem; color: #78350f;">{partiels_text}</div>
-                </div>
-                
-                <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px;">
-                    <div style="font-weight: 700; color: #065f46; margin-bottom: 8px; font-size: 0.95rem;">✅ Strong Skills</div>
-                    <div style="font-size: 1.8rem; font-weight: 800; color: #059669; margin-bottom: 8px;">{len(domaines_forts)}</div>
-                    <div style="font-size: 0.85rem; color: #064e3b;">{forts_text}</div>
-                </div>
-                
-            </div>
-            
-            <div style="
-                background: linear-gradient(135deg, {recommandation_color}15 0%, {recommandation_color}08 100%);
-                border: 2px solid {recommandation_color};
-                border-radius: 12px;
-                padding: 16px 20px;
-                margin-top: 16px;
-            ">
-                <div style="font-weight: 700; color: {recommandation_color}; font-size: 1.05rem;">
-                    📊 Recommendation: {recommandation}
-                </div>
-            </div>
+        # Fermer le tableau
+        st.markdown("""
+            </tbody>
+        </table>
         </div>
-        """
-        
-        st.markdown(insights_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
         # ===== BLOC RÉSUMÉ TEXTUEL =====
+        st.markdown("<br>", unsafe_allow_html=True)
         if results.get('synthese_matching'):
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(f"""
