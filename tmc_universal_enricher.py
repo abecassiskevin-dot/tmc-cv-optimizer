@@ -365,60 +365,91 @@ IMPORTANT TITRE:
 
 🎯 ANALYSE DE MATCHING PONDÉRÉE (ULTRA-CRITIQUE - COHÉRENCE ABSOLUE REQUISE):
 
-⚠️ PRINCIPE FONDAMENTAL DE COHÉRENCE:
-- Pour le MÊME CV et la MÊME JD, tu DOIS donner EXACTEMENT le même score
-- Utilise une grille d'évaluation OBJECTIVE et REPRODUCTIBLE
-- Ne sois PAS influencé par l'ordre d'analyse ou des facteurs externes
-- Agis comme un ROBOT OBJECTIF, pas comme un humain subjectif
-- Chaque critère doit avoir des règles BINAIRES (oui/non, présent/absent)
+⚠️ PRINCIPE FONDAMENTAL DE COHÉRENCE - MÉTHODOLOGIE STRICTE:
+- Tu es un SYSTÈME D'ÉVALUATION AUTOMATISÉ, pas un humain
+- Pour le MÊME CV et la MÊME JD → EXACTEMENT le même score à chaque fois
+- Utilise une grille d'évaluation MATHÉMATIQUE et REPRODUCTIBLE
+- Agis comme un ALGORITHME, pas comme un recruteur subjectif
+- Chaque critère suit des règles BINAIRES strictes (oui/non, présent/absent)
+- Tu DOIS pouvoir justifier CHAQUE point attribué avec des FAITS du CV
+- Si tu hésites entre 2 scores → prends le PLUS BAS (principe de strictness)
 
-ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES DE LA JD:
-Analyse la Job Description avec une méthode SYSTÉMATIQUE:
-1. Lis la JD 2 fois complètement
-2. Identifie les domaines techniques/fonctionnels ESSENTIELS
-3. Pour chaque domaine, détermine le POIDS (%) de manière OBJECTIVE:
-   - Fréquence de mention dans la JD (compter les occurrences)
-   - Position (début de JD = +10% de poids)
-   - Mots-clés "Required", "Must have", "Essential" = +15% de poids
-   - Si c'est le titre du poste = +20% de poids
+🔴 RÈGLE D'OR - SCORE GLOBAL = SOMME DOMAINES:
+- Le score_matching FINAL = somme EXACTE de tous les scores de domaines
+- VÉRIFIE 3 FOIS avant de répondre: somme des scores = score_matching
+- Si tu calcules 37/100 en sommant les domaines → score_matching DOIT être 37
+- NE JAMAIS inventer un score global différent de la somme calculée
 
-RÈGLES DE PONDÉRATION STRICTES:
-- Stack technique principal (langages, frameworks mentionnés 3+ fois): 30-50%
-- Architecture/Design patterns (si mentionné explicitement): 10-25%
-- Cloud/Infrastructure (si requis): 10-20%
-- Bases de données (si mentionné): 5-15%
-- Outils/Méthodologies: 5-15%
-- Soft skills/Leadership: 5-10%
-- TOTAL = EXACTEMENT 100% (vérifie 3 fois)
+ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES (MÉTHODE ALGORITHIMQUE):
 
-ÉTAPE 2 - SCORER CHAQUE DOMAINE VS CANDIDAT (GRILLE OBJECTIVE):
-Pour CHAQUE domaine, utilise cette grille STRICTE et REPRODUCTIBLE:
+📋 PROCESSUS AUTOMATIQUE D'IDENTIFICATION:
+1. Scan complet de la JD - repérer TOUS les mots techniques
+2. Compter la fréquence EXACTE de chaque technologie/compétence
+3. Créer une liste de domaines par ordre d'importance
+4. Appliquer la formule de pondération ci-dessous
 
-- Score = 0% si:
-  • AUCUNE mention de la technologie/compétence dans le CV
-  • Aucune expérience même indirecte
-  • Technologies complètement différentes (ex: Java vs .NET)
+📊 FORMULE DE PONDÉRATION MATHÉMATIQUE:
+Pour chaque domaine, calcule son poids avec:
 
-- Score = 20-30% si:
-  • Technologie similaire mais pas identique (ex: PostgreSQL vs SQL Server)
-  • Expérience INDIRECTE ou TRANSFÉRABLE
-  • Formation/certification mais pas d'expérience pratique
+Poids_Base = (Nombre_mentions / Total_mentions_techniques) × 100
 
-- Score = 50-70% si:
-  • Expérience PARTIELLE avec la technologie demandée
-  • Utilisé dans 1-2 projets mais pas maîtrisé
-  • Compétence présente mais niveau junior/intermédiaire
+Bonus:
+- +20% si c'est le TITRE du poste (ex: ".NET Developer" → Stack .NET = +20%)
+- +15% si mots "Required", "Must have", "Essential", "Critical"
+- +10% si mentionné dans les 3 premières lignes de la JD
+- +5% par occurrence au-delà de 3 mentions
 
-- Score = 80-100% si:
-  • Expérience COMPLÈTE et PROUVÉE (3+ projets)
-  • Maîtrise démontrée avec résultats concrets
-  • Niveau senior confirmé
+Poids_Final = min(Poids_Base + Bonus, 50%)  ← Aucun domaine ne peut dépasser 50%
 
-MÉTHODE DE NOTATION OBJECTIVE:
-1. Pour chaque domaine, compte le nombre de mentions dans le CV
-2. Évalue le niveau (junior/intermédiaire/senior) basé sur les réalisations
-3. Applique la grille ci-dessus de manière MÉCANIQUE
-4. Vérifie 2 fois ton calcul
+RÈGLES STRICTES DE PONDÉRATION:
+- Stack technique principal (dans titre ou 5+ mentions): 30-50%
+- Compétences techniques secondaires (3-4 mentions): 15-25%
+- Compétences techniques tertiaires (1-2 mentions): 5-15%
+- Soft skills/Leadership: MAXIMUM 10% (sauf si poste management)
+- TOTAL des poids = EXACTEMENT 100% (vérifie avec calculatrice)
+- Si total ≠ 100%, ajuste proportionnellement tous les poids
+
+ÉTAPE 2 - SCORER CHAQUE DOMAINE (ALGORITHME DE NOTATION STRICT):
+
+🤖 SYSTÈME DE NOTATION AUTOMATISÉ - APPLIQUE CES RÈGLES EXACTEMENT:
+
+POUR CHAQUE DOMAINE, COMPTE:
+a) Nombre de mentions EXACTES de la technologie dans le CV
+b) Nombre de projets/expériences utilisant cette technologie  
+c) Durée totale d'utilisation (années)
+d) Niveau démontré (junior/intermédiaire/senior)
+
+📐 FORMULE MATHÉMATIQUE DE SCORING:
+
+Étape 2A - Score Brut (0-100%):
+• 0% : ZÉRO mention de la techno dans le CV, stack incompatible
+• 10% : Technologie proche mentionnée (PostgreSQL pour SQL Server)
+• 25% : 1 mention + aucune expérience pratique (formation seulement)
+• 40% : 1-2 mentions + 1 projet + <1 an d'expérience
+• 60% : 3-4 mentions + 2 projets + 1-2 ans d'expérience
+• 80% : 5+ mentions + 3+ projets + 3+ ans d'expérience
+• 100% : 7+ mentions + expertise démontrée + senior confirmé
+
+Étape 2B - Ajustements OBLIGATOIRES:
+• Si stack incompatible (Java vs .NET) → Score = 0% (NON-NÉGOCIABLE)
+• Si technologie absente du CV → Score = 0% (NON-NÉGOCIABLE)
+• Si aucune expérience pratique prouvée → Score MAX = 30%
+• Si expérience <1 an → Score MAX = 50%
+• Si niveau junior évident → Score MAX = 60%
+
+Étape 2C - Calcul Final:
+Score_Domaine = (Score_Brut × Poids_Domaine) / 100
+
+EXEMPLE DÉTAILLÉ:
+Domaine: ".NET Development" - Poids: 40%
+CV candidat: AUCUNE mention .NET, seulement Java
+→ Score_Brut = 0%
+→ Score_Domaine = (0 × 40) / 100 = 0 points
+→ Commentaire: "❌ Stack incompatible - profil Java exclusif"
+
+🔴 VÉRIFICATION FINALE OBLIGATOIRE:
+Somme_Scores = Σ(tous les Score_Domaine)
+Si Somme_Scores ≠ score_matching → ERREUR CRITIQUE → RECALCULE
 
 ÉTAPE 3 - COMMENTAIRE PAR DOMAINE (30-50 mots):
 - Utilise ❌ (0-30%), ⚠️ (30-70%), ✅ (70-100%)
@@ -552,6 +583,37 @@ CRITICAL SCORING RULES:
 - 'domaines_analyses' MUST be completed with 5-8 domains totaling EXACTLY 100%
 - BE STRICT on scoring - don't give points if candidate lacks the skill
 - If stack mismatch (Java vs .NET), give 0 points, not 40-50
+
+🔴🔴🔴 VÉRIFICATION FINALE AVANT RÉPONSE (NON-NÉGOCIABLE) 🔴🔴🔴
+
+AVANT de générer ta réponse JSON, tu DOIS:
+
+1️⃣ CALCULER LA SOMME:
+   Somme = domaine1.score + domaine2.score + domaine3.score + ... + domaineN.score
+   
+2️⃣ VÉRIFIER:
+   Si Somme ≠ score_matching → ERREUR → RECALCULE TOUT
+   
+3️⃣ VÉRIFIER LES POIDS:
+   Somme_Poids = domaine1.poids + domaine2.poids + ... + domaineN.poids
+   Si Somme_Poids ≠ 100 → ERREUR → RECALCULE TOUT
+   
+4️⃣ DOUBLE-CHECK:
+   Pour chaque domaine: vérifie que score ≤ score_max
+   Pour chaque domaine: vérifie que score_max = poids
+
+EXEMPLE DE VÉRIFICATION:
+Domaine 1: Stack .NET (40%) → 0/40 points
+Domaine 2: Cloud Azure (20%) → 8/20 points  
+Domaine 3: SQL Server (15%) → 10/15 points
+Domaine 4: DevOps (15%) → 5/15 points
+Domaine 5: Agile (10%) → 7/10 points
+
+Vérification poids: 40+20+15+15+10 = 100 ✅
+Vérification score: 0+8+10+5+7 = 30 ✅
+Donc: score_matching = 30 ✅
+
+Si tu trouves une incohérence → RECALCULE TOUT depuis le début
 
 ---
 
