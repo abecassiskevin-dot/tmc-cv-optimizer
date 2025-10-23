@@ -32,6 +32,10 @@ if 'login_time' not in st.session_state:
     st.session_state.login_time = None
 if 'last_activity' not in st.session_state:
     st.session_state.last_activity = None
+if 'user_location' not in st.session_state:
+    st.session_state.user_location = None
+if 'user_name' not in st.session_state:
+    st.session_state.user_name = None
 
 # Vérifier si la session a expiré
 def check_session_validity():
@@ -111,17 +115,58 @@ if not st.session_state.authenticated:
         
         password = st.text_input("Password", type="password", key="password_input")
         
+        st.markdown('<br>', unsafe_allow_html=True)
+        
+        # Location selector
+        st.markdown('<p style="color: #193E92; font-weight: 600; margin-bottom: 5px;">📍 Your Location</p>', unsafe_allow_html=True)
+        user_location = st.selectbox(
+            "Select your location",
+            ["Montreal", "Miami", "Mexico"],
+            key="location_input",
+            label_visibility="collapsed"
+        )
+        
+        st.markdown('<br>', unsafe_allow_html=True)
+        
+        # First Name (required)
+        st.markdown('<p style="color: #193E92; font-weight: 600; margin-bottom: 5px;">👤 First Name *</p>', unsafe_allow_html=True)
+        first_name = st.text_input(
+            "Enter your first name",
+            key="first_name_input",
+            placeholder="e.g., Kevin",
+            label_visibility="collapsed"
+        )
+        
+        # Last Name (required)
+        st.markdown('<p style="color: #193E92; font-weight: 600; margin-bottom: 5px; margin-top: 10px;">👤 Last Name *</p>', unsafe_allow_html=True)
+        last_name = st.text_input(
+            "Enter your last name",
+            key="last_name_input",
+            placeholder="e.g., Abecassis",
+            label_visibility="collapsed"
+        )
+        
+        st.markdown('<br>', unsafe_allow_html=True)
+        
         if st.button("Login", use_container_width=True):
-            # Get password from environment variable
-            correct_password = os.getenv('APP_PASSWORD', 'TMC2025')  # Default: TMC2025
-            
-            if password == correct_password:
-                st.session_state.authenticated = True
-                st.session_state.login_time = datetime.now()
-                st.session_state.last_activity = datetime.now()
-                st.rerun()
+            # Validation: First Name and Last Name are required
+            if not first_name or not first_name.strip():
+                st.error("❌ Please enter your First Name")
+            elif not last_name or not last_name.strip():
+                st.error("❌ Please enter your Last Name")
             else:
-                st.error("❌ Invalid password")
+                # Get password from environment variable
+                correct_password = os.getenv('APP_PASSWORD', 'TMC2025')  # Default: TMC2025
+                
+                if password == correct_password:
+                    st.session_state.authenticated = True
+                    st.session_state.login_time = datetime.now()
+                    st.session_state.last_activity = datetime.now()
+                    st.session_state.user_location = user_location
+                    st.session_state.user_name = f"{first_name.strip()} {last_name.strip()}"
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid password")
         
         st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.85rem; margin-top: 30px;">TMC Internal Tool - Authorized Access Only</p>', unsafe_allow_html=True)
         st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.75rem; margin-top: 10px;">🔒 Session: 12h max | Auto-logout after 4h inactivity</p>', unsafe_allow_html=True)
@@ -147,36 +192,78 @@ if 'results' not in st.session_state:
 def get_user_info():
     """
     Récupère l'IP, la localisation et le User Agent de l'utilisateur
+    Avec système de fallback sur plusieurs APIs
     """
     import requests
     
-    try:
-        # Récupérer l'IP et la géolocalisation via API gratuite
-        response = requests.get('https://ipapi.co/json/', timeout=3)
-        
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                'ip': data.get('ip', 'Unknown'),
-                'city': data.get('city', 'Unknown'),
-                'country': data.get('country_name', 'Unknown'),
-                'user_agent': 'Streamlit App'  # Streamlit ne donne pas accès au User-Agent facilement
+    # Liste d'APIs de géolocalisation (par ordre de priorité)
+    apis = [
+        {
+            'url': 'https://ipapi.co/json/',
+            'timeout': 5,
+            'parser': lambda d: {
+                'ip': d.get('ip', 'Unknown'),
+                'city': d.get('city', 'Unknown'),
+                'country': d.get('country_name', 'Unknown'),
+                'user_agent': 'Streamlit App'
             }
-        else:
-            return {
-                'ip': 'Unknown',
-                'city': 'Unknown',
-                'country': 'Unknown',
-                'user_agent': 'Unknown'
+        },
+        {
+            'url': 'https://ipwhois.app/json/',
+            'timeout': 5,
+            'parser': lambda d: {
+                'ip': d.get('ip', 'Unknown'),
+                'city': d.get('city', 'Unknown'),
+                'country': d.get('country', 'Unknown'),
+                'user_agent': 'Streamlit App'
             }
-    except Exception as e:
-        print(f"⚠️ Erreur récupération IP: {e}")
-        return {
-            'ip': 'Error',
-            'city': 'Error',
-            'country': 'Error',
-            'user_agent': 'Error'
+        },
+        {
+            'url': 'http://ip-api.com/json/',
+            'timeout': 5,
+            'parser': lambda d: {
+                'ip': d.get('query', 'Unknown'),
+                'city': d.get('city', 'Unknown'),
+                'country': d.get('country', 'Unknown'),
+                'user_agent': 'Streamlit App'
+            }
         }
+    ]
+    
+    # Essayer chaque API dans l'ordre
+    for api in apis:
+        try:
+            print(f"🔍 Tentative géolocalisation avec {api['url']}...")
+            response = requests.get(api['url'], timeout=api['timeout'])
+            
+            if response.status_code == 200:
+                data = response.json()
+                result = api['parser'](data)
+                
+                # Vérifier que les données sont valides
+                if result['ip'] != 'Unknown' and result['country'] != 'Unknown':
+                    print(f"✅ Géolocalisation réussie: {result['city']}, {result['country']}")
+                    return result
+                else:
+                    print(f"⚠️ API {api['url']} a retourné des données incomplètes")
+            else:
+                print(f"⚠️ API {api['url']} a retourné le code {response.status_code}")
+                
+        except requests.Timeout:
+            print(f"⏱️ Timeout pour {api['url']}")
+            continue
+        except Exception as e:
+            print(f"⚠️ Erreur avec {api['url']}: {str(e)}")
+            continue
+    
+    # Si toutes les APIs ont échoué
+    print("❌ Toutes les APIs de géolocalisation ont échoué")
+    return {
+        'ip': 'Unknown',
+        'city': 'Unknown',
+        'country': 'Unknown',
+        'user_agent': 'Streamlit App'
+    }
 
 def get_base64_image(image_path: Path) -> str:
     """Convertit une image en base64 pour l'afficher en HTML."""
@@ -801,6 +888,15 @@ if submit:
                     # 📍 Récupérer les infos utilisateur (IP, localisation)
                     user_info = get_user_info()
                     
+                    # Récupérer les infos utilisateur depuis session_state
+                    user_full_name = st.session_state.get('user_name', 'Unknown User')
+                    user_location = st.session_state.get('user_location', 'Unknown')
+                    
+                    # Séparer First Name et Last Name
+                    name_parts = user_full_name.split(' ', 1)  # Split en 2 parties max
+                    first_name_user = name_parts[0] if len(name_parts) > 0 else 'Unknown'
+                    last_name_user = name_parts[1] if len(name_parts) > 1 else ''
+                    
                     # Données du log
                     record_data = {
                         "fields": {
@@ -808,13 +904,16 @@ if submit:
                             "Candidate Name": nom_complet[:50],  # Limiter à 50 caractères
                             "Matching Score": int(enriched_cv.get('score_matching', 0)),
                             "Language": language,
-                            "User": "TMC Team Montreal",  # Mise à jour user
+                            "User": user_full_name,  # Nom complet pour compatibilité
+                            "First Name": first_name_user,  # Prénom séparé
+                            "Last Name": last_name_user,  # Nom séparé
+                            "User Location": user_location,  # Localisation déclarée
                             "Processing Time": round(processing_time, 2),
                             "Total Tokens": int(total_tokens),
                             "Estimated Cost ($)": round(estimated_cost, 4),
-                            "IP Address": user_info['ip'],
-                            "Country": user_info['country'],
-                            "City": user_info['city'],
+                            "IP Address (Server)": user_info['ip'],  # IP du serveur Render
+                            "Server Country": user_info['country'],  # Pays du serveur
+                            "Server City": user_info['city'],  # Ville du serveur
                             "User Agent": user_info['user_agent']
                         }
                     }
