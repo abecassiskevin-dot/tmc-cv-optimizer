@@ -305,8 +305,13 @@ RÈGLES CRITIQUES:
     
     def enrich_cv_with_prompt(self, parsed_cv: Dict[str, Any], jd_text: str, language: str = "French") -> Dict[str, Any]:
         """Enrichir le CV avec ton prompt exact"""
+        import time
+        
         print(f"✨ Enrichissement du CV avec l'IA...", flush=True)
         print(f"   Langue cible: {language}", flush=True)
+        
+        # ⏱️ Démarrer le chronomètre
+        start_time = time.time()
         
         try:
             client = self._get_anthropic_client()
@@ -635,6 +640,11 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
                 messages=[{"role": "user", "content": prompt}]
             )
             
+            # 📊 Capturer les métadonnées API
+            input_tokens = response.usage.input_tokens if hasattr(response, 'usage') else 0
+            output_tokens = response.usage.output_tokens if hasattr(response, 'usage') else 0
+            total_tokens = input_tokens + output_tokens
+            
         except Exception as e:
             print(f">>> ERROR calling anthropic for enrichment: {repr(e)}", flush=True)
             return {}
@@ -652,10 +662,31 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         
         try:
             enriched = json.loads(response_text)
+            
+            # ⏱️ Calculer le temps de traitement
+            processing_time = round(time.time() - start_time, 2)
+            
+            # 💰 Calculer le coût (prix Claude Sonnet 4.5: $3/MTok input, $15/MTok output)
+            cost_input = (input_tokens / 1_000_000) * 3.0
+            cost_output = (output_tokens / 1_000_000) * 15.0
+            total_cost = round(cost_input + cost_output, 4)
+            
+            # 📈 Ajouter les métadonnées dans le résultat
+            enriched['_metadata'] = {
+                'processing_time_seconds': processing_time,
+                'input_tokens': input_tokens,
+                'output_tokens': output_tokens,
+                'total_tokens': total_tokens,
+                'estimated_cost_usd': total_cost
+            }
+            
             print(f"✅ Enrichissement réussi!")
             print(f"   Score matching: {enriched.get('score_matching', 0)}/100")
             print(f"   Domaines analysés: {len(enriched.get('domaines_analyses', []))}")
             print(f"   Mots-clés en gras: {len(enriched.get('mots_cles_a_mettre_en_gras', []))}")
+            print(f"   ⏱️ Temps de traitement: {processing_time}s")
+            print(f"   📊 Tokens: {total_tokens:,} ({input_tokens:,} in + {output_tokens:,} out)")
+            print(f"   💰 Coût estimé: ${total_cost}")
             
             if enriched.get('domaines_analyses'):
                 print(f"\n   📊 Détail scoring:")
