@@ -144,9 +144,9 @@ def check_session_validity():
         cookie_manager.delete('tmc_session')
         return False
     
-    # Règle 3 : Max 4 heures d'inactivité
-    if (now - last_activity).total_seconds() > 4 * 3600:  # 4 heures
-        print("💤 Session expirée : 4h d'inactivité")
+    # Règle 3 : Max 1 heure d'inactivité
+    if (now - last_activity).total_seconds() > 1 * 3600:  # 1 heure
+        print("💤 Session expirée : 1h d'inactivité")
         cookie_manager.delete('tmc_session')
         return False
     
@@ -240,7 +240,7 @@ if not st.session_state.authenticated:
                 st.error("❌ Invalid password")
         
         st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.85rem; margin-top: 30px;">TMC Internal Tool - Authorized Access Only</p>', unsafe_allow_html=True)
-        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.75rem; margin-top: 10px;">🔒 Session: 12h max | Auto-logout after 4h inactivity | Persistent cookies</p>', unsafe_allow_html=True)
+        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.75rem; margin-top: 10px;">🔒 Session: 12h max | Auto-logout after 1h inactivity</p>', unsafe_allow_html=True)
     
     st.stop()  # Stop execution if not authenticated
 
