@@ -9,6 +9,7 @@ from pathlib import Path
 import base64
 import tempfile
 from datetime import datetime
+import os
 
 # ==========================================
 # ⚙️ CONFIG PAGE
@@ -19,6 +20,113 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# ==========================================
+# 🔐 AUTHENTICATION
+# ==========================================
+
+# Initialize authentication state
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+if 'login_time' not in st.session_state:
+    st.session_state.login_time = None
+if 'last_activity' not in st.session_state:
+    st.session_state.last_activity = None
+
+# Vérifier si la session a expiré
+def check_session_validity():
+    """
+    Vérifie si la session est toujours valide selon les règles :
+    - Max 12 heures depuis le login
+    - Expire à minuit
+    - Max 4 heures d'inactivité
+    """
+    from datetime import datetime, timedelta
+    
+    if not st.session_state.authenticated:
+        return False
+    
+    if st.session_state.login_time is None:
+        return False
+    
+    now = datetime.now()
+    login_time = st.session_state.login_time
+    last_activity = st.session_state.last_activity or login_time
+    
+    # Règle 1 : Session max 12 heures
+    if (now - login_time).total_seconds() > 12 * 3600:  # 12 heures
+        print("⏰ Session expirée : plus de 12h")
+        return False
+    
+    # Règle 2 : Session expire à minuit
+    if now.date() > login_time.date():
+        print("🌙 Session expirée : nouvelle journée")
+        return False
+    
+    # Règle 3 : Max 4 heures d'inactivité
+    if (now - last_activity).total_seconds() > 4 * 3600:  # 4 heures
+        print("💤 Session expirée : 4h d'inactivité")
+        return False
+    
+    # Session valide - mettre à jour l'activité
+    st.session_state.last_activity = now
+    return True
+
+# Vérifier la validité de la session
+if st.session_state.authenticated and not check_session_validity():
+    st.session_state.authenticated = False
+    st.session_state.login_time = None
+    st.session_state.last_activity = None
+    st.rerun()
+
+if not st.session_state.authenticated:
+    from datetime import datetime
+    
+    # Show login screen
+    st.markdown("""
+    <style>
+    .login-container {
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 40px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .login-title {
+        color: #193E92;
+        font-size: 2rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown('<div class="login-title">🔐 CV Optimizer</div>', unsafe_allow_html=True)
+        st.markdown('<p style="text-align: center; color: #6B7280; margin-bottom: 30px;">Enter password to access</p>', unsafe_allow_html=True)
+        
+        password = st.text_input("Password", type="password", key="password_input")
+        
+        if st.button("Login", use_container_width=True):
+            # Get password from environment variable
+            correct_password = os.getenv('APP_PASSWORD', 'TMC2025')  # Default: TMC2025
+            
+            if password == correct_password:
+                st.session_state.authenticated = True
+                st.session_state.login_time = datetime.now()
+                st.session_state.last_activity = datetime.now()
+                st.rerun()
+            else:
+                st.error("❌ Invalid password")
+        
+        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.85rem; margin-top: 30px;">TMC Internal Tool - Authorized Access Only</p>', unsafe_allow_html=True)
+        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.75rem; margin-top: 10px;">🔒 Session: 12h max | Auto-logout after 4h inactivity</p>', unsafe_allow_html=True)
+    
+    st.stop()  # Stop execution if not authenticated
 
 # ==========================================
 # 🧠 IMPORT LOURD — Lazy Loading
@@ -35,6 +143,40 @@ def load_backend():
 # ===== SESSION STATE INITIALIZATION =====
 if 'results' not in st.session_state:
     st.session_state.results = None
+
+def get_user_info():
+    """
+    Récupère l'IP, la localisation et le User Agent de l'utilisateur
+    """
+    import requests
+    
+    try:
+        # Récupérer l'IP et la géolocalisation via API gratuite
+        response = requests.get('https://ipapi.co/json/', timeout=3)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                'ip': data.get('ip', 'Unknown'),
+                'city': data.get('city', 'Unknown'),
+                'country': data.get('country_name', 'Unknown'),
+                'user_agent': 'Streamlit App'  # Streamlit ne donne pas accès au User-Agent facilement
+            }
+        else:
+            return {
+                'ip': 'Unknown',
+                'city': 'Unknown',
+                'country': 'Unknown',
+                'user_agent': 'Unknown'
+            }
+    except Exception as e:
+        print(f"⚠️ Erreur récupération IP: {e}")
+        return {
+            'ip': 'Error',
+            'city': 'Error',
+            'country': 'Error',
+            'user_agent': 'Error'
+        }
 
 def get_base64_image(image_path: Path) -> str:
     """Convertit une image en base64 pour l'afficher en HTML."""
@@ -656,6 +798,9 @@ if submit:
                     total_tokens = metadata.get('total_tokens', 0)
                     estimated_cost = metadata.get('estimated_cost_usd', 0)
                     
+                    # 📍 Récupérer les infos utilisateur (IP, localisation)
+                    user_info = get_user_info()
+                    
                     # Données du log
                     record_data = {
                         "fields": {
@@ -666,7 +811,11 @@ if submit:
                             "User": "TMC Team Montreal",  # Mise à jour user
                             "Processing Time": round(processing_time, 2),
                             "Total Tokens": int(total_tokens),
-                            "Estimated Cost ($)": round(estimated_cost, 4)
+                            "Estimated Cost ($)": round(estimated_cost, 4),
+                            "IP Address": user_info['ip'],
+                            "Country": user_info['country'],
+                            "City": user_info['city'],
+                            "User Agent": user_info['user_agent']
                         }
                     }
                     
