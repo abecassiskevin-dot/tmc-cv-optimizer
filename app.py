@@ -865,6 +865,7 @@ if submit:
                 import os
                 import requests
                 from datetime import datetime
+                import json
                 
                 # Configuration Airtable
                 AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
@@ -872,6 +873,8 @@ if submit:
                 TABLE_ID = 'tblYjn3wCdMBU6Gcq'
                 
                 if AIRTABLE_API_KEY:
+                    print("🔑 AIRTABLE_API_KEY found, preparing data...")
+                    
                     # Préparer les données à enregistrer
                     now = datetime.now()
                     timestamp_iso = now.strftime('%Y-%m-%dT%H:%M:%S')
@@ -885,9 +888,6 @@ if submit:
                     total_tokens = metadata.get('total_tokens', 0)
                     estimated_cost = metadata.get('estimated_cost_usd', 0)
                     
-                    # 📍 Récupérer les infos utilisateur (IP, localisation)
-                    user_info = get_user_info()
-                    
                     # Récupérer les infos utilisateur depuis session_state
                     user_full_name = st.session_state.get('user_name', 'Unknown User')
                     user_location = st.session_state.get('user_location', 'Unknown')
@@ -897,26 +897,24 @@ if submit:
                     first_name_user = name_parts[0] if len(name_parts) > 0 else 'Unknown'
                     last_name_user = name_parts[1] if len(name_parts) > 1 else ''
                     
-                    # Données du log
+                    # Données du log - SEULEMENT les champs qui existent dans Airtable
                     record_data = {
                         "fields": {
                             "Timestamp": timestamp_iso,
-                            "Candidate Name": nom_complet[:50],  # Limiter à 50 caractères
+                            "Candidate Name": nom_complet[:100] if nom_complet else "Unknown",
                             "Matching Score": int(enriched_cv.get('score_matching', 0)),
                             "Language": language,
-                            "User": user_full_name,  # Nom complet pour compatibilité
-                            "First Name": first_name_user,  # Prénom séparé
-                            "Last Name": last_name_user,  # Nom séparé
-                            "User Location": user_location,  # Localisation déclarée
+                            "First Name": first_name_user,
+                            "Last Name": last_name_user,
+                            "User Location": user_location,
                             "Processing Time": round(processing_time, 2),
                             "Total Tokens": int(total_tokens),
-                            "Estimated Cost ($)": round(estimated_cost, 4),
-                            "IP Address (Server)": user_info['ip'],  # IP du serveur Render
-                            "Server Country": user_info['country'],  # Pays du serveur
-                            "Server City": user_info['city'],  # Ville du serveur
-                            "User Agent": user_info['user_agent']
+                            "Estimated Cost ($)": round(estimated_cost, 4)
                         }
                     }
+                    
+                    print(f"📤 Sending to Airtable:")
+                    print(json.dumps(record_data, indent=2))
                     
                     # Envoyer à Airtable
                     url = f'https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}'
@@ -925,18 +923,21 @@ if submit:
                         'Content-Type': 'application/json'
                     }
                     
-                    response = requests.post(url, json=record_data, headers=headers, timeout=5)
+                    response = requests.post(url, json=record_data, headers=headers, timeout=10)
                     
                     if response.status_code == 200:
                         print("✅ Analytics logged to Airtable successfully")
                     else:
                         print(f"⚠️ Airtable logging failed: {response.status_code}")
+                        print(f"📋 Response body: {response.text}")
                 else:
                     print("⚠️ AIRTABLE_API_KEY not found - analytics not logged")
                     
             except Exception as e:
                 # Ne pas bloquer l'app si Airtable échoue
                 print(f"⚠️ Airtable logging error (non-blocking): {e}")
+                import traceback
+                print(f"📋 Full traceback: {traceback.format_exc()}")
             
             # Nettoyage des fichiers temporaires
             try:
