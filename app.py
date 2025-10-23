@@ -664,7 +664,7 @@ if submit:
                             "Matching Score": int(enriched_cv.get('score_matching', 0)),
                             "Language": language,
                             "User": "TMC Team Montreal",  # Mise à jour user
-                            "Processing Time (s)": round(processing_time, 2),
+                            "Processing Time": round(processing_time, 2),
                             "Total Tokens": int(total_tokens),
                             "Estimated Cost ($)": round(estimated_cost, 4)
                         }
