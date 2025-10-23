@@ -650,6 +650,12 @@ if submit:
                     # Langue choisie
                     language = "French" if template_lang == "FR" else "English"
                     
+                    # Récupérer les métadonnées d'enrichissement (tokens, temps, coût)
+                    metadata = enriched_cv.get('_metadata', {})
+                    processing_time = metadata.get('processing_time_seconds', 0)
+                    total_tokens = metadata.get('total_tokens', 0)
+                    estimated_cost = metadata.get('estimated_cost_usd', 0)
+                    
                     # Données du log
                     record_data = {
                         "fields": {
@@ -657,7 +663,10 @@ if submit:
                             "Candidate Name": nom_complet[:50],  # Limiter à 50 caractères
                             "Matching Score": int(enriched_cv.get('score_matching', 0)),
                             "Language": language,
-                            "User": "TMC Team",  # Pour l'instant tous les users sont "TMC Team"
+                            "User": "TMC Team Montreal",  # Mise à jour user
+                            "Processing Time (s)": round(processing_time, 2),
+                            "Total Tokens": int(total_tokens),
+                            "Estimated Cost ($)": round(estimated_cost, 4)
                         }
                     }
                     
