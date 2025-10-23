@@ -8,8 +8,13 @@ import streamlit as st
 from pathlib import Path
 import base64
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+from dotenv import load_dotenv
+import extra_streamlit_components as stx
+
+# Charger les variables d'environnement depuis .env
+load_dotenv()
 
 # ==========================================
 # ⚙️ CONFIG PAGE
@@ -22,8 +27,22 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🔐 AUTHENTICATION
+# 🍪 COOKIE MANAGER
 # ==========================================
+cookie_manager = stx.CookieManager()
+
+# ==========================================
+# 🔐 AUTHENTICATION WITH COOKIES
+# ==========================================
+
+# Liste des utilisateurs autorisés
+AUTHORIZED_USERS = [
+    "Kevin Abecassis",
+    "Aurélien Bertrand",
+    "Julia Delpon",
+    "Lucas Maurer",
+    "Roberta Santiago"
+]
 
 # Initialize authentication state
 if 'authenticated' not in st.session_state:
@@ -36,6 +55,62 @@ if 'user_location' not in st.session_state:
     st.session_state.user_location = None
 if 'user_name' not in st.session_state:
     st.session_state.user_name = None
+
+# Fonction pour vérifier et restaurer la session depuis les cookies
+def restore_session_from_cookies():
+    """Restaure la session depuis les cookies si valide"""
+    try:
+        cookies = cookie_manager.get_all()
+        
+        if cookies and 'tmc_session' in cookies:
+            session_data = cookies['tmc_session']
+            
+            # Parser les données du cookie (format: "user_name|location|timestamp")
+            parts = session_data.split('|')
+            if len(parts) == 3:
+                user_name, location, timestamp_str = parts
+                login_timestamp = datetime.fromisoformat(timestamp_str)
+                
+                # Vérifier si la session est encore valide (4 heures)
+                now = datetime.now()
+                if (now - login_timestamp).total_seconds() < 4 * 3600:
+                    # Session valide, restaurer
+                    st.session_state.authenticated = True
+                    st.session_state.user_name = user_name
+                    st.session_state.user_location = location
+                    st.session_state.login_time = login_timestamp
+                    st.session_state.last_activity = now
+                    print(f"✅ Session restaurée depuis cookie pour {user_name}")
+                    return True
+                else:
+                    # Session expirée, supprimer le cookie
+                    cookie_manager.delete('tmc_session')
+                    print("⏰ Session cookie expirée")
+    except Exception as e:
+        print(f"⚠️ Erreur restauration cookie: {e}")
+    
+    return False
+
+# Fonction pour sauvegarder la session dans un cookie
+def save_session_to_cookie(user_name: str, location: str):
+    """Sauvegarde la session dans un cookie (4 heures)"""
+    try:
+        now = datetime.now()
+        # Format: "user_name|location|timestamp"
+        session_data = f"{user_name}|{location}|{now.isoformat()}"
+        
+        # Cookie expire dans 4 heures
+        expires_at = now + timedelta(hours=4)
+        
+        cookie_manager.set(
+            'tmc_session',
+            session_data,
+            expires_at=expires_at,
+            key='session_cookie'
+        )
+        print(f"✅ Session sauvegardée dans cookie pour {user_name}")
+    except Exception as e:
+        print(f"⚠️ Erreur sauvegarde cookie: {e}")
 
 # Vérifier si la session a expiré
 def check_session_validity():
@@ -60,21 +135,28 @@ def check_session_validity():
     # Règle 1 : Session max 12 heures
     if (now - login_time).total_seconds() > 12 * 3600:  # 12 heures
         print("⏰ Session expirée : plus de 12h")
+        cookie_manager.delete('tmc_session')
         return False
     
     # Règle 2 : Session expire à minuit
     if now.date() > login_time.date():
         print("🌙 Session expirée : nouvelle journée")
+        cookie_manager.delete('tmc_session')
         return False
     
     # Règle 3 : Max 4 heures d'inactivité
     if (now - last_activity).total_seconds() > 4 * 3600:  # 4 heures
         print("💤 Session expirée : 4h d'inactivité")
+        cookie_manager.delete('tmc_session')
         return False
     
     # Session valide - mettre à jour l'activité
     st.session_state.last_activity = now
     return True
+
+# Essayer de restaurer la session depuis les cookies
+if not st.session_state.authenticated:
+    restore_session_from_cookies()
 
 # Vérifier la validité de la session
 if st.session_state.authenticated and not check_session_validity():
@@ -128,48 +210,37 @@ if not st.session_state.authenticated:
         
         st.markdown('<br>', unsafe_allow_html=True)
         
-        # First Name (required)
-        st.markdown('<p style="color: #193E92; font-weight: 600; margin-bottom: 5px;">👤 First Name *</p>', unsafe_allow_html=True)
-        first_name = st.text_input(
-            "Enter your first name",
-            key="first_name_input",
-            placeholder="e.g., Kevin",
-            label_visibility="collapsed"
-        )
-        
-        # Last Name (required)
-        st.markdown('<p style="color: #193E92; font-weight: 600; margin-bottom: 5px; margin-top: 10px;">👤 Last Name *</p>', unsafe_allow_html=True)
-        last_name = st.text_input(
-            "Enter your last name",
-            key="last_name_input",
-            placeholder="e.g., Abecassis",
+        # User Name (dropdown list)
+        st.markdown('<p style="color: #193E92; font-weight: 600; margin-bottom: 5px;">👤 Your Name *</p>', unsafe_allow_html=True)
+        user_name = st.selectbox(
+            "Select your name",
+            AUTHORIZED_USERS,
+            key="user_name_input",
             label_visibility="collapsed"
         )
         
         st.markdown('<br>', unsafe_allow_html=True)
         
         if st.button("Login", use_container_width=True):
-            # Validation: First Name and Last Name are required
-            if not first_name or not first_name.strip():
-                st.error("❌ Please enter your First Name")
-            elif not last_name or not last_name.strip():
-                st.error("❌ Please enter your Last Name")
-            else:
-                # Get password from environment variable
-                correct_password = os.getenv('APP_PASSWORD', 'TMC2025')  # Default: TMC2025
+            # Get password from environment variable
+            correct_password = os.getenv('APP_PASSWORD', 'TMC2025')  # Default: TMC2025
+            
+            if password == correct_password:
+                st.session_state.authenticated = True
+                st.session_state.login_time = datetime.now()
+                st.session_state.last_activity = datetime.now()
+                st.session_state.user_location = user_location
+                st.session_state.user_name = user_name
                 
-                if password == correct_password:
-                    st.session_state.authenticated = True
-                    st.session_state.login_time = datetime.now()
-                    st.session_state.last_activity = datetime.now()
-                    st.session_state.user_location = user_location
-                    st.session_state.user_name = f"{first_name.strip()} {last_name.strip()}"
-                    st.rerun()
-                else:
-                    st.error("❌ Invalid password")
+                # Sauvegarder dans un cookie
+                save_session_to_cookie(user_name, user_location)
+                
+                st.rerun()
+            else:
+                st.error("❌ Invalid password")
         
         st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.85rem; margin-top: 30px;">TMC Internal Tool - Authorized Access Only</p>', unsafe_allow_html=True)
-        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.75rem; margin-top: 10px;">🔒 Session: 12h max | Auto-logout after 4h inactivity</p>', unsafe_allow_html=True)
+        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.75rem; margin-top: 10px;">🔒 Session: 12h max | Auto-logout after 4h inactivity | Persistent cookies</p>', unsafe_allow_html=True)
     
     st.stop()  # Stop execution if not authenticated
 
