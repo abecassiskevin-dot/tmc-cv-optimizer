@@ -696,19 +696,36 @@ if st.session_state.results:
         st.metric("👤 Candidate", nom_display)
     
     with col_res3:
-        # Calculer les années d'expérience totales
+        # Calculer les années d'expérience totales avec méthode robuste
         experiences = results.get('experiences_raw', [])
         total_years = 0
         
+        import re
+        from datetime import datetime
+        current_year = datetime.now().year
+        
         for exp in experiences:
             periode = exp.get('periode', '')
-            # Extraire les années (ex: "2020-2023" ou "2020 - Present")
-            years = [y.strip() for y in periode.replace('Present', '2025').replace('Présent', '2025').split('-')]
-            if len(years) == 2:
+            
+            # Remplacer Present/Présent par l'année actuelle
+            periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
+            
+            # Extraire TOUTES les années (4 chiffres consécutifs)
+            years_found = re.findall(r'\b(\d{4})\b', periode_clean)
+            
+            if len(years_found) >= 2:
                 try:
-                    start = int(years[0][:4])  # Prendre les 4 premiers caractères
-                    end = int(years[1][:4]) if years[1][:4].isdigit() else 2025
-                    total_years += (end - start)
+                    start = int(years_found[0])
+                    end = int(years_found[-1])  # Prendre la dernière année trouvée
+                    if end >= start:  # Vérification cohérence
+                        total_years += (end - start)
+                except:
+                    pass
+            elif len(years_found) == 1:
+                # Si une seule année, considérer jusqu'à maintenant
+                try:
+                    start = int(years_found[0])
+                    total_years += (current_year - start)
                 except:
                     pass
         
