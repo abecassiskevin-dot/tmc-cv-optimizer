@@ -631,6 +631,56 @@ if submit:
                 'nom_fichier': nom_fichier
             }
             
+            # ===== 📊 TRACKING AIRTABLE - ANALYTICS =====
+            try:
+                import os
+                import requests
+                from datetime import datetime
+                
+                # Configuration Airtable
+                AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
+                BASE_ID = 'apptzRcN1NnoNLCJ7'
+                TABLE_ID = 'tblYjn3wCdMBU6Gcq'
+                
+                if AIRTABLE_API_KEY:
+                    # Préparer les données à enregistrer
+                    now = datetime.now()
+                    timestamp_iso = now.strftime('%Y-%m-%dT%H:%M:%S')
+                    
+                    # Langue choisie
+                    language = "French" if template_lang == "FR" else "English"
+                    
+                    # Données du log
+                    record_data = {
+                        "fields": {
+                            "Timestamp": timestamp_iso,
+                            "Candidate Name": nom_complet[:50],  # Limiter à 50 caractères
+                            "Matching Score": int(enriched_cv.get('score_matching', 0)),
+                            "Language": language,
+                            "User": "TMC Team",  # Pour l'instant tous les users sont "TMC Team"
+                        }
+                    }
+                    
+                    # Envoyer à Airtable
+                    url = f'https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}'
+                    headers = {
+                        'Authorization': f'Bearer {AIRTABLE_API_KEY}',
+                        'Content-Type': 'application/json'
+                    }
+                    
+                    response = requests.post(url, json=record_data, headers=headers, timeout=5)
+                    
+                    if response.status_code == 200:
+                        print("✅ Analytics logged to Airtable successfully")
+                    else:
+                        print(f"⚠️ Airtable logging failed: {response.status_code}")
+                else:
+                    print("⚠️ AIRTABLE_API_KEY not found - analytics not logged")
+                    
+            except Exception as e:
+                # Ne pas bloquer l'app si Airtable échoue
+                print(f"⚠️ Airtable logging error (non-blocking): {e}")
+            
             # Nettoyage des fichiers temporaires
             try:
                 cv_path.unlink()
