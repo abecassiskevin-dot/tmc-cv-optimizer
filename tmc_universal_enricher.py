@@ -253,11 +253,14 @@ RÈGLES CRITIQUES:
 - Si une section est vide, mets une liste vide []
 - Format JSON strict uniquement"""
 
+            print(f">>> Calling Claude API with timeout=300s...", flush=True)
             response = client.messages.create(
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=8000,
+                timeout=300.0,  # 5 minutes max
                 messages=[{"role": "user", "content": prompt}]
             )
+            print(f">>> API call completed successfully", flush=True)
             
         except Exception as e:
             print(f">>> ERROR calling anthropic for parsing: {repr(e)}", flush=True)
@@ -634,11 +637,14 @@ CV ACTUEL:
 
 IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
 
+            print(f">>> Calling Claude API for enrichment with timeout=300s...", flush=True)
             response = client.messages.create(
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=8000,
+                timeout=300.0,  # 5 minutes max
                 messages=[{"role": "user", "content": prompt}]
             )
+            print(f">>> Enrichment API call completed successfully", flush=True)
             
             # 📊 Capturer les métadonnées API
             input_tokens = response.usage.input_tokens if hasattr(response, 'usage') else 0
@@ -647,9 +653,14 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
             
         except Exception as e:
             print(f">>> ERROR calling anthropic for enrichment: {repr(e)}", flush=True)
+            import traceback
+            print(f">>> FULL TRACEBACK:\n{traceback.format_exc()}", flush=True)
             return {}
         
+        print(f">>> API Response received, extracting text...", flush=True)
         response_text = response.content[0].text.strip()
+        print(f">>> Response length: {len(response_text)} characters", flush=True)
+        print(f">>> Response preview (first 500 chars):\n{response_text[:500]}", flush=True)
         
         # Nettoyer JSON
         if response_text.startswith('```json'):
@@ -660,8 +671,11 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
             response_text = response_text[:-3]
         response_text = response_text.strip()
         
+        print(f">>> Attempting to parse JSON...", flush=True)
         try:
             enriched = json.loads(response_text)
+            print(f">>> JSON parsed successfully!", flush=True)
+            print(f">>> Keys in enriched: {list(enriched.keys())}", flush=True)
             
             # ⏱️ Calculer le temps de traitement
             processing_time = round(time.time() - start_time, 2)
@@ -710,9 +724,24 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
                     print(f"\n🔍 DEBUG - Environnement :")
                     print(f"   {first_exp['environment']}")
             
+            # 🚨 Vérification critique: le dict ne doit pas être vide
+            if not enriched:
+                print(f">>> WARNING: enriched dict is EMPTY!", flush=True)
+                return {}
+            
+            # Vérifier les clés essentielles
+            required_keys = ['score_matching', 'domaines_analyses', 'profil_enrichi']
+            missing_keys = [k for k in required_keys if k not in enriched]
+            if missing_keys:
+                print(f">>> WARNING: Missing critical keys: {missing_keys}", flush=True)
+                print(f">>> Available keys: {list(enriched.keys())}", flush=True)
+            
             return enriched
         except json.JSONDecodeError as e:
-            print(f"⚠️ Erreur JSON: {e}")
+            print(f"⚠️ Erreur JSON: {e}", flush=True)
+            print(f">>> JSON Error position: {e.pos}", flush=True)
+            print(f">>> Problematic section: {response_text[max(0, e.pos-100):e.pos+100]}", flush=True)
+            print(f">>> Full response text:\n{response_text}", flush=True)
             return {}
 
     # ========================================
