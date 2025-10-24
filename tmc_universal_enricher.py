@@ -635,7 +635,16 @@ CV ACTUEL:
 
 ---
 
-IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
+IMPORTANT FINAL - RÈGLES JSON STRICTES:
+- Génère UNIQUEMENT du JSON valide
+- PAS de commentaires (// ou /* */)
+- PAS de virgules finales (trailing commas)
+- PAS de markdown (```json ou ```)
+- TOUS les strings doivent utiliser des guillemets doubles ""
+- Vérifie que TOUTES les accolades et crochets sont fermés
+- Si tu hésites sur un champ, mets une valeur par défaut plutôt qu'une erreur
+
+Réponds UNIQUEMENT avec du JSON pur, sans rien d'autre avant ou après."""
 
             print(f">>> Calling Claude API for enrichment with timeout=300s...", flush=True)
             response = client.messages.create(
@@ -672,77 +681,130 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         response_text = response_text.strip()
         
         print(f">>> Attempting to parse JSON...", flush=True)
-        try:
-            enriched = json.loads(response_text)
-            print(f">>> JSON parsed successfully!", flush=True)
-            print(f">>> Keys in enriched: {list(enriched.keys())}", flush=True)
-            
-            # ⏱️ Calculer le temps de traitement
-            processing_time = round(time.time() - start_time, 2)
-            
-            # 💰 Calculer le coût (prix Claude Sonnet 4.5: $3/MTok input, $15/MTok output)
-            cost_input = (input_tokens / 1_000_000) * 3.0
-            cost_output = (output_tokens / 1_000_000) * 15.0
-            total_cost = round(cost_input + cost_output, 4)
-            
-            # 📈 Ajouter les métadonnées dans le résultat
-            enriched['_metadata'] = {
-                'processing_time_seconds': processing_time,
-                'input_tokens': input_tokens,
-                'output_tokens': output_tokens,
-                'total_tokens': total_tokens,
-                'estimated_cost_usd': total_cost
-            }
-            
-            print(f"✅ Enrichissement réussi!")
-            print(f"   Score matching: {enriched.get('score_matching', 0)}/100")
-            print(f"   Domaines analysés: {len(enriched.get('domaines_analyses', []))}")
-            print(f"   Mots-clés en gras: {len(enriched.get('mots_cles_a_mettre_en_gras', []))}")
-            print(f"   ⏱️ Temps de traitement: {processing_time}s")
-            print(f"   📊 Tokens: {total_tokens:,} ({input_tokens:,} in + {output_tokens:,} out)")
-            print(f"   💰 Coût estimé: ${total_cost}")
-            
-            if enriched.get('domaines_analyses'):
-                print(f"\n   📊 Détail scoring:")
-                for domaine in enriched['domaines_analyses']:
-                    emoji = domaine.get('match', '')
-                    if emoji == 'incompatible':
-                        emoji = '❌'
-                    elif emoji == 'partiel':
-                        emoji = '⚠️'
-                    elif emoji in ['bon', 'excellent']:
-                        emoji = '✅'
-                    print(f"      {emoji} {domaine.get('domaine', 'N/A')}: {domaine.get('score', 0)}/{domaine.get('score_max', 0)} ({domaine.get('poids', 0)}%)")
-            
-            # DEBUG: Afficher une responsabilité pour voir le format
-            if enriched.get('experiences_enrichies'):
-                first_exp = enriched['experiences_enrichies'][0]
-                if first_exp.get('responsabilites'):
-                    print(f"\n🔍 DEBUG - Première responsabilité :")
-                    print(f"   {first_exp['responsabilites'][0]}")
-                if first_exp.get('environment'):
-                    print(f"\n🔍 DEBUG - Environnement :")
-                    print(f"   {first_exp['environment']}")
-            
-            # 🚨 Vérification critique: le dict ne doit pas être vide
-            if not enriched:
-                print(f">>> WARNING: enriched dict is EMPTY!", flush=True)
-                return {}
-            
-            # Vérifier les clés essentielles
-            required_keys = ['score_matching', 'domaines_analyses', 'profil_enrichi']
-            missing_keys = [k for k in required_keys if k not in enriched]
-            if missing_keys:
-                print(f">>> WARNING: Missing critical keys: {missing_keys}", flush=True)
-                print(f">>> Available keys: {list(enriched.keys())}", flush=True)
-            
-            return enriched
-        except json.JSONDecodeError as e:
-            print(f"⚠️ Erreur JSON: {e}", flush=True)
-            print(f">>> JSON Error position: {e.pos}", flush=True)
-            print(f">>> Problematic section: {response_text[max(0, e.pos-100):e.pos+100]}", flush=True)
-            print(f">>> Full response text:\n{response_text}", flush=True)
+        
+        # 🔧 NOUVEAU: Tentative de parsing avec retry et correction
+        enriched = None
+        max_retries = 3
+        
+        for attempt in range(max_retries):
+            try:
+                if attempt == 0:
+                    # Première tentative: parsing direct
+                    enriched = json.loads(response_text)
+                    print(f">>> JSON parsed successfully on first attempt!", flush=True)
+                    break
+                else:
+                    # Tentatives suivantes: demander à Claude de corriger le JSON
+                    print(f">>> Retry {attempt}/{max_retries-1}: Asking Claude to fix JSON...", flush=True)
+                    
+                    fix_prompt = f"""The following JSON is malformed. Please fix it and return ONLY the corrected JSON without any explanation or markdown:
+
+{response_text}
+
+Return the corrected JSON directly:"""
+                    
+                    fix_response = client.messages.create(
+                        model="claude-sonnet-4-5-20250929",
+                        max_tokens=8000,
+                        timeout=60.0,
+                        messages=[{"role": "user", "content": fix_prompt}]
+                    )
+                    
+                    fixed_text = fix_response.content[0].text.strip()
+                    # Nettoyer le JSON corrigé
+                    if fixed_text.startswith('```json'):
+                        fixed_text = fixed_text[7:]
+                    if fixed_text.startswith('```'):
+                        fixed_text = fixed_text[3:]
+                    if fixed_text.endswith('```'):
+                        fixed_text = fixed_text[:-3]
+                    fixed_text = fixed_text.strip()
+                    
+                    enriched = json.loads(fixed_text)
+                    print(f">>> JSON successfully fixed and parsed on attempt {attempt}!", flush=True)
+                    break
+                    
+            except json.JSONDecodeError as e:
+                print(f"⚠️ Erreur JSON (attempt {attempt + 1}/{max_retries}): {e}", flush=True)
+                if attempt == 0:
+                    print(f">>> JSON Error position: {e.pos}", flush=True)
+                    print(f">>> Problematic section: {response_text[max(0, e.pos-100):e.pos+100]}", flush=True)
+                
+                if attempt == max_retries - 1:
+                    # Dernier essai échoué: retourner dict vide
+                    print(f">>> All parsing attempts failed. Returning empty dict.", flush=True)
+                    print(f">>> Full response text:\n{response_text}", flush=True)
+                    return {}
+                else:
+                    # Continuer au prochain retry
+                    continue
+        
+        if enriched is None:
+            print(f">>> ERROR: enriched is None after all retries", flush=True)
             return {}
+        
+        print(f">>> Keys in enriched: {list(enriched.keys())}", flush=True)
+        
+        # ⏱️ Calculer le temps de traitement
+        processing_time = round(time.time() - start_time, 2)
+        
+        # 💰 Calculer le coût (prix Claude Sonnet 4.5: $3/MTok input, $15/MTok output)
+        cost_input = (input_tokens / 1_000_000) * 3.0
+        cost_output = (output_tokens / 1_000_000) * 15.0
+        total_cost = round(cost_input + cost_output, 4)
+        
+        # 📈 Ajouter les métadonnées dans le résultat
+        enriched['_metadata'] = {
+            'processing_time_seconds': processing_time,
+            'input_tokens': input_tokens,
+            'output_tokens': output_tokens,
+            'total_tokens': total_tokens,
+            'estimated_cost_usd': total_cost
+        }
+        
+        print(f"✅ Enrichissement réussi!")
+        print(f"   Score matching: {enriched.get('score_matching', 0)}/100")
+        print(f"   Domaines analysés: {len(enriched.get('domaines_analyses', []))}")
+        print(f"   Mots-clés en gras: {len(enriched.get('mots_cles_a_mettre_en_gras', []))}")
+        print(f"   ⏱️ Temps de traitement: {processing_time}s")
+        print(f"   📊 Tokens: {total_tokens:,} ({input_tokens:,} in + {output_tokens:,} out)")
+        print(f"   💰 Coût estimé: ${total_cost}")
+        
+        if enriched.get('domaines_analyses'):
+            print(f"\n   📊 Détail scoring:")
+            for domaine in enriched['domaines_analyses']:
+                emoji = domaine.get('match', '')
+                if emoji == 'incompatible':
+                    emoji = '❌'
+                elif emoji == 'partiel':
+                    emoji = '⚠️'
+                elif emoji in ['bon', 'excellent']:
+                    emoji = '✅'
+                print(f"      {emoji} {domaine.get('domaine', 'N/A')}: {domaine.get('score', 0)}/{domaine.get('score_max', 0)} ({domaine.get('poids', 0)}%)")
+        
+        # DEBUG: Afficher une responsabilité pour voir le format
+        if enriched.get('experiences_enrichies'):
+            first_exp = enriched['experiences_enrichies'][0]
+            if first_exp.get('responsabilites'):
+                print(f"\n🔍 DEBUG - Première responsabilité :")
+                print(f"   {first_exp['responsabilites'][0]}")
+            if first_exp.get('environment'):
+                print(f"\n🔍 DEBUG - Environnement :")
+                print(f"   {first_exp['environment']}")
+        
+        # 🚨 Vérification critique: le dict ne doit pas être vide
+        if not enriched:
+            print(f">>> WARNING: enriched dict is EMPTY!", flush=True)
+            return {}
+        
+        # Vérifier les clés essentielles
+        required_keys = ['score_matching', 'domaines_analyses', 'profil_enrichi']
+        missing_keys = [k for k in required_keys if k not in enriched]
+        if missing_keys:
+            print(f">>> WARNING: Missing critical keys: {missing_keys}", flush=True)
+            print(f">>> Available keys: {list(enriched.keys())}", flush=True)
+        
+        return enriched
 
     # ========================================
     # MODULE 4 : MAPPING TMC + RICHTEXT
@@ -954,6 +1016,52 @@ IMPORTANT: JSON strict uniquement, sans commentaire ni balise."""
         
         # 🔥 Ajouter la fonction r pour RichText dans le contexte
         context['r'] = lambda x: x
+        
+        # ⚠️ CORRECTION XML : Échapper les caractères spéciaux (®, &, <, >, etc.)
+        from html import escape as html_escape
+        print(f"   🔧 Échappement des caractères XML spéciaux...")
+        
+        # Échapper les champs texte simples
+        for key in ['first_name', 'last_name', 'title', 'FIRST_NAME', 'LAST_NAME', 
+                   'TITLE', 'residency', 'RESIDENCY', 'languages', 'LANGUAGES']:
+            if key in context and isinstance(context[key], str):
+                context[key] = html_escape(context[key])
+        
+        # Échapper les expériences
+        if 'work_experience' in context:
+            for exp in context['work_experience']:
+                for key in ['period', 'company', 'position']:
+                    if key in exp and isinstance(exp[key], str):
+                        exp[key] = html_escape(exp[key])
+                
+                if 'general_responsibilities' in exp and isinstance(exp['general_responsibilities'], list):
+                    exp['general_responsibilities'] = [
+                        html_escape(r) if isinstance(r, str) else r
+                        for r in exp['general_responsibilities']
+                    ]
+        
+        # Échapper formations
+        if 'education' in context:
+            for edu in context['education']:
+                for key in ['institution', 'degree', 'graduation_year', 'country', 'level', 'title']:
+                    if key in edu and isinstance(edu[key], str):
+                        edu[key] = html_escape(edu[key])
+        
+        # Échapper certifications
+        if 'certifications' in context:
+            for cert in context['certifications']:
+                for key in ['name', 'institution', 'year', 'country']:
+                    if key in cert and isinstance(cert[key], str):
+                        cert[key] = html_escape(cert[key])
+        
+        # Échapper projets
+        if 'projects' in context:
+            for proj in context['projects']:
+                for key in ['nom', 'description']:
+                    if key in proj and isinstance(proj[key], str):
+                        proj[key] = html_escape(proj[key])
+        
+        print(f"   ✅ Caractères XML échappés (®, &, <, >, etc.)")
         
         # Charger le template TMC
         if not os.path.exists(template_path):
