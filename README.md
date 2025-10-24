@@ -4,6 +4,8 @@
 
 Generate TMC-formatted CVs perfectly aligned with job descriptions in French or English.
 
+> 🧪 **MCP Test Badge** - This line was added via Claude MCP GitHub integration!
+
 ## ✨ Features
 
 - 📄 **Multi-format support**: PDF, DOCX, DOC, TXT
