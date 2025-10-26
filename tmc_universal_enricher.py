@@ -997,7 +997,26 @@ Return the corrected JSON directly:"""
     def generate_tmc_docx(self, context: Dict[str, Any], output_path: str, template_path: str = "TMC_NA_template_FR.docx"):
         """Générer le CV TMC final avec docxtpl"""
         print(f"📝 Génération du CV TMC: {output_path}")
-        print(f"   Template utilisé: {template_path}")
+        print(f"   Template demandé: {template_path}")
+        
+        # 🔍 RECHERCHE INTELLIGENTE DU TEMPLATE
+        # Chercher d'abord dans le dossier courant
+        if os.path.exists(template_path):
+            final_template_path = template_path
+            print(f"   ✅ Template trouvé dans le dossier courant")
+        else:
+            # Sinon, chercher dans ../../branding/templates/
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            branding_path = os.path.join(script_dir, '..', '..', 'branding', 'templates', template_path)
+            branding_path = os.path.normpath(branding_path)
+            
+            if os.path.exists(branding_path):
+                final_template_path = branding_path
+                print(f"   ✅ Template trouvé dans branding/templates/")
+            else:
+                raise FileNotFoundError(f"❌ Template TMC introuvable: {template_path}\n   Cherché dans:\n   - {template_path}\n   - {branding_path}")
+        
+        print(f"   📄 Chemin complet: {final_template_path}")
         
         # Créer environnement Jinja2 avec filtre pairwise
         jinja_env = jinja2.Environment()
@@ -1064,10 +1083,7 @@ Return the corrected JSON directly:"""
         print(f"   ✅ Caractères XML échappés (®, &, <, >, etc.)")
         
         # Charger le template TMC
-        if not os.path.exists(template_path):
-            raise FileNotFoundError(f"❌ Template TMC introuvable: {template_path}")
-        
-        doc = DocxTemplate(template_path)
+        doc = DocxTemplate(final_template_path)
         
         # Rendre le document
         doc.render(context, jinja_env)
