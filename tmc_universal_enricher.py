@@ -994,29 +994,54 @@ Return the corrected JSON directly:"""
     # MODULE 5 : GÉNÉRATION DOCX TMC
     # ========================================
     
+    def find_template_file(self, template_name: str = "TMC_NA_template_FR.docx") -> str:
+        """Recherche intelligente du template dans plusieurs emplacements possibles"""
+        from pathlib import Path
+        
+        # Liste exhaustive des endroits possibles
+        script_dir = Path(__file__).parent
+        possible_paths = [
+            Path(template_name),  # Current directory
+            script_dir / template_name,  # Script directory
+            script_dir.parent / "branding" / "templates" / template_name,  # ../../branding/templates/
+            script_dir.parent.parent / "branding" / "templates" / template_name,  # ../../../branding/templates/
+            Path.home() / template_name,  # Home directory
+            Path.home() / "tmc-cv-optimizer" / "branding" / "templates" / template_name,  # Project in home
+            Path("/app/branding/templates") / template_name,  # Render deployment path
+            Path("/home/ubuntu/tmc-cv-optimizer/branding/templates") / template_name,  # Ubuntu deployment
+        ]
+        
+        # Chercher dans les variables d'environnement aussi
+        env_template_path = os.getenv("TMC_TEMPLATE_PATH")
+        if env_template_path:
+            possible_paths.insert(0, Path(env_template_path))
+        
+        print(f"   🔍 Recherche du template: {template_name}")
+        
+        for path in possible_paths:
+            try:
+                if path.exists() and path.is_file():
+                    print(f"   ✅ Template trouvé: {path.resolve()}")
+                    return str(path.resolve())
+            except (OSError, PermissionError) as e:
+                # Ignorer silencieusement les erreurs de permissions
+                continue
+        
+        # Si pas trouvé, afficher tous les chemins essayés
+        print(f"   ❌ Template introuvable: {template_name}")
+        print(f"   Chemins testés:")
+        for path in possible_paths:
+            print(f"      - {path}")
+        print(f"\n   💡 Astuce: Définir TMC_TEMPLATE_PATH pour spécifier un emplacement personnalisé")
+        raise FileNotFoundError(f"Template TMC introuvable: {template_name}")
+    
     def generate_tmc_docx(self, context: Dict[str, Any], output_path: str, template_path: str = "TMC_NA_template_FR.docx"):
         """Générer le CV TMC final avec docxtpl"""
         print(f"📝 Génération du CV TMC: {output_path}")
-        print(f"   Template demandé: {template_path}")
         
-        # 🔍 RECHERCHE INTELLIGENTE DU TEMPLATE
-        # Chercher d'abord dans le dossier courant
-        if os.path.exists(template_path):
-            final_template_path = template_path
-            print(f"   ✅ Template trouvé dans le dossier courant")
-        else:
-            # Sinon, chercher dans ../../branding/templates/
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            branding_path = os.path.join(script_dir, '..', '..', 'branding', 'templates', template_path)
-            branding_path = os.path.normpath(branding_path)
-            
-            if os.path.exists(branding_path):
-                final_template_path = branding_path
-                print(f"   ✅ Template trouvé dans branding/templates/")
-            else:
-                raise FileNotFoundError(f"❌ Template TMC introuvable: {template_path}\n   Cherché dans:\n   - {template_path}\n   - {branding_path}")
-        
-        print(f"   📄 Chemin complet: {final_template_path}")
+        # 🔍 RECHERCHE INTELLIGENTE DU TEMPLATE (nouvelle fonction robuste)
+        final_template_path = self.find_template_file(template_path)
+        print(f"   📄 Template: {final_template_path}")
         
         # Créer environnement Jinja2 avec filtre pairwise
         jinja_env = jinja2.Environment()
