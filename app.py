@@ -776,7 +776,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Centrer avec des colonnes (version originale qui marchait)
 col_left, col_center, col_right = st.columns([3, 2, 3])
 with col_center:
     language_choice = st.radio(
@@ -787,9 +786,35 @@ with col_center:
         key="language_selector"
     )
 
-# Determine template to use
+# =====================================================
+# 🔒 MODE ANONYMISÉ
+# =====================================================
+st.markdown("<br>", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="text-align: center; margin-bottom: 15px;">
+    <strong style="color: #193E92; font-size: 1.15rem;">🔒 Anonymous Mode</strong>
+</div>
+""", unsafe_allow_html=True)
+
+col_anon_left, col_anon_center, col_anon_right = st.columns([3, 2, 3])
+with col_anon_center:
+    mode_anonymise_choice = st.radio(
+        "Select anonymous mode",
+        options=["Disabled", "Enabled"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="anonymous_mode_selector"
+    )
+
+# Determine template to use based on language AND anonymous mode
 template_lang = "FR" if "🇫🇷" in language_choice else "EN"
-template_file = f"TMC_NA_template_{template_lang}.docx"
+mode_anonymise = (mode_anonymise_choice == "Enabled")
+
+if mode_anonymise:
+    template_file = f"TMC_NA_template_{template_lang}_Anonymisé.docx"
+else:
+    template_file = f"TMC_NA_template_{template_lang}.docx"
 
 # =====================================================
 # 🎬 BOUTON GÉNÉRATION
@@ -913,10 +938,13 @@ if submit:
             titre_words = titre_brut.split()
             titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
             
+            # NOUVEAU: Choisir le préfixe selon le mode anonymisé
+            prefix = "CV" if mode_anonymise else "TMC"
+            
             if nom:
-                nom_fichier = f"TMC - {prenom} {nom} - {titre_court}.docx"
+                nom_fichier = f"{prefix} - {prenom} {nom} - {titre_court}.docx"
             else:
-                nom_fichier = f"TMC - {prenom} - {titre_court}.docx"
+                nom_fichier = f"{prefix} - {prenom} - {titre_court}.docx"
             
             # Stocker dans session_state
             st.session_state.results = {
