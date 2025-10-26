@@ -812,9 +812,9 @@ template_lang = "FR" if "🇫🇷" in language_choice else "EN"
 mode_anonymise = (mode_anonymise_choice == "Enabled")
 
 if mode_anonymise:
-    template_file = f"branding/templates/TMC_NA_template_{template_lang}_Anonymise.docx"
+    template_file = f"TMC_NA_template_{template_lang}_Anonymise.docx"
 else:
-    template_file = f"branding/templates/TMC_NA_template_{template_lang}.docx"
+    template_file = f"TMC_NA_template_{template_lang}.docx"
 
 # =====================================================
 # 🎬 BOUTON GÉNÉRATION
@@ -908,7 +908,7 @@ if submit:
             with timeline_placeholder.container():
                 st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
             
-            # Utiliser le template sélectionné
+            # Utiliser le template sélectionné (déjà défini en fonction du mode anonymisé)
             enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
             
             # Post-processing
@@ -938,13 +938,16 @@ if submit:
             titre_words = titre_brut.split()
             titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
             
-            # NOUVEAU: Choisir le préfixe selon le mode anonymisé
-            prefix = "CV" if mode_anonymise else "TMC"
-            
-            if nom:
-                nom_fichier = f"{prefix} - {prenom} {nom} - {titre_court}.docx"
+            # NOUVEAU: Choisir le préfixe et le nom selon le mode anonymisé
+            if mode_anonymise:
+                # CV anonymisé: toujours "CV - Candidate - Titre"
+                nom_fichier = f"CV - Candidate - {titre_court}.docx"
             else:
-                nom_fichier = f"{prefix} - {prenom} - {titre_court}.docx"
+                # CV standard: "TMC - Prénom NOM - Titre"
+                if nom:
+                    nom_fichier = f"TMC - {prenom} {nom} - {titre_court}.docx"
+                else:
+                    nom_fichier = f"TMC - {prenom} - {titre_court}.docx"
             
             # Stocker dans session_state
             st.session_state.results = {
