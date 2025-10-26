@@ -1,6 +1,9 @@
-# 🚀 TMC CV Optimizer
+# 🚀 TMC CV Optimizer - TEST INSTANCE
 
-**Professional CV optimization tool powered by Claude AI**
+> ⚠️ **ATTENTION : Ceci est l'instance de TEST. Pour la version PROD, voir la branche `main`**
+
+[![Instance](https://img.shields.io/badge/Instance-TEST-orange)](https://tmc-cv-optimizer-test.onrender.com)
+[![Status](https://img.shields.io/badge/Status-Testing-yellow)]()
 
 Generate TMC-formatted CVs perfectly aligned with job descriptions in French or English.
 
