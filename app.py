@@ -812,7 +812,7 @@ template_lang = "FR" if "🇫🇷" in language_choice else "EN"
 mode_anonymise = (mode_anonymise_choice == "Enabled")
 
 if mode_anonymise:
-    template_file = f"branding/templates/TMC_NA_template_{template_lang}_Anonymisé.docx"
+    template_file = f"branding/templates/TMC_NA_template_{template_lang}_Anonymise.docx"
 else:
     template_file = f"branding/templates/TMC_NA_template_{template_lang}.docx"
 
