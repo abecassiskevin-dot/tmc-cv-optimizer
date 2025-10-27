@@ -1061,6 +1061,9 @@ if submit:
                 out_path.unlink()
             except:
                 pass
+            
+            # ✅ IMPORTANT: Forcer un rerun pour afficher proprement les résultats
+            st.rerun()
                 
         except FileNotFoundError as e:
             st.error(f"❌ **Missing file:** {str(e)}")
