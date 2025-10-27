@@ -484,7 +484,7 @@ Réponds UNIQUEMENT avec du JSON pur."""
             print(f">>> ERROR analysis: {repr(e)}", flush=True)
             return {}
     
-    def enrich_cv_with_prompt(self, parsed_cv: Dict[str, Any], jd_text: str, language: str = "French") -> Dict[str, Any]:
+    def enrich_cv_with_prompt(self, parsed_cv: Dict[str, Any], jd_text: str, language: str = "French", matching_analysis: Dict[str, Any] = None) -> Dict[str, Any]:
         """Enrichir le CV avec ton prompt exact"""
         import time
         
