@@ -921,19 +921,25 @@ if submit:
                 st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
             
             # ===== STOCKER LES RÉSULTATS DANS SESSION STATE =====
-            cv_bytes = read_bytes(out_path)
-            
+            cv_bytes = read_bytes(out_path)            
+
             # Format: TMC - Prénom NOM - Titre Court.docx
-            nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
-            nom_parts = nom_complet.split()
-            
-            if len(nom_parts) >= 2:
-                prenom = nom_parts[0]
-                nom = ' '.join(nom_parts[1:]).upper()
-            else:
-                prenom = nom_parts[0] if nom_parts else 'Candidate'
-                nom = ''
-            
+            # Récupérer prénom et nom directement depuis parsed_cv
+            prenom = parsed_cv.get('prenom', 'Candidate')
+            nom = parsed_cv.get('nom', '').upper()
+
+            # Si les champs séparés n'existent pas, essayer nom_complet en fallback
+            if not prenom or not nom:
+                nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
+                nom_parts = nom_complet.split()
+    
+                if len(nom_parts) >= 2:
+                    prenom = nom_parts[0]
+                    nom = ' '.join(nom_parts[1:]).upper()
+                else:
+                    prenom = nom_parts[0] if nom_parts else 'Candidate'
+                    nom = ''
+
             titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
             titre_words = titre_brut.split()
             titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
