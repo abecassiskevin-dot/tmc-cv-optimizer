@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TMC CV Optimizer — VERSION 2.0 PRO (Streamlit Cloud Safe) + TWO-STEP MATCHING
+TMC CV Optimizer — VERSION 2.0 PRO (Streamlit Cloud Safe)
 Interface Streamlit premium pour générer des CVs TMC optimisés
 """
 
@@ -343,16 +343,15 @@ def get_base64_image(image_path: Path) -> str:
 
 def horizontal_progress_timeline(current_step: int = 1) -> str:
     """
-    Génère une timeline horizontale avec 6 étapes (Two-Step).
-    current_step: 1-6 (étape en cours)
+    Génère une timeline horizontale avec 5 étapes.
+    current_step: 1-5 (étape en cours)
     """
     steps = [
         {"num": 1, "icon": "🔍", "label": "Extraction"},
         {"num": 2, "icon": "🤖", "label": "Analysis"},
-        {"num": 3, "icon": "🎯", "label": "Matching"},  # NOUVELLE ÉTAPE
-        {"num": 4, "icon": "✨", "label": "Enrichment"},
-        {"num": 5, "icon": "🗺️", "label": "Structuring"},
-        {"num": 6, "icon": "📝", "label": "Generation"},
+        {"num": 3, "icon": "✨", "label": "Enrichment"},
+        {"num": 4, "icon": "🗺️", "label": "Structuring"},
+        {"num": 5, "icon": "📝", "label": "Generation"},
     ]
     
     html_content = """
@@ -378,8 +377,8 @@ def horizontal_progress_timeline(current_step: int = 1) -> str:
                 align-items: center;
                 justify-content: space-between;
                 width: 90%;
-                max-width: 1200px;
-                min-width: 700px;
+                max-width: 1000px;
+                min-width: 600px;
                 margin: 0 auto;
                 position: relative;
             }
@@ -392,13 +391,13 @@ def horizontal_progress_timeline(current_step: int = 1) -> str:
                 flex: 1;
             }
             .step-circle {
-                width: 55px;
-                height: 55px;
+                width: 60px;
+                height: 60px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 24px;
+                font-size: 28px;
                 background: #E5E7EB;
                 border: 4px solid #E5E7EB;
                 transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -421,8 +420,8 @@ def horizontal_progress_timeline(current_step: int = 1) -> str:
                 50% { transform: scale(1.15); }
             }
             .step-label {
-                margin-top: 10px;
-                font-size: 12px;
+                margin-top: 12px;
+                font-size: 13px;
                 font-weight: 600;
                 color: #9CA3AF;
                 transition: color 0.3s ease;
@@ -430,20 +429,20 @@ def horizontal_progress_timeline(current_step: int = 1) -> str:
             }
             .step.active .step-label {
                 color: #193E92;
-                font-size: 13px;
+                font-size: 14px;
             }
             .step.completed .step-label {
                 color: #193E92;
             }
             .connector {
                 position: absolute;
-                top: 27px;
+                top: 30px;
                 left: 0;
                 right: 0;
                 height: 4px;
                 background: #E5E7EB;
                 z-index: 1;
-                margin: 0 27px;
+                margin: 0 30px;
             }
             .connector-progress {
                 height: 100%;
@@ -456,7 +455,7 @@ def horizontal_progress_timeline(current_step: int = 1) -> str:
     <body>
         <div class="timeline">
             <div class="connector">
-                <div class="connector-progress" style="width: """ + str((current_step - 1) * 20) + """%;"></div>
+                <div class="connector-progress" style="width: """ + str((current_step - 1) * 25) + """%;"></div>
             </div>"""
     
     for step in steps:
@@ -848,7 +847,7 @@ def read_bytes(path: Path) -> bytes:
     return Path(path).read_bytes()
 
 # =====================================================
-# ⚙️ PIPELINE PRINCIPALE AVEC TWO-STEP MATCHING
+# ⚙️ PIPELINE PRINCIPALE
 # =====================================================
 if submit:
     # Réinitialiser les résultats précédents dès qu'on clique sur Generate
@@ -872,7 +871,7 @@ if submit:
         st.markdown("### 🔄 Processing...")
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Timeline horizontale centrée avec 6 étapes
+        # Timeline horizontale centrée
         col_tl1, col_tl2, col_tl3 = st.columns([0.5, 4, 0.5])
         with col_tl2:
             timeline_placeholder = st.empty()
@@ -891,35 +890,23 @@ if submit:
                 st.markdown(horizontal_progress_timeline(2), unsafe_allow_html=True)
             parsed_cv = enricher.parse_cv_with_claude(cv_text)
             
-            # Étape 3: TWO-STEP - Matching Analysis (NOUVELLE ÉTAPE)
+            # Étape 3: Enrichissement
             with timeline_placeholder.container():
                 st.markdown(horizontal_progress_timeline(3), unsafe_allow_html=True)
             jd_text = enricher.read_job_description(str(jd_path))
             
-            # Appeler analyze_cv_matching (Step 1 du two-step)
-            matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
+            # Passer la langue choisie à l'enrichissement
+            target_language = "English" if template_lang == "EN" else "French"
+            enriched_cv = enricher.enrich_cv_with_prompt(parsed_cv, jd_text, language=target_language)
             
-            # Étape 4: Enrichissement avec contexte du matching
+            # Étape 4: Mapping
             with timeline_placeholder.container():
                 st.markdown(horizontal_progress_timeline(4), unsafe_allow_html=True)
-            
-            # Passer la langue choisie ET le matching_analysis à l'enrichissement
-            target_language = "English" if template_lang == "EN" else "French"
-            enriched_cv = enricher.enrich_cv_with_prompt(
-                parsed_cv, 
-                jd_text, 
-                language=target_language,
-                matching_analysis=matching_analysis  # ✅ NOUVELLE LIGNE
-            )
-            
-            # Étape 5: Mapping
-            with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
             tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
             
-            # Étape 6: Génération
+            # Étape 5: Génération
             with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(6), unsafe_allow_html=True)
+                st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
             
             # Utiliser le template sélectionné (déjà défini en fonction du mode anonymisé)
             enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
@@ -931,7 +918,7 @@ if submit:
             
             # Terminé - Timeline complète
             with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(6), unsafe_allow_html=True)
+                st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
             
             # ===== STOCKER LES RÉSULTATS DANS SESSION STATE =====
             cv_bytes = read_bytes(out_path)
@@ -1061,9 +1048,6 @@ if submit:
                 out_path.unlink()
             except:
                 pass
-            
-            # ✅ IMPORTANT: Forcer un rerun pour afficher proprement les résultats
-            st.rerun()
                 
         except FileNotFoundError as e:
             st.error(f"❌ **Missing file:** {str(e)}")
