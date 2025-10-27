@@ -919,48 +919,45 @@ if submit:
             # Terminé - Timeline complète
             with timeline_placeholder.container():
                 st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
-            
+                       
             # ===== STOCKER LES RÉSULTATS DANS SESSION STATE =====
-            cv_bytes = read_bytes(out_path)            
+            cv_bytes = read_bytes(out_path)
 
             # Format: TMC - Prénom NOM - Titre Court.docx
-            # Récupérer prénom et nom directement depuis parsed_cv
-            prenom = parsed_cv.get('prenom', 'Candidate')
-            nom = parsed_cv.get('nom', '').upper()
+            nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
+            nom_parts = nom_complet.split()
 
-            # Si les champs séparés n'existent pas, essayer nom_complet en fallback
-            if not prenom or not nom:
-                nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
-                nom_parts = nom_complet.split()
-    
-                if len(nom_parts) >= 2:
-                    prenom = nom_parts[0]
-                    nom = ' '.join(nom_parts[1:]).upper()
-                else:
-                    prenom = nom_parts[0] if nom_parts else 'Candidate'
-                    nom = ''
+            if len(nom_parts) >= 2:
+                prenom = nom_parts[0]
+                nom = ' '.join(nom_parts[1:]).upper()
+            else:
+                prenom = nom_parts[0] if nom_parts else 'Candidate'
+                nom = ''
 
             titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
             titre_words = titre_brut.split()
             titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
-            
-            # NOUVEAU: Choisir le préfixe et le nom selon le mode anonymisé
+
+            # NOUVEAU: Choisir le préfixe selon le mode anonymisé
             if mode_anonymise:
-                # CV anonymisé: toujours "CV - Candidate - Titre"
-                nom_fichier = f"CV - Candidate - {titre_court}.docx"
+                # Mode anonymisé: remplacer "TMC" par "CV" pour cacher l'entreprise
+                if nom:
+                    nom_fichier = f"CV - {prenom} {nom} - {titre_court}.docx"
+                else:
+                    nom_fichier = f"CV - {prenom} - {titre_court}.docx"
             else:
-                # CV standard: "TMC - Prénom NOM - Titre"
+                # Mode standard: garder "TMC"
                 if nom:
                     nom_fichier = f"TMC - {prenom} {nom} - {titre_court}.docx"
                 else:
                     nom_fichier = f"TMC - {prenom} - {titre_court}.docx"
-            
+
             # Stocker dans session_state
             st.session_state.results = {
                 'score': enriched_cv.get('score_matching', 0),
                 'nom': parsed_cv.get('nom_complet', 'N/A'),
                 'nb_exp': len(enriched_cv.get('experiences_enrichies', [])),
-                'experiences_raw': parsed_cv.get('experiences', []),  # Pour calculer les années
+                'experiences_raw': parsed_cv.get('experiences', []),
                 'points_forts': enriched_cv.get('points_forts', []),
                 'domaines_analyses': enriched_cv.get('domaines_analyses', []),
                 'synthese_matching': enriched_cv.get('synthese_matching', ''),
