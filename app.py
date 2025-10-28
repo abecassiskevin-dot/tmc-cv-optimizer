@@ -866,6 +866,11 @@ with button_placeholder.container():
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =====================================================
+# 📍 GENERATION STEPPER PLACEHOLDER (BEFORE RESULTS)
+# =====================================================
+generation_stepper_container = st.empty()
+
+# =====================================================
 # 📊 DISPLAY ANALYSIS RESULTS (if matching done)
 # =====================================================
 if st.session_state.matching_done and st.session_state.matching_data:
@@ -1210,15 +1215,14 @@ if generate_button:
         jd_text = enricher.read_job_description(str(jd_path))
         matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
 
-    # Create stepper section HERE (so it appears right after button, before results)
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.container():
+    # Use the placeholder created ABOVE (appears right after button, before results)
+    with generation_stepper_container.container():
         st.markdown("### ✨ Generating CV...")
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Timeline Generation Step 1
-        generation_stepper_placeholder = st.empty()
-        st.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
+        # Timeline - will be updated as we progress
+        stepper_timeline = st.empty()
+        stepper_timeline.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
     
     try:
         enricher = load_backend()
@@ -1234,15 +1238,13 @@ if generate_button:
         )
         
         # Update timeline - step 2 active
-        with generation_stepper_placeholder.container():
-            st.markdown(generation_progress_timeline(2), unsafe_allow_html=True)
+        stepper_timeline.markdown(generation_progress_timeline(2), unsafe_allow_html=True)
         
         # Step 5: Structuring
         tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
         
         # Update timeline - step 3 active
-        with generation_stepper_placeholder.container():
-            st.markdown(generation_progress_timeline(3), unsafe_allow_html=True)
+        stepper_timeline.markdown(generation_progress_timeline(3), unsafe_allow_html=True)
         
         # Step 6: Generation
         enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
@@ -1253,7 +1255,7 @@ if generate_button:
             enricher.apply_bold_post_processing(str(out_path), keywords)
         
         # Clear the generation stepper
-        generation_stepper_placeholder.empty()
+        generation_stepper_container.empty()
         
         # Store results
         cv_bytes = read_bytes(out_path)
