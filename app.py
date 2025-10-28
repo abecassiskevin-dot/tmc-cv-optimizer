@@ -1217,43 +1217,49 @@ if analyze_button:
 # ⚙️ STEP 2: CV GENERATION PIPELINE
 # =====================================================
 
-# Gérer la confirmation du low score
-if generate_button:
-    if not can_run:
-        st.error("❌ Please upload **the resume** and **the job description**.")
-        st.stop()
-    
-    # Vérifier si on a besoin de confirmation
-    if st.session_state.matching_done and st.session_state.matching_data:
-        score = st.session_state.matching_data['matching_analysis'].get('score_matching', 0)
-        if score < 30:
-            # Afficher le warning dans generation_stepper_container
-            with generation_stepper_container.container():
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.warning("⚠️ **Low match score detected!**")
-                st.markdown(f"The candidate's matching score is **{score}/100**, which is below the recommended threshold of 30.")
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                col_conf1, col_conf2, col_conf3 = st.columns([1, 2, 1])
-                with col_conf2:
-                    if st.button("✅ Yes, Continue Anyway", use_container_width=True, key="confirm_low_score"):
-                        # Marquer qu'on veut générer malgré le low score
-                        st.session_state.force_generation = True
-                        st.rerun()
-                    st.markdown("<br>", unsafe_allow_html=True)
-            st.stop()
-    
-    # Si on arrive ici, soit score >= 30, soit pas de matching data
-    # On marque qu'on veut générer
-    st.session_state.force_generation = True
+# Détecter si on doit générer (clic bouton OU génération en attente)
+should_generate = generate_button or st.session_state.get('pending_generation', False)
 
-# Lancer la génération si le flag est actif
-if st.session_state.get('force_generation', False):
-    # Reset le flag immédiatement
-    st.session_state.force_generation = False
+if should_generate:
+    # Si c'est un nouveau clic sur generate (pas une génération en attente)
+    if generate_button:
+        # Vérifier can_run
+        if not can_run:
+            st.error("❌ Please upload **the resume** and **the job description**.")
+            st.stop()
+        
+        # CONFIRMATION SI SCORE < 30
+        if st.session_state.matching_done and st.session_state.matching_data:
+            score = st.session_state.matching_data['matching_analysis'].get('score_matching', 0)
+            
+            # Si score < 30 et pas encore confirmé
+            if score < 30 and not st.session_state.get('low_score_confirmed', False):
+                # Afficher le warning
+                with generation_stepper_container.container():
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.warning("⚠️ **Low match score detected!**")
+                    st.markdown(f"The candidate's matching score is **{score}/100**, which is below the recommended threshold of 30.")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    
+                    col_conf1, col_conf2, col_conf3 = st.columns([1, 2, 1])
+                    with col_conf2:
+                        if st.button("✅ Yes, Continue Anyway", use_container_width=True, key="confirm_low_score"):
+                            st.session_state.low_score_confirmed = True
+                            st.session_state.pending_generation = True
+                            st.rerun()
+                        st.markdown("<br>", unsafe_allow_html=True)
+                st.stop()
+        
+        # Si on arrive ici, pas de warning ou score >= 30
+        # Marquer qu'on va générer
+        st.session_state.pending_generation = True
+    
+    # Reset les flags de confirmation
+    st.session_state.pending_generation = False
+    st.session_state.low_score_confirmed = False
     st.session_state.results = None
     
-    # Vérifier qu'on a bien les données nécessaires
+    # Vérifier qu'on a les données
     if not st.session_state.matching_done or not st.session_state.matching_data:
         st.error("❌ Matching data not found. Please run 'Analyze Matching' first.")
         st.stop()
