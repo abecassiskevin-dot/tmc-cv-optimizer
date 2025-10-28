@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 import extra_streamlit_components as stx
+import time
 
 # Charger les variables d'environnement depuis .env
 load_dotenv()
