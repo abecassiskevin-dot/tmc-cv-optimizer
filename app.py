@@ -1253,30 +1253,21 @@ if st.session_state.get('force_generation', False):
     st.session_state.force_generation = False
     st.session_state.results = None
     
-    # If matching was done, retrieve Step 1 data; otherwise process from scratch
-    if st.session_state.matching_done and st.session_state.matching_data:
-        # Reuse existing matching data
-        data = st.session_state.matching_data
-        parsed_cv = data['parsed_cv']
-        jd_text = data['jd_text']
-        matching_analysis = data['matching_analysis']
-        cv_path = data['cv_path']
-        jd_path = data['jd_path']
-        template_lang = data['template_lang']
-        mode_anonymise = data['mode_anonymise']
-        template_file = data['template_file']
-    else:
-        # Process from scratch without matching
-        with st.spinner("📁 Preparing files..."):
-            cv_path = save_uploaded(cv_file)
-            jd_path = save_uploaded(jd_file)
-        
-        # Quick extraction and parsing
-        enricher = load_backend()
-        cv_text = enricher.extract_cv_text(str(cv_path))
-        parsed_cv = enricher.parse_cv_with_claude(cv_text)
-        jd_text = enricher.read_job_description(str(jd_path))
-        matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
+    # Vérifier qu'on a bien les données nécessaires
+    if not st.session_state.matching_done or not st.session_state.matching_data:
+        st.error("❌ Matching data not found. Please run 'Analyze Matching' first.")
+        st.stop()
+    
+    # Reuse existing matching data
+    data = st.session_state.matching_data
+    parsed_cv = data['parsed_cv']
+    jd_text = data['jd_text']
+    matching_analysis = data['matching_analysis']
+    cv_path = data['cv_path']
+    jd_path = data['jd_path']
+    template_lang = data['template_lang']
+    mode_anonymise = data['mode_anonymise']
+    template_file = data['template_file']
 
     # Use the placeholder created ABOVE (appears right after button, before results)
     with generation_stepper_container.container():
