@@ -875,58 +875,11 @@ generation_stepper_container = st.empty()
 # =====================================================
 if st.session_state.matching_done and st.session_state.matching_data:
     matching_analysis = st.session_state.matching_data['matching_analysis']
-    parsed_cv = st.session_state.matching_data['parsed_cv']
     
     st.markdown("---")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Display score metrics
-    score = matching_analysis.get('score_matching', 0)
-    nom = parsed_cv.get('nom_complet', 'Candidate')
-    
-    col_m1, col_m2, col_m3 = st.columns(3)
-    with col_m1:
-        st.metric("📊 Matching Score", f"{score}/100")
-    
-    with col_m2:
-        nom_display = nom if len(nom) < 20 else nom[:17] + "..."
-        st.metric("👤 Candidate", nom_display)
-    
-    with col_m3:
-        # Calculate years of experience
-        experiences = parsed_cv.get('experiences', [])
-        total_years = 0
-        
-        import re
-        from datetime import datetime
-        current_year = datetime.now().year
-        
-        for exp in experiences:
-            periode = exp.get('periode', '')
-            periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
-            years_found = re.findall(r'\b(\d{4})\b', periode_clean)
-            
-            if len(years_found) >= 2:
-                try:
-                    start = int(years_found[0])
-                    end = int(years_found[-1])
-                    if end >= start:
-                        total_years += (end - start)
-                except:
-                    pass
-            elif len(years_found) == 1:
-                try:
-                    start = int(years_found[0])
-                    total_years += (current_year - start)
-                except:
-                    pass
-        
-        years_display = f"{total_years} years" if total_years > 0 else "N/A"
-        st.metric("📅 Experience", years_display)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Display only Analysis Summary (table will be shown in final results section)
+    # Display only Analysis Summary (metrics and table will be shown in final results section)
     if matching_analysis.get('synthese_matching'):
         st.markdown(f"""
         <div style="
@@ -1070,9 +1023,9 @@ if analyze_button:
             time.sleep(2)
             success_placeholder.empty()
             
-            # Switch to Generate button - PAS de rerun pour garder l'affichage!
+            # Switch to Generate button and rerun to show results
             st.session_state.show_generate_button = True
-            # ✅ FIX: Pas de st.rerun() ici - l'affichage du Step 1 persiste!
+            st.rerun()
             
         except Exception as e:
             st.error(f"❌ **Analysis error:** {str(e)}")
