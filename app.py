@@ -810,23 +810,38 @@ with col_btn2:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Status indicator if matching is done
+# Status indicator if matching is done (small, auto-disappearing)
 if st.session_state.matching_done:
-    col_status1, col_status2, col_status3 = st.columns([2, 3, 2])
-    with col_status2:
-        st.markdown("""
-        <div style="
-            background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
-            border-radius: 50px;
-            padding: 10px 20px;
-            text-align: center;
-            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
-        ">
-            <span style="color: white; font-size: 0.95rem; font-weight: 600;">
-                ✅ Matching Analysis Complete! You can now generate the CV.
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
+    import time
+    status_placeholder = st.empty()
+    
+    with status_placeholder.container():
+        col_status1, col_status2, col_status3 = st.columns([3, 2, 3])
+        with col_status2:
+            st.markdown("""
+            <div style="
+                background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
+                border-radius: 30px;
+                padding: 8px 16px;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+                animation: fadeIn 0.3s ease-in;
+            ">
+                <span style="color: white; font-size: 0.85rem; font-weight: 600;">
+                    ✅ Analysis Complete!
+                </span>
+            </div>
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            </style>
+            """, unsafe_allow_html=True)
+    
+    # Auto-disappear after 3 seconds
+    time.sleep(3)
+    status_placeholder.empty()
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -929,25 +944,6 @@ if analyze_button:
             st.session_state.matching_done = True
             
             # ===== DISPLAY MATCHING RESULTS =====
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Success badge with GREEN GRADIENT (matching the download button)
-            col_s1, col_s2, col_s3 = st.columns([2, 3, 2])
-            with col_s2:
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
-                    border-radius: 50px;
-                    padding: 12px 24px;
-                    text-align: center;
-                    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
-                ">
-                    <span style="color: white; font-size: 1rem; font-weight: 600;">
-                        ✅ Matching Analysis Complete!
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
-            
             st.markdown("<br>", unsafe_allow_html=True)
             
             # Display score metrics - AMÉLIORATION #4: Score simple et élégant (st.metric)
@@ -1222,6 +1218,15 @@ if generate_button:
             else:
                 prenom = nom_parts[0] if nom_parts else 'Candidate'
                 nom = ''
+            nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
+            nom_parts = nom_complet.split()
+
+            if len(nom_parts) >= 2:
+                prenom = nom_parts[0]
+                nom = ' '.join(nom_parts[1:]).upper()
+            else:
+                prenom = nom_parts[0] if nom_parts else 'Candidate'
+                nom = ''
 
             titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
             titre_words = titre_brut.split()
@@ -1309,23 +1314,6 @@ if generate_button:
                         print(f"⚠️ Airtable error: {response.status_code}")
             except Exception as e:
                 print(f"⚠️ Airtable tracking failed: {e}")
-            
-            # Success message with GREEN GRADIENT (matching the download button)
-            col_success1, col_success2, col_success3 = st.columns([2, 3, 2])
-            with col_success2:
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
-                    border-radius: 50px;
-                    padding: 12px 24px;
-                    text-align: center;
-                    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
-                ">
-                    <span style="color: white; font-size: 1rem; font-weight: 600;">
-                        ✅ CV generated successfully!
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
             
         except Exception as e:
             st.error(f"❌ **Generation error:** {str(e)}")
