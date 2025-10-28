@@ -1249,10 +1249,6 @@ if should_generate:
                             st.rerun()
                         st.markdown("<br>", unsafe_allow_html=True)
                 st.stop()
-        
-        # Si on arrive ici, pas de warning ou score >= 30
-        # Marquer qu'on va générer
-        st.session_state.pending_generation = True
     
     # Reset les flags de confirmation
     st.session_state.pending_generation = False
