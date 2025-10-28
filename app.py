@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TMC CV Optimizer — VERSION 2.0 PRO (Streamlit Cloud Safe)
+TMC CV Optimizer — VERSION 2.0 PRO (Streamlit Cloud Safe) + TWO-STEP MATCHING
 Interface Streamlit premium pour générer des CVs TMC optimisés
 """
 
@@ -25,6 +25,160 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# ==========================================
+# 🎨 TIMELINE FUNCTION
+# ==========================================
+def horizontal_progress_timeline(current_step: int = 1, total_steps: int = 5, step_labels: list = None) -> str:
+    """
+    Génère une timeline horizontale avec des étapes dynamiques.
+    current_step: étape en cours (1-N)
+    total_steps: nombre total d'étapes
+    step_labels: liste des étapes avec icon et label
+    """
+    if step_labels is None:
+        # Default: 5 steps comme V1
+        step_labels = [
+            {"num": 1, "icon": "🔍", "label": "Extraction"},
+            {"num": 2, "icon": "🤖", "label": "Analysis"},
+            {"num": 3, "icon": "✨", "label": "Enrichment"},
+            {"num": 4, "icon": "🗺️", "label": "Structuring"},
+            {"num": 5, "icon": "📝", "label": "Generation"},
+        ]
+    
+    # Calculate progress percentage
+    if total_steps > 1:
+        progress_percent = ((current_step - 1) / (total_steps - 1)) * 100
+    else:
+        progress_percent = 100 if current_step >= total_steps else 0
+    
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: 'Arial', sans-serif;
+                background: transparent;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }
+            .timeline {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 90%;
+                max-width: 1000px;
+                min-width: 600px;
+                margin: 0 auto;
+                position: relative;
+            }
+            .step {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                position: relative;
+                z-index: 2;
+                flex: 1;
+            }
+            .step-circle {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 28px;
+                background: #E5E7EB;
+                border: 4px solid #E5E7EB;
+                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .step.active .step-circle {
+                background: linear-gradient(135deg, #193E92 0%, #D97104 100%);
+                border-color: #193E92;
+                transform: scale(1.1);
+                box-shadow: 0 4px 20px rgba(25, 62, 146, 0.4);
+                animation: pulse 1.5s ease-in-out infinite;
+            }
+            .step.completed .step-circle {
+                background: #193E92;
+                border-color: #193E92;
+                transform: scale(1);
+            }
+            @keyframes pulse {
+                0%, 100% { transform: scale(1.1); }
+                50% { transform: scale(1.15); }
+            }
+            .step-label {
+                margin-top: 12px;
+                font-size: 13px;
+                font-weight: 600;
+                color: #9CA3AF;
+                transition: color 0.3s ease;
+                text-align: center;
+            }
+            .step.active .step-label {
+                color: #193E92;
+                font-size: 14px;
+            }
+            .step.completed .step-label {
+                color: #193E92;
+            }
+            .connector {
+                position: absolute;
+                top: 30px;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: #E5E7EB;
+                z-index: 1;
+                margin: 0 30px;
+            }
+            .connector-progress {
+                height: 100%;
+                background: linear-gradient(90deg, #193E92 0%, #D97104 100%);
+                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                border-radius: 2px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="timeline">
+            <div class="connector">
+                <div class="connector-progress" style="width: """ + str(progress_percent) + """%;"></div>
+            </div>"""
+    
+    for step in step_labels:
+        status = "completed" if step["num"] < current_step else ("active" if step["num"] == current_step else "")
+        html_content += f"""
+            <div class="step {status}">
+                <div class="step-circle">{step["icon"]}</div>
+                <div class="step-label">{step["label"]}</div>
+            </div>"""
+    
+    html_content += """
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
+def generation_progress_timeline(current_step: int = 1) -> str:
+    """Timeline pour la génération de CV (3 étapes)"""
+    step_labels = [
+        {"num": 1, "icon": "✨", "label": "Enrichment"},
+        {"num": 2, "icon": "🗂️", "label": "Structuring"},
+        {"num": 3, "icon": "📝", "label": "Generation"},
+    ]
+    return horizontal_progress_timeline(current_step, 3, step_labels)
 
 # ==========================================
 # 🍪 COOKIE MANAGER
@@ -55,6 +209,10 @@ if 'user_location' not in st.session_state:
     st.session_state.user_location = None
 if 'user_name' not in st.session_state:
     st.session_state.user_name = None
+if 'matching_done' not in st.session_state:
+    st.session_state.matching_done = False
+if 'matching_data' not in st.session_state:
+    st.session_state.matching_data = None    
 
 # Fonction pour vérifier et restaurer la session depuis les cookies
 def restore_session_from_cookies():
@@ -226,265 +384,82 @@ if not st.session_state.authenticated:
             correct_password = os.getenv('APP_PASSWORD', 'TMC2025')  # Default: TMC2025
             
             if password == correct_password:
+                # Set session state
                 st.session_state.authenticated = True
                 st.session_state.login_time = datetime.now()
                 st.session_state.last_activity = datetime.now()
                 st.session_state.user_location = user_location
                 st.session_state.user_name = user_name
                 
-                # Sauvegarder dans un cookie
+                # Save to cookie
                 save_session_to_cookie(user_name, user_location)
                 
+                # Track login in Airtable
+                try:
+                    AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
+                    if AIRTABLE_API_KEY:
+                        import requests
+                        import json
+                        
+                        BASE_ID = 'apptzRcN1NnoNLCJ7'
+                        TABLE_ID = 'tbluQqI2WCCZFMg9W'
+                        
+                        name_parts = user_name.split(' ', 1)
+                        first_name = name_parts[0] if len(name_parts) > 0 else 'Unknown'
+                        last_name = name_parts[1] if len(name_parts) > 1 else ''
+                        
+                        record_data = {
+                            "fields": {
+                                "Timestamp": datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+                                "Event Type": "Login",
+                                "First Name": first_name,
+                                "Last Name": last_name,
+                                "Location": user_location
+                            }
+                        }
+                        
+                        url = f'https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}'
+                        headers = {
+                            'Authorization': f'Bearer {AIRTABLE_API_KEY}',
+                            'Content-Type': 'application/json'
+                        }
+                        
+                        requests.post(url, headers=headers, data=json.dumps(record_data))
+                except Exception as e:
+                    print(f"Airtable error: {e}")
+                
+                st.success(f"✅ Welcome, {user_name}!")
                 st.rerun()
             else:
-                st.error("❌ Invalid password")
-        
-        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.85rem; margin-top: 30px;">TMC Internal Tool - Authorized Access Only</p>', unsafe_allow_html=True)
-        st.markdown('<p style="text-align: center; color: #9CA3AF; font-size: 0.75rem; margin-top: 10px;">🔒 Session: 12h max | Auto-logout after 1h inactivity</p>', unsafe_allow_html=True)
+                st.error("❌ Incorrect password")
     
-    st.stop()  # Stop execution if not authenticated
-
-# ==========================================
-# 🧠 IMPORT LOURD — Lazy Loading
-# ==========================================
-@st.cache_resource(show_spinner="🚀 Initializing CV Optimizer...")
-def load_backend():
-    from tmc_universal_enricher import TMCUniversalEnricher
-    return TMCUniversalEnricher()
+    st.stop()
 
 # =====================================================
-# 🔧 HELPER FUNCTIONS
+# 📦 IMPORTS & SETUP
+# =====================================================
+from tmc_cv_enricher import TMCUniversalEnricher as TMCCVEnricher
+
+# =====================================================
+# 🎨 STYLES & THEMING
 # =====================================================
 
-# ===== SESSION STATE INITIALIZATION =====
-if 'results' not in st.session_state:
-    st.session_state.results = None
+# TMC Brand Colors
+PRIMARY_BLUE = "#193E92"  # Bleu TMC principal
+SECONDARY_ORANGE = "#D97104"  # Orange TMC
+BG_LIGHT = "#F9FAFB"
+SUCCESS_GREEN = "#10B981"
 
-def get_user_info():
-    """
-    Récupère l'IP, la localisation et le User Agent de l'utilisateur
-    Avec système de fallback sur plusieurs APIs
-    """
-    import requests
-    
-    # Liste d'APIs de géolocalisation (par ordre de priorité)
-    apis = [
-        {
-            'url': 'https://ipapi.co/json/',
-            'timeout': 5,
-            'parser': lambda d: {
-                'ip': d.get('ip', 'Unknown'),
-                'city': d.get('city', 'Unknown'),
-                'country': d.get('country_name', 'Unknown'),
-                'user_agent': 'Streamlit App'
-            }
-        },
-        {
-            'url': 'https://ipwhois.app/json/',
-            'timeout': 5,
-            'parser': lambda d: {
-                'ip': d.get('ip', 'Unknown'),
-                'city': d.get('city', 'Unknown'),
-                'country': d.get('country', 'Unknown'),
-                'user_agent': 'Streamlit App'
-            }
-        },
-        {
-            'url': 'http://ip-api.com/json/',
-            'timeout': 5,
-            'parser': lambda d: {
-                'ip': d.get('query', 'Unknown'),
-                'city': d.get('city', 'Unknown'),
-                'country': d.get('country', 'Unknown'),
-                'user_agent': 'Streamlit App'
-            }
-        }
-    ]
-    
-    # Essayer chaque API dans l'ordre
-    for api in apis:
-        try:
-            print(f"🔍 Tentative géolocalisation avec {api['url']}...")
-            response = requests.get(api['url'], timeout=api['timeout'])
-            
-            if response.status_code == 200:
-                data = response.json()
-                result = api['parser'](data)
-                
-                # Vérifier que les données sont valides
-                if result['ip'] != 'Unknown' and result['country'] != 'Unknown':
-                    print(f"✅ Géolocalisation réussie: {result['city']}, {result['country']}")
-                    return result
-                else:
-                    print(f"⚠️ API {api['url']} a retourné des données incomplètes")
-            else:
-                print(f"⚠️ API {api['url']} a retourné le code {response.status_code}")
-                
-        except requests.Timeout:
-            print(f"⏱️ Timeout pour {api['url']}")
-            continue
-        except Exception as e:
-            print(f"⚠️ Erreur avec {api['url']}: {str(e)}")
-            continue
-    
-    # Si toutes les APIs ont échoué
-    print("❌ Toutes les APIs de géolocalisation ont échoué")
-    return {
-        'ip': 'Unknown',
-        'city': 'Unknown',
-        'country': 'Unknown',
-        'user_agent': 'Streamlit App'
-    }
-
-def get_base64_image(image_path: Path) -> str:
-    """Convertit une image en base64 pour l'afficher en HTML."""
-    with open(image_path, "rb") as f:
+def get_base64_image(path: Path) -> str:
+    """Convertir image en base64 pour affichage inline"""
+    with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
-def horizontal_progress_timeline(current_step: int = 1) -> str:
-    """
-    Génère une timeline horizontale avec 5 étapes.
-    current_step: 1-5 (étape en cours)
-    """
-    steps = [
-        {"num": 1, "icon": "🔍", "label": "Extraction"},
-        {"num": 2, "icon": "🤖", "label": "Analysis"},
-        {"num": 3, "icon": "✨", "label": "Enrichment"},
-        {"num": 4, "icon": "🗺️", "label": "Structuring"},
-        {"num": 5, "icon": "📝", "label": "Generation"},
-    ]
-    
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            body {
-                font-family: 'Arial', sans-serif;
-                background: transparent;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 20px;
-            }
-            .timeline {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                width: 90%;
-                max-width: 1000px;
-                min-width: 600px;
-                margin: 0 auto;
-                position: relative;
-            }
-            .step {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                position: relative;
-                z-index: 2;
-                flex: 1;
-            }
-            .step-circle {
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 28px;
-                background: #E5E7EB;
-                border: 4px solid #E5E7EB;
-                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            .step.active .step-circle {
-                background: linear-gradient(135deg, #193E92 0%, #D97104 100%);
-                border-color: #193E92;
-                transform: scale(1.1);
-                box-shadow: 0 4px 20px rgba(25, 62, 146, 0.4);
-                animation: pulse 1.5s ease-in-out infinite;
-            }
-            .step.completed .step-circle {
-                background: #193E92;
-                border-color: #193E92;
-                transform: scale(1);
-            }
-            @keyframes pulse {
-                0%, 100% { transform: scale(1.1); }
-                50% { transform: scale(1.15); }
-            }
-            .step-label {
-                margin-top: 12px;
-                font-size: 13px;
-                font-weight: 600;
-                color: #9CA3AF;
-                transition: color 0.3s ease;
-                text-align: center;
-            }
-            .step.active .step-label {
-                color: #193E92;
-                font-size: 14px;
-            }
-            .step.completed .step-label {
-                color: #193E92;
-            }
-            .connector {
-                position: absolute;
-                top: 30px;
-                left: 0;
-                right: 0;
-                height: 4px;
-                background: #E5E7EB;
-                z-index: 1;
-                margin: 0 30px;
-            }
-            .connector-progress {
-                height: 100%;
-                background: linear-gradient(90deg, #193E92 0%, #D97104 100%);
-                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-                border-radius: 2px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="timeline">
-            <div class="connector">
-                <div class="connector-progress" style="width: """ + str((current_step - 1) * 25) + """%;"></div>
-            </div>"""
-    
-    for step in steps:
-        status = "completed" if step["num"] < current_step else ("active" if step["num"] == current_step else "")
-        html_content += f"""
-            <div class="step {status}">
-                <div class="step-circle">{step["icon"]}</div>
-                <div class="step-label">{step["label"]}</div>
-            </div>"""
-    
-    html_content += """
-        </div>
-    </body>
-    </html>
-    """
-    return html_content
+@st.cache_resource(show_spinner=False)
+def load_backend():
+    """Charge le backend enricher (cached)"""
+    return TMCCVEnricher()
 
-# =====================================================
-# 🎨 BRANDING TMC — Constantes
-# =====================================================
-TMC_BLUE = "#193E92"
-TMC_ORANGE = "#D97104"
-BG_LIGHT = "#F9FAFB"
-TEXT_MAIN = "#111827"
-TEXT_MUTED = "#6B7280"
-
-# =====================================================
-# 🎨 CSS CUSTOM — Design Premium
-# =====================================================
 CUSTOM_CSS = f"""
 <style>
   /* ===== GLOBAL ===== */
@@ -512,7 +487,7 @@ CUSTOM_CSS = f"""
     padding: 2rem 0;
   }}
   .tmc-hero h1 {{
-    color: {TMC_BLUE};
+    color: {PRIMARY_BLUE};
     font-weight: 800;
     font-size: 2.8rem;
     letter-spacing: 0.3px;
@@ -520,7 +495,7 @@ CUSTOM_CSS = f"""
     text-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }}
   .tmc-subtitle {{
-    color: {TEXT_MUTED};
+    color: #6B7280;
     font-size: 1.1rem;
     margin-top: 0.3rem;
     line-height: 1.6;
@@ -541,7 +516,7 @@ CUSTOM_CSS = f"""
 
   /* ===== BOUTONS ===== */
   .stButton>button {{
-    background: linear-gradient(90deg, {TMC_BLUE} 0%, {TMC_ORANGE} 100%) !important;
+    background: linear-gradient(90deg, {PRIMARY_BLUE} 0%, {SECONDARY_ORANGE} 100%) !important;
     color: white !important;
     border: none !important;
     border-radius: 12px !important;
@@ -582,37 +557,37 @@ CUSTOM_CSS = f"""
 
   /* ===== FILE UPLOADER ===== */
   [data-testid="stFileUploader"] {{
-    border: 2px dashed {TMC_BLUE}40;
+    border: 2px dashed {PRIMARY_BLUE}40;
     border-radius: 14px;
     background: white;
     padding: 1.5rem;
     transition: all 0.3s ease;
   }}
   [data-testid="stFileUploader"]:hover {{
-    border-color: {TMC_ORANGE};
+    border-color: {SECONDARY_ORANGE};
     background: #FEF3E2;
   }}
 
   /* ===== PROGRESS BAR ===== */
   .stProgress > div > div {{
-    background: linear-gradient(90deg, {TMC_BLUE} 0%, {TMC_ORANGE} 100%);
+    background: linear-gradient(90deg, {PRIMARY_BLUE} 0%, {SECONDARY_ORANGE} 100%);
     height: 8px;
     border-radius: 10px;
   }}
 
   /* ===== STEPS ===== */
   .tmc-step {{
-    color: {TEXT_MUTED};
+    color: #6B7280;
     font-size: 1rem;
     margin: 0.3rem 0;
     padding: 0.5rem;
-    border-left: 3px solid {TMC_BLUE}30;
+    border-left: 3px solid {PRIMARY_BLUE}30;
     padding-left: 1rem;
     background: {BG_LIGHT};
     border-radius: 6px;
   }}
   .tmc-step.active {{
-    border-left-color: {TMC_ORANGE};
+    border-left-color: {SECONDARY_ORANGE};
     background: #FEF3E2;
     font-weight: 600;
   }}
@@ -646,12 +621,12 @@ CUSTOM_CSS = f"""
 
   /* ===== METRICS ===== */
   [data-testid="stMetricValue"] {{
-    color: {TMC_BLUE};
+    color: {PRIMARY_BLUE};
     font-size: 2rem;
     font-weight: 800;
   }}
   [data-testid="stMetricLabel"] {{
-    color: {TEXT_MUTED};
+    color: #6B7280;
     font-weight: 600;
     font-size: 0.95rem;
   }}
@@ -659,7 +634,7 @@ CUSTOM_CSS = f"""
   /* ===== FOOTER ===== */
   .tmc-footer {{
     text-align: center;
-    color: {TEXT_MUTED};
+    color: #6B7280;
     margin-top: 3rem;
     padding-top: 2rem;
     border-top: 2px solid #E5E7EB;
@@ -704,6 +679,7 @@ CUSTOM_CSS = f"""
   }}
 </style>
 """
+
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # =====================================================
@@ -817,18 +793,39 @@ else:
     template_file = f"TMC_NA_template_{template_lang}.docx"
 
 # =====================================================
-# 🎬 BOUTON GÉNÉRATION
+# 🎬 TWO-STEP BUTTONS
 # =====================================================
 can_run = cv_file is not None and jd_file is not None
 
+st.markdown("<br>", unsafe_allow_html=True)
+
+# BUTTON 1: Analyze Matching (Step 1)
 col_btn1, col_btn2, col_btn3 = st.columns([2, 3, 2])
 with col_btn2:
-    submit = st.button(
-        "✨ Generate my TMC CV",
+    analyze_button = st.button(
+        "📊 Analyze Matching",
         disabled=not can_run,
         use_container_width=True
     )
 
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Status indicator if matching is done
+if st.session_state.matching_done:
+    col_status1, col_status2, col_status3 = st.columns([2, 3, 2])
+    with col_status2:
+        st.success("✅ Matching Analysis Complete! You can now generate the CV.")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# BUTTON 2: Generate CV (Step 2)
+col_btn_gen1, col_btn_gen2, col_btn_gen3 = st.columns([2, 3, 2])
+with col_btn_gen2:
+    generate_button = st.button(
+        "✨ Generate TMC CV",
+        disabled=not can_run,  # Active dès que CV + JD sont uploadés
+        use_container_width=True
+    )
 # =====================================================
 # 🔧 FONCTIONS HELPER
 # =====================================================
@@ -847,11 +844,13 @@ def read_bytes(path: Path) -> bytes:
     return Path(path).read_bytes()
 
 # =====================================================
-# ⚙️ PIPELINE PRINCIPALE
+# ⚙️ STEP 1: MATCHING ANALYSIS PIPELINE
 # =====================================================
-if submit:
-    # Réinitialiser les résultats précédents dès qu'on clique sur Generate
+if analyze_button:
+    # Reset previous results
     st.session_state.results = None
+    st.session_state.matching_done = False
+    st.session_state.matching_data = None
     
     if not can_run:
         st.error("❌ Please upload **the resume** and **the job description**.")
@@ -861,54 +860,334 @@ if submit:
     with st.spinner("📁 Preparing files..."):
         cv_path = save_uploaded(cv_file)
         jd_path = save_uploaded(jd_file)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_path = cv_path.parent / f"CV_TMC_{ts}.docx"
 
     # Processing container
     st.markdown("<br>", unsafe_allow_html=True)
     
     with st.container():
-        st.markdown("### 🔄 Processing...")
+        st.markdown("### 🔍 Analyzing Matching...")
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Timeline horizontale centrée
-        col_tl1, col_tl2, col_tl3 = st.columns([0.5, 4, 0.5])
-        with col_tl2:
-            timeline_placeholder = st.empty()
+        # Timeline with ICONS (like V1)
+        timeline_placeholder = st.empty()
         
         try:
-            # Chargement optimisé du backend (lazy loading)
             enricher = load_backend()
             
-            # Étape 1: Extraction
+            # Define step labels for matching analysis (3 steps)
+            matching_steps = [
+                {"num": 1, "icon": "🔍", "label": "Extraction"},
+                {"num": 2, "icon": "🤖", "label": "Analysis"},
+                {"num": 3, "icon": "📊", "label": "Matching"},
+            ]
+            
+            # Step 1: Extraction
             with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(1), unsafe_allow_html=True)
+                st.markdown(horizontal_progress_timeline(1, 3, matching_steps), unsafe_allow_html=True)
             cv_text = enricher.extract_cv_text(str(cv_path))
             
-            # Étape 2: Parsing
+            # Step 2: Parsing (Analysis)
             with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(2), unsafe_allow_html=True)
+                st.markdown(horizontal_progress_timeline(2, 3, matching_steps), unsafe_allow_html=True)
             parsed_cv = enricher.parse_cv_with_claude(cv_text)
             
-            # Étape 3: Enrichissement
+            # Step 3: Matching Analysis
             with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(3), unsafe_allow_html=True)
+                st.markdown(horizontal_progress_timeline(3, 3, matching_steps), unsafe_allow_html=True)
+                
+            
+            # Step 3: Matching Analysis
             jd_text = enricher.read_job_description(str(jd_path))
+            matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
             
-            # Passer la langue choisie à l'enrichissement
+            # Clear timeline
+            timeline_placeholder.empty()
+            
+            # Store data for Step 2
+            st.session_state.matching_data = {
+                'parsed_cv': parsed_cv,
+                'jd_text': jd_text,
+                'matching_analysis': matching_analysis,
+                'cv_path': cv_path,
+                'jd_path': jd_path,
+                'template_lang': template_lang,
+                'mode_anonymise': mode_anonymise,
+                'template_file': template_file
+            }
+            st.session_state.matching_done = True
+            
+            # ===== DISPLAY MATCHING RESULTS =====
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Success badge with GREEN GRADIENT (AMÉLIORATION #3)
+            col_s1, col_s2, col_s3 = st.columns([2, 1, 2])
+            with col_s2:
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    border-radius: 50px;
+                    padding: 12px 24px;
+                    text-align: center;
+                    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+                ">
+                    <span style="color: white; font-size: 1rem; font-weight: 600;">
+                        ✅ Matching Analysis Complete!
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Display score metrics - AMÉLIORATION #4: Score simple et élégant (st.metric)
+            score = matching_analysis.get('score_matching', 0)
+            nom = parsed_cv.get('nom_complet', 'Candidate')
+            
+            col_m1, col_m2, col_m3 = st.columns(3)
+            with col_m1:
+                st.metric("📊 Matching Score", f"{score}/100")
+            
+            with col_m2:
+                nom_display = nom if len(nom) < 20 else nom[:17] + "..."
+                st.metric("👤 Candidate", nom_display)
+            
+            with col_m3:
+                # Calculate years of experience
+                experiences = parsed_cv.get('experiences', [])
+                total_years = 0
+                
+                import re
+                from datetime import datetime
+                current_year = datetime.now().year
+                
+                for exp in experiences:
+                    periode = exp.get('periode', '')
+                    periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
+                    years_found = re.findall(r'\b(\d{4})\b', periode_clean)
+                    
+                    if len(years_found) >= 2:
+                        try:
+                            start = int(years_found[0])
+                            end = int(years_found[-1])
+                            if end >= start:
+                                total_years += (end - start)
+                        except:
+                            pass
+                    elif len(years_found) == 1:
+                        try:
+                            start = int(years_found[0])
+                            total_years += (current_year - start)
+                        except:
+                            pass
+                
+                years_display = f"{total_years} years" if total_years > 0 else "N/A"
+                st.metric("📅 Experience", years_display)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Display domain analysis table
+            if matching_analysis.get('domaines_analyses'):
+                import pandas as pd
+                
+                st.markdown("""
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
+                        ⚙️ Detailed Weighting Analysis
+                    </h3>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                df_domaines = pd.DataFrame(matching_analysis['domaines_analyses'])
+                
+                def format_domain(row):
+                    match = row['match']
+                    if match == 'incompatible':
+                        icon = "❌"
+                    elif match == 'partiel':
+                        icon = "⚠️"
+                    else:
+                        icon = "✅"
+                    return f"{icon} {row['domaine']}"
+                
+                df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
+                df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
+                df_domaines['Score'] = df_domaines.apply(
+                    lambda row: f"{row['score']}/{row['score_max']}", axis=1
+                )
+                
+                def truncate(text, max_len=150):
+                    if len(text) <= max_len:
+                        return text
+                    text = text[:max_len]
+                    last_space = text.rfind(' ')
+                    if last_space > 0:
+                        text = text[:last_space]
+                    if text and text[-1] not in '.!?':
+                        text += '.'
+                    return text
+                
+                df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
+                df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
+                
+                def style_rows(row):
+                    idx = row.name
+                    match = df_domaines.loc[idx, 'match']
+                    
+                    if match == 'incompatible':
+                        bg = '#fef2f2'
+                    elif match == 'partiel':
+                        bg = '#fffbeb'
+                    else:
+                        bg = '#f0fdf4'
+                    
+                    return [f'background-color: {bg}'] * len(row)
+                
+                styled_df = df_display.style.apply(style_rows, axis=1)
+                
+                st.markdown("""
+                <style>
+                [data-testid="stDataFrame"] {
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
+                    border: 2px solid #193E92;
+                }
+                [data-testid="stDataFrame"] thead {
+                    background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
+                }
+                [data-testid="stDataFrame"] thead th {
+                    color: white !important;
+                    font-weight: 700 !important;
+                    padding: 18px 16px !important;
+                }
+                [data-testid="stDataFrame"] tbody td {
+                    padding: 16px !important;
+                    line-height: 1.6 !important;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                st.dataframe(
+                    styled_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Domain": st.column_config.TextColumn("Domain", width=400),
+                        "Weight": st.column_config.TextColumn("Weight", width=70),
+                        "Score": st.column_config.TextColumn("Score", width=70),
+                        "Comment": st.column_config.TextColumn("Comment", width=None),
+                    }
+                )
+                
+                # Analysis summary
+                st.markdown("<br>", unsafe_allow_html=True)
+                if matching_analysis.get('synthese_matching'):
+                    st.markdown(f"""
+                    <div style="
+                        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                        border-left: 4px solid #3b82f6;
+                        border-radius: 12px;
+                        padding: 20px 24px;
+                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+                    ">
+                        <div style="display: flex; align-items: start;">
+                            <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
+                            <div>
+                                <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
+                                <div style="color: #1e3a8a; line-height: 1.6;">{matching_analysis['synthese_matching']}</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("---")
+            
+            # AMÉLIORATION #5: Message neutre, toujours permettre génération
+            st.info("💡 **Ready to generate!** Click '✨ Generate TMC CV' to create the optimized resume.")
+            
+        except Exception as e:
+            st.error(f"❌ **Analysis error:** {str(e)}")
+            with st.expander("🔍 Technical details"):
+                import traceback
+                st.code(traceback.format_exc())
+            st.session_state.matching_done = False
+            st.session_state.matching_data = None
+
+
+# =====================================================
+# ⚙️ STEP 2: CV GENERATION PIPELINE
+# =====================================================
+if generate_button:
+    # Allow generation even without prior matching
+    if not can_run:
+        st.error("❌ Please upload **the resume** and **the job description**.")
+        st.stop()
+    
+    # Reset previous full results
+    st.session_state.results = None
+    
+    # If matching was done, retrieve Step 1 data; otherwise process from scratch
+    if st.session_state.matching_done and st.session_state.matching_data:
+        # Reuse existing matching data
+        data = st.session_state.matching_data
+        parsed_cv = data['parsed_cv']
+        jd_text = data['jd_text']
+        matching_analysis = data['matching_analysis']
+        cv_path = data['cv_path']
+        jd_path = data['jd_path']
+        template_lang = data['template_lang']
+        mode_anonymise = data['mode_anonymise']
+        template_file = data['template_file']
+    else:
+        # Process from scratch without matching
+        with st.spinner("📁 Preparing files..."):
+            cv_path = save_uploaded(cv_file)
+            jd_path = save_uploaded(jd_file)
+        
+        # Quick extraction and parsing
+        enricher = load_backend()
+        cv_text = enricher.extract_cv_text(str(cv_path))
+        parsed_cv = enricher.parse_cv_with_claude(cv_text)
+        jd_text = enricher.read_job_description(str(jd_path))
+        matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
+
+    # Processing container
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown("### ✨ Generating CV...")
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Timeline Generation Step 1
+        timeline_placeholder = st.empty()
+        with timeline_placeholder.container():
+            st.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
+        
+        try:
+            enricher = load_backend()
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            out_path = cv_path.parent / f"CV_TMC_{ts}.docx"
+            
+            # Step 4: Enrichment
             target_language = "English" if template_lang == "EN" else "French"
-            enriched_cv = enricher.enrich_cv_with_prompt(parsed_cv, jd_text, language=target_language)
+            enriched_cv = enricher.enrich_cv_with_prompt(
+                parsed_cv, 
+                jd_text, 
+                language=target_language
+            )
             
-            # Étape 4: Mapping
+            # Update timeline - step 2 active
             with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(4), unsafe_allow_html=True)
+                st.markdown(generation_progress_timeline(2), unsafe_allow_html=True)
+            
+            # Step 5: Structuring
             tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
             
-            # Étape 5: Génération
+            # Update timeline - step 3 active
             with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
+                st.markdown(generation_progress_timeline(3), unsafe_allow_html=True)
             
-            # Utiliser le template sélectionné (déjà défini en fonction du mode anonymisé)
+            # Step 6: Generation
             enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
             
             # Post-processing
@@ -916,45 +1195,45 @@ if submit:
             if keywords:
                 enricher.apply_bold_post_processing(str(out_path), keywords)
             
-            # Terminé - Timeline complète
-            with timeline_placeholder.container():
-                st.markdown(horizontal_progress_timeline(5), unsafe_allow_html=True)
+            timeline_placeholder.empty()
             
-            # ===== STOCKER LES RÉSULTATS DANS SESSION STATE =====
+            # Store results
             cv_bytes = read_bytes(out_path)
             
             # Format: TMC - Prénom NOM - Titre Court.docx
             nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
             nom_parts = nom_complet.split()
-            
+
             if len(nom_parts) >= 2:
                 prenom = nom_parts[0]
                 nom = ' '.join(nom_parts[1:]).upper()
             else:
                 prenom = nom_parts[0] if nom_parts else 'Candidate'
                 nom = ''
-            
+
             titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
             titre_words = titre_brut.split()
             titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
-            
-            # NOUVEAU: Choisir le préfixe et le nom selon le mode anonymisé
+
+            # NOUVEAU: Choisir le préfixe selon le mode anonymisé
             if mode_anonymise:
-                # CV anonymisé: toujours "CV - Candidate - Titre"
-                nom_fichier = f"CV - Candidate - {titre_court}.docx"
+                # Mode anonymisé: remplacer "TMC" par "CV" pour cacher l'entreprise
+                if nom:
+                    nom_fichier = f"CV - {prenom} {nom} - {titre_court}.docx"
+                else:
+                    nom_fichier = f"CV - {prenom} - {titre_court}.docx"
             else:
-                # CV standard: "TMC - Prénom NOM - Titre"
+                # Mode standard: garder "TMC"
                 if nom:
                     nom_fichier = f"TMC - {prenom} {nom} - {titre_court}.docx"
                 else:
                     nom_fichier = f"TMC - {prenom} - {titre_court}.docx"
             
-            # Stocker dans session_state
             st.session_state.results = {
                 'score': enriched_cv.get('score_matching', 0),
                 'nom': parsed_cv.get('nom_complet', 'N/A'),
                 'nb_exp': len(enriched_cv.get('experiences_enrichies', [])),
-                'experiences_raw': parsed_cv.get('experiences', []),  # Pour calculer les années
+                'experiences_raw': parsed_cv.get('experiences', []),
                 'points_forts': enriched_cv.get('points_forts', []),
                 'domaines_analyses': enriched_cv.get('domaines_analyses', []),
                 'synthese_matching': enriched_cv.get('synthese_matching', ''),
@@ -962,44 +1241,33 @@ if submit:
                 'nom_fichier': nom_fichier
             }
             
-            # ===== 📊 TRACKING AIRTABLE - ANALYTICS =====
+            # Airtable tracking
             try:
                 import os
                 import requests
-                from datetime import datetime
                 import json
                 
-                # Configuration Airtable
                 AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
                 BASE_ID = 'apptzRcN1NnoNLCJ7'
                 TABLE_ID = 'tblYjn3wCdMBU6Gcq'
                 
                 if AIRTABLE_API_KEY:
-                    print("🔑 AIRTABLE_API_KEY found, preparing data...")
-                    
-                    # Préparer les données à enregistrer
                     now = datetime.now()
                     timestamp_iso = now.strftime('%Y-%m-%dT%H:%M:%S')
-                    
-                    # Langue choisie
                     language = "French" if template_lang == "FR" else "English"
                     
-                    # Récupérer les métadonnées d'enrichissement (tokens, temps, coût)
                     metadata = enriched_cv.get('_metadata', {})
                     processing_time = metadata.get('processing_time_seconds', 0)
                     total_tokens = metadata.get('total_tokens', 0)
                     estimated_cost = metadata.get('estimated_cost_usd', 0)
                     
-                    # Récupérer les infos utilisateur depuis session_state
                     user_full_name = st.session_state.get('user_name', 'Unknown User')
                     user_location = st.session_state.get('user_location', 'Unknown')
                     
-                    # Séparer First Name et Last Name
-                    name_parts = user_full_name.split(' ', 1)  # Split en 2 parties max
+                    name_parts = user_full_name.split(' ', 1)
                     first_name_user = name_parts[0] if len(name_parts) > 0 else 'Unknown'
                     last_name_user = name_parts[1] if len(name_parts) > 1 else ''
                     
-                    # Données du log - SEULEMENT les champs qui existent dans Airtable
                     record_data = {
                         "fields": {
                             "Timestamp": timestamp_iso,
@@ -1015,98 +1283,53 @@ if submit:
                         }
                     }
                     
-                    print(f"📤 Sending to Airtable:")
-                    print(json.dumps(record_data, indent=2))
-                    
-                    # Envoyer à Airtable
                     url = f'https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}'
                     headers = {
                         'Authorization': f'Bearer {AIRTABLE_API_KEY}',
                         'Content-Type': 'application/json'
                     }
                     
-                    response = requests.post(url, json=record_data, headers=headers, timeout=10)
+                    response = requests.post(url, headers=headers, data=json.dumps(record_data), timeout=5)
                     
                     if response.status_code == 200:
-                        print("✅ Analytics logged to Airtable successfully")
+                        print(f"✅ Airtable tracking success: {nom_complet}")
                     else:
-                        print(f"⚠️ Airtable logging failed: {response.status_code}")
-                        print(f"📋 Response body: {response.text}")
-                else:
-                    print("⚠️ AIRTABLE_API_KEY not found - analytics not logged")
-                    
+                        print(f"⚠️ Airtable error: {response.status_code}")
             except Exception as e:
-                # Ne pas bloquer l'app si Airtable échoue
-                print(f"⚠️ Airtable logging error (non-blocking): {e}")
-                import traceback
-                print(f"📋 Full traceback: {traceback.format_exc()}")
+                print(f"⚠️ Airtable tracking failed: {e}")
             
-            # Nettoyage des fichiers temporaires
-            try:
-                cv_path.unlink()
-                jd_path.unlink()
-                out_path.unlink()
-            except:
-                pass
-                
-        except FileNotFoundError as e:
-            st.error(f"❌ **Missing file:** {str(e)}")
-            st.info("💡 Check that the template `TMC_NA_template_FR.docx` is present in the folder.")
-            
-        except ModuleNotFoundError:
-            st.error("❌ **Backend module not found**")
-            st.info("💡 Make sure `tmc_universal_enricher.py` is in the same folder as this app.")
+            st.success("✅ **CV generated successfully!**")
+            st.balloons()
             
         except Exception as e:
-            st.error(f"❌ **Processing error:** {str(e)}")
-            
-            # Debug mode
-            with st.expander("🔍 Technical details (for debug)"):
+            st.error(f"❌ **Generation error:** {str(e)}")
+            with st.expander("🔍 Technical details"):
                 import traceback
                 st.code(traceback.format_exc())
 
 # =====================================================
-# 📊 AFFICHAGE DES RÉSULTATS (en dehors du bloc submit)
+# 📊 AFFICHAGE FINAL (si results présent)
 # =====================================================
-if st.session_state.results:
+if st.session_state.get('results'):
     results = st.session_state.results
     
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("## 🎉 Result")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ===== SUCCÈS ! Badge discret =====
-    col_s1, col_s2, col_s3 = st.columns([2, 1, 2])
-    with col_s2:
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #22c55e 0%, #047857 100%);
-            border-radius: 50px;
-            padding: 8px 20px;
-            text-align: center;
-            box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3);
-            margin: 12px 0;
-            display: inline-block;
-            width: 100%;
-        ">
-            <span style="color: white; font-size: 0.95rem; font-weight: 600;">
-                ✅ Success!
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
+    # ===== MÉTRIQUES CLÉS =====
+    col1, col2, col3 = st.columns(3)
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # ===== RESULTS =====
-    col_res1, col_res2, col_res3 = st.columns(3)
-    
-    with col_res1:
+    with col1:
+        # AMÉLIORATION #4: Score simple avec st.metric
         st.metric("📊 Matching Score", f"{results['score']}/100")
     
-    with col_res2:
-        nom_display = results['nom'] if len(results['nom']) < 20 else results['nom'][:17] + "..."
-        st.metric("👤 Candidate", nom_display)
+    with col2:
+        st.metric("👤 Candidate", results['nom'])
     
-    with col_res3:
-        # Calculer les années d'expérience totales avec méthode robuste
+    with col3:
+        # Calculate years
         experiences = results.get('experiences_raw', [])
         total_years = 0
         
@@ -1116,23 +1339,18 @@ if st.session_state.results:
         
         for exp in experiences:
             periode = exp.get('periode', '')
-            
-            # Remplacer Present/Présent par l'année actuelle
             periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
-            
-            # Extraire TOUTES les années (4 chiffres consécutifs)
             years_found = re.findall(r'\b(\d{4})\b', periode_clean)
             
             if len(years_found) >= 2:
                 try:
                     start = int(years_found[0])
-                    end = int(years_found[-1])  # Prendre la dernière année trouvée
-                    if end >= start:  # Vérification cohérence
+                    end = int(years_found[-1])
+                    if end >= start:
                         total_years += (end - start)
                 except:
                     pass
             elif len(years_found) == 1:
-                # Si une seule année, considérer jusqu'à maintenant
                 try:
                     start = int(years_found[0])
                     total_years += (current_year - start)
