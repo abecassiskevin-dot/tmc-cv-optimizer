@@ -793,66 +793,54 @@ else:
     template_file = f"TMC_NA_template_{template_lang}.docx"
 
 # =====================================================
-# 🎬 TWO-STEP BUTTONS
+# 🎬 DYNAMIC BUTTON LOGIC
 # =====================================================
 can_run = cv_file is not None and jd_file is not None
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# BUTTON 1: Analyze Matching (Step 1)
-col_btn1, col_btn2, col_btn3 = st.columns([2, 3, 2])
-with col_btn2:
-    analyze_button = st.button(
-        "📊 Analyze Matching",
-        disabled=not can_run,
-        use_container_width=True
-    )
+# Initialize button visibility states
+if 'show_generate_button' not in st.session_state:
+    st.session_state.show_generate_button = False
+
+# Initialize button variables
+analyze_button = False
+generate_button = False
+
+# Create a single placeholder for the button
+button_placeholder = st.empty()
+
+with button_placeholder.container():
+    col_btn1, col_btn2, col_btn3 = st.columns([2, 3, 2])
+    with col_btn2:
+        # Show either Analyze or Generate button (or Download if results exist)
+        if st.session_state.get('results'):
+            # Show Download button (green) if CV is generated
+            st.download_button(
+                label="📥 Download TMC CV",
+                data=st.session_state.results['cv_bytes'],
+                file_name=st.session_state.results['nom_fichier'],
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True
+            )
+        elif st.session_state.show_generate_button:
+            # Show Generate button after analysis is done
+            generate_button = st.button(
+                "✨ Generate TMC CV",
+                disabled=not can_run,
+                use_container_width=True,
+                key="generate_cv_button"
+            )
+        else:
+            # Show Analyze button initially
+            analyze_button = st.button(
+                "📊 Analyze Matching",
+                disabled=not can_run,
+                use_container_width=True,
+                key="analyze_matching_button"
+            )
 
 st.markdown("<br>", unsafe_allow_html=True)
-
-# Status indicator if matching is done (small, auto-disappearing)
-if st.session_state.matching_done:
-    import time
-    status_placeholder = st.empty()
-    
-    with status_placeholder.container():
-        col_status1, col_status2, col_status3 = st.columns([3, 2, 3])
-        with col_status2:
-            st.markdown("""
-            <div style="
-                background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
-                border-radius: 30px;
-                padding: 8px 16px;
-                text-align: center;
-                box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
-                animation: fadeIn 0.3s ease-in;
-            ">
-                <span style="color: white; font-size: 0.85rem; font-weight: 600;">
-                    ✅ Analysis Complete!
-                </span>
-            </div>
-            <style>
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            </style>
-            """, unsafe_allow_html=True)
-    
-    # Auto-disappear after 3 seconds
-    time.sleep(3)
-    status_placeholder.empty()
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# BUTTON 2: Generate CV (Step 2)
-col_btn_gen1, col_btn_gen2, col_btn_gen3 = st.columns([2, 3, 2])
-with col_btn_gen2:
-    generate_button = st.button(
-        "✨ Generate TMC CV",
-        disabled=not can_run,  # Active dès que CV + JD sont uploadés
-        use_container_width=True
-    )
 # =====================================================
 # 🔧 FONCTIONS HELPER
 # =====================================================
@@ -942,6 +930,41 @@ if analyze_button:
                 'template_file': template_file
             }
             st.session_state.matching_done = True
+            
+            # Show temporary success badge
+            import time
+            success_placeholder = st.empty()
+            
+            with success_placeholder.container():
+                col_s1, col_s2, col_s3 = st.columns([3, 2, 3])
+                with col_s2:
+                    st.markdown("""
+                    <div style="
+                        background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
+                        border-radius: 30px;
+                        padding: 8px 16px;
+                        text-align: center;
+                        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+                        animation: fadeIn 0.3s ease-in;
+                    ">
+                        <span style="color: white; font-size: 0.85rem; font-weight: 600;">
+                            ✅ Analysis Complete!
+                        </span>
+                    </div>
+                    <style>
+                        @keyframes fadeIn {
+                            from { opacity: 0; transform: translateY(-10px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                    </style>
+                    """, unsafe_allow_html=True)
+            
+            # Auto-disappear after 3 seconds
+            time.sleep(3)
+            success_placeholder.empty()
+            
+            # Switch to Generate button
+            st.session_state.show_generate_button = True
             
             # ===== DISPLAY MATCHING RESULTS =====
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1110,8 +1133,8 @@ if analyze_button:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("---")
             
-            # AMÉLIORATION #5: Message neutre, toujours permettre génération
-            st.info("💡 **Ready to generate!** Click '✨ Generate TMC CV' to create the optimized resume.")
+            # Force rerun to show Generate button
+            st.rerun()
             
         except Exception as e:
             st.error(f"❌ **Analysis error:** {str(e)}")
@@ -1218,15 +1241,6 @@ if generate_button:
             else:
                 prenom = nom_parts[0] if nom_parts else 'Candidate'
                 nom = ''
-            nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
-            nom_parts = nom_complet.split()
-
-            if len(nom_parts) >= 2:
-                prenom = nom_parts[0]
-                nom = ' '.join(nom_parts[1:]).upper()
-            else:
-                prenom = nom_parts[0] if nom_parts else 'Candidate'
-                nom = ''
 
             titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
             titre_words = titre_brut.split()
@@ -1314,6 +1328,41 @@ if generate_button:
                         print(f"⚠️ Airtable error: {response.status_code}")
             except Exception as e:
                 print(f"⚠️ Airtable tracking failed: {e}")
+            
+            # Show temporary success badge
+            import time
+            gen_success_placeholder = st.empty()
+            
+            with gen_success_placeholder.container():
+                col_g1, col_g2, col_g3 = st.columns([3, 2, 3])
+                with col_g2:
+                    st.markdown("""
+                    <div style="
+                        background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
+                        border-radius: 30px;
+                        padding: 8px 16px;
+                        text-align: center;
+                        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+                        animation: fadeIn 0.3s ease-in;
+                    ">
+                        <span style="color: white; font-size: 0.85rem; font-weight: 600;">
+                            ✅ Generation Complete!
+                        </span>
+                    </div>
+                    <style>
+                        @keyframes fadeIn {
+                            from { opacity: 0; transform: translateY(-10px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                    </style>
+                    """, unsafe_allow_html=True)
+            
+            # Auto-disappear after 3 seconds
+            time.sleep(3)
+            gen_success_placeholder.empty()
+            
+            # Force rerun to show Download button
+            st.rerun()
             
         except Exception as e:
             st.error(f"❌ **Generation error:** {str(e)}")
