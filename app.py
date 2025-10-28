@@ -926,27 +926,120 @@ if st.session_state.matching_done and st.session_state.matching_data:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ===== MESSAGE DE TRANSITION (NOUVEAU DESIGN VERT) =====
-    st.markdown("""
-    <div style="
-        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-        border-left: 4px solid #10b981;
-        border-radius: 12px;
-        padding: 20px 24px;
-        margin: 20px 0;
-        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
-    ">
-        <div style="display: flex; align-items: start;">
-            <div style="font-size: 1.5rem; margin-right: 12px;">✅</div>
-            <div>
-                <div style="font-weight: 700; color: #047857; font-size: 1.1rem; margin-bottom: 8px;">Analysis Complete!</div>
-                <div style="color: #065f46; line-height: 1.6;">
-                    The candidate's profile has been analyzed. Review the details below and click <strong>"✨ Generate TMC CV"</strong> when ready.
+    # Display domain analysis table
+    if matching_analysis.get('domaines_analyses'):
+        import pandas as pd
+        
+        st.markdown("""
+        <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
+                ⚙️ Detailed Weighting Analysis
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        df_domaines = pd.DataFrame(matching_analysis['domaines_analyses'])
+        
+        def format_domain(row):
+            match = row['match']
+            if match == 'incompatible':
+                icon = "❌"
+            elif match == 'partiel':
+                icon = "⚠️"
+            else:
+                icon = "✅"
+            return f"{icon} {row['domaine']}"
+        
+        df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
+        df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
+        df_domaines['Score'] = df_domaines.apply(
+            lambda row: f"{row['score']}/{row['score_max']}", axis=1
+        )
+        
+        def truncate(text, max_len=150):
+            if len(text) <= max_len:
+                return text
+            text = text[:max_len]
+            last_space = text.rfind(' ')
+            if last_space > 0:
+                text = text[:last_space]
+            if text and text[-1] not in '.!?':
+                text += '.'
+            return text
+        
+        df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
+        df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
+        
+        def style_rows(row):
+            idx = row.name
+            match = df_domaines.loc[idx, 'match']
+            
+            if match == 'incompatible':
+                bg = '#fef2f2'
+            elif match == 'partiel':
+                bg = '#fffbeb'
+            else:
+                bg = '#f0fdf4'
+            
+            return [f'background-color: {bg}'] * len(row)
+        
+        styled_df = df_display.style.apply(style_rows, axis=1)
+        
+        st.markdown("""
+        <style>
+        [data-testid="stDataFrame"] {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
+            border: 2px solid #193E92;
+        }
+        [data-testid="stDataFrame"] thead {
+            background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
+        }
+        [data-testid="stDataFrame"] thead th {
+            color: white !important;
+            font-weight: 700 !important;
+            padding: 18px 16px !important;
+        }
+        [data-testid="stDataFrame"] tbody td {
+            padding: 16px !important;
+            line-height: 1.6 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Domain": st.column_config.TextColumn("Domain", width=400),
+                "Weight": st.column_config.TextColumn("Weight", width=70),
+                "Score": st.column_config.TextColumn("Score", width=70),
+                "Comment": st.column_config.TextColumn("Comment", width=None),
+            }
+        )
+        
+        # Analysis summary
+        st.markdown("<br>", unsafe_allow_html=True)
+        if matching_analysis.get('synthese_matching'):
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                border-left: 4px solid #3b82f6;
+                border-radius: 12px;
+                padding: 20px 24px;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+            ">
+                <div style="display: flex; align-items: start;">
+                    <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
+                    <div>
+                        <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
+                        <div style="color: #1e3a8a; line-height: 1.6;">{matching_analysis['synthese_matching']}</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1068,12 +1161,13 @@ if analyze_button:
                     </style>
                     """, unsafe_allow_html=True)
             
-            # Auto-disappear after 2 seconds
-            time.sleep(2)
+            # Auto-disappear after 3 seconds
+            time.sleep(3)
             success_placeholder.empty()
             
-            # Switch to Generate button (NO rerun to keep display)
+            # Switch to Generate button and rerun
             st.session_state.show_generate_button = True
+            st.rerun()
             
         except Exception as e:
             st.error(f"❌ **Analysis error:** {str(e)}")
@@ -1140,8 +1234,7 @@ if generate_button:
         enriched_cv = enricher.enrich_cv_with_prompt(
             parsed_cv, 
             jd_text, 
-            language=target_language,
-            matching_analysis=matching_analysis  # NOUVEAU: Passer le matching pour éviter duplication
+            language=target_language
         )
         
         # Update timeline - step 2 active
@@ -1293,9 +1386,12 @@ if generate_button:
                 </style>
                 """, unsafe_allow_html=True)
         
-        # Auto-disappear after 2 seconds
-        time.sleep(2)
+        # Auto-disappear after 3 seconds
+        time.sleep(3)
         gen_success_placeholder.empty()
+        
+        # Force rerun to show Download button
+        st.rerun()
         
     except Exception as e:
         st.error(f"❌ **Generation error:** {str(e)}")
@@ -1311,249 +1407,220 @@ if st.session_state.get('results'):
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("---")
+    st.markdown("## 🎉 Result")
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # ===== LOGIQUE CONDITIONNELLE =====
-    # Si Step 1 a été fait, on affiche seulement le message de succès
-    # Si Direct Generation, on affiche TOUT
-    show_full_analysis = not st.session_state.get('matching_done', False)
+    # ===== MÉTRIQUES CLÉS =====
+    col1, col2, col3 = st.columns(3)
     
-    if show_full_analysis:
-        # ===== MODE DIRECT GENERATION: Afficher tout =====
-        st.markdown("## 🎉 Result")
-        st.markdown("<br>", unsafe_allow_html=True)
+    with col1:
+        # AMÉLIORATION #4: Score simple avec st.metric
+        st.metric("📊 Matching Score", f"{results['score']}/100")
+    
+    with col2:
+        st.metric("👤 Candidate", results['nom'])
+    
+    with col3:
+        # Calculate years
+        experiences = results.get('experiences_raw', [])
+        total_years = 0
         
-        # ===== MÉTRIQUES CLÉS =====
-        col1, col2, col3 = st.columns(3)
+        import re
+        from datetime import datetime
+        current_year = datetime.now().year
         
-        with col1:
-            st.metric("📊 Matching Score", f"{results['score']}/100")
+        for exp in experiences:
+            periode = exp.get('periode', '')
+            periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
+            years_found = re.findall(r'\b(\d{4})\b', periode_clean)
+            
+            if len(years_found) >= 2:
+                try:
+                    start = int(years_found[0])
+                    end = int(years_found[-1])
+                    if end >= start:
+                        total_years += (end - start)
+                except:
+                    pass
+            elif len(years_found) == 1:
+                try:
+                    start = int(years_found[0])
+                    total_years += (current_year - start)
+                except:
+                    pass
         
-        with col2:
-            st.metric("👤 Candidate", results['nom'])
+        years_display = f"{total_years} years" if total_years > 0 else "N/A"
+        st.metric("📅 Years of Experience", years_display)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ===== TABLEAU DE PONDÉRATION PROFESSIONNEL (st.dataframe) =====
+    if results.get('domaines_analyses'):
+        import pandas as pd
         
-        with col3:
-            # Calculate years
-            experiences = results.get('experiences_raw', [])
-            total_years = 0
-            
-            import re
-            from datetime import datetime
-            current_year = datetime.now().year
-            
-            for exp in experiences:
-                periode = exp.get('periode', '')
-                periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
-                years_found = re.findall(r'\b(\d{4})\b', periode_clean)
-                
-                if len(years_found) >= 2:
-                    try:
-                        start = int(years_found[0])
-                        end = int(years_found[-1])
-                        if end >= start:
-                            total_years += (end - start)
-                    except:
-                        pass
-                elif len(years_found) == 1:
-                    try:
-                        start = int(years_found[0])
-                        total_years += (current_year - start)
-                    except:
-                        pass
-            
-            years_display = f"{total_years} years" if total_years > 0 else "N/A"
-            st.metric("📅 Years of Experience", years_display)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # ===== TABLEAU DE PONDÉRATION PROFESSIONNEL (st.dataframe) =====
-        if results.get('domaines_analyses'):
-            import pandas as pd
-            
-            # ===== TITRE =====
-            st.markdown("""
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
-                    ⚙️ Detailed Weighting Analysis
-                </h3>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Créer le DataFrame
-            df_domaines = pd.DataFrame(results['domaines_analyses'])
-            
-            # Ajouter colonne avec icône + domaine
-            def format_domain(row):
-                match = row['match']
-                if match == 'incompatible':
-                    icon = "❌"
-                elif match == 'partiel':
-                    icon = "⚠️"
-                else:
-                    icon = "✅"
-                return f"{icon} {row['domaine']}"
-            
-            df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
-            df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
-            df_domaines['Score'] = df_domaines.apply(
-                lambda row: f"{row['score']}/{row['score_max']}", axis=1
-            )
-            
-            # Tronquer commentaires
-            def truncate(text, max_len=150):
-                if len(text) <= max_len:
-                    return text
-                text = text[:max_len]
-                last_space = text.rfind(' ')
-                if last_space > 0:
-                    text = text[:last_space]
-                if text and text[-1] not in '.!?':
-                    text += '.'
-                return text
-            
-            df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
-            
-            # Sélectionner colonnes finales
-            df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
-            
-            # Fonction de style pour les lignes
-            def style_rows(row):
-                idx = row.name
-                match = df_domaines.loc[idx, 'match']
-                
-                if match == 'incompatible':
-                    bg = '#fef2f2'
-                elif match == 'partiel':
-                    bg = '#fffbeb'
-                else:
-                    bg = '#f0fdf4'
-                
-                return [f'background-color: {bg}'] * len(row)
-            
-            # Appliquer style
-            styled_df = df_display.style.apply(style_rows, axis=1)
-            
-            # CSS pour le dataframe avec couleurs TMC
-            st.markdown("""
-            <style>
-            /* Dataframe professionnel avec couleurs TMC */
-            [data-testid="stDataFrame"] {
-                border-radius: 12px;
-                overflow: hidden;
-                box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
-                border: 2px solid #193E92;
-            }
-            [data-testid="stDataFrame"] table {
-                border-collapse: collapse;
-            }
-            [data-testid="stDataFrame"] thead {
-                background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
-            }
-            [data-testid="stDataFrame"] thead th {
-                color: white !important;
-                font-weight: 700 !important;
-                font-size: 0.95rem !important;
-                padding: 18px 16px !important;
-                text-align: left !important;
-                border: none !important;
-            }
-            [data-testid="stDataFrame"] tbody td {
-                padding: 16px !important;
-                font-size: 0.9rem !important;
-                border-bottom: 1px solid #e5e7eb !important;
-                vertical-align: middle !important;
-                line-height: 1.6 !important;
-            }
-            [data-testid="stDataFrame"] tbody tr:last-child td {
-                border-bottom: none !important;
-            }
-            /* Accent orange TMC sur hover */
-            [data-testid="stDataFrame"] tbody tr:hover {
-                box-shadow: inset 4px 0 0 #D97104;
-                transition: all 0.2s ease;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-            
-            # Afficher le dataframe sans lignes vides
-            st.dataframe(
-                styled_df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Domain": st.column_config.TextColumn(
-                        "Domain",
-                        width=400,
-                        help="Technical/functional domain"
-                    ),
-                    "Weight": st.column_config.TextColumn(
-                        "Weight",
-                        width=70,
-                        help="Importance weight (%)"
-                    ),
-                    "Score": st.column_config.TextColumn(
-                        "Score",
-                        width=70,
-                        help="Candidate score"
-                    ),
-                    "Comment": st.column_config.TextColumn(
-                        "Comment",
-                        width=None,  # Prend l'espace restant
-                        help="Detailed assessment"
-                    ),
-                }
-            )
-            
-            # ===== BLOC RÉSUMÉ TEXTUEL =====
-            st.markdown("<br>", unsafe_allow_html=True)
-            if results.get('synthese_matching'):
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown(f"""
-                <div style="
-                    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-                    border-left: 4px solid #3b82f6;
-                    border-radius: 12px;
-                    padding: 20px 24px;
-                    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-                ">
-                    <div style="display: flex; align-items: start;">
-                        <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
-                        <div>
-                            <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
-                            <div style="color: #1e3a8a; line-height: 1.6;">{results['synthese_matching']}</div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # ===== KEY STRENGTHS =====
-        if results['points_forts']:
-            st.markdown("### 💪 Key Strengths Identified")
-            for i, pf in enumerate(results['points_forts'][:5], 1):
-                st.markdown(f"**{i}.** {pf}")
-    else:
-        # ===== MODE AFTER STEP 1: Afficher seulement le message de succès =====
+        # ===== TITRE =====
         st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-            border-left: 4px solid #10b981;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
-        ">
-            <div style="display: flex; align-items: start;">
-                <div style="font-size: 1.5rem; margin-right: 12px;">✅</div>
-                <div>
-                    <div style="font-weight: 700; color: #047857; font-size: 1.1rem; margin-bottom: 8px;">CV Generated Successfully!</div>
-                    <div style="color: #065f46; line-height: 1.6;">
-                        Your optimized TMC CV is ready. The analysis results from Step 1 remain visible above. Download your CV using the button below.
-                    </div>
-                </div>
-            </div>
+        <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
+                ⚙️ Detailed Weighting Analysis
+            </h3>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Créer le DataFrame
+        df_domaines = pd.DataFrame(results['domaines_analyses'])
+        
+        # Ajouter colonne avec icône + domaine
+        def format_domain(row):
+            match = row['match']
+            if match == 'incompatible':
+                icon = "❌"
+            elif match == 'partiel':
+                icon = "⚠️"
+            else:
+                icon = "✅"
+            return f"{icon} {row['domaine']}"
+        
+        df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
+        df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
+        df_domaines['Score'] = df_domaines.apply(
+            lambda row: f"{row['score']}/{row['score_max']}", axis=1
+        )
+        
+        # Tronquer commentaires
+        def truncate(text, max_len=150):
+            if len(text) <= max_len:
+                return text
+            text = text[:max_len]
+            last_space = text.rfind(' ')
+            if last_space > 0:
+                text = text[:last_space]
+            if text and text[-1] not in '.!?':
+                text += '.'
+            return text
+        
+        df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
+        
+        # Sélectionner colonnes finales
+        df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
+        
+        # Fonction de style pour les lignes
+        def style_rows(row):
+            idx = row.name
+            match = df_domaines.loc[idx, 'match']
+            
+            if match == 'incompatible':
+                bg = '#fef2f2'
+            elif match == 'partiel':
+                bg = '#fffbeb'
+            else:
+                bg = '#f0fdf4'
+            
+            return [f'background-color: {bg}'] * len(row)
+        
+        # Appliquer style
+        styled_df = df_display.style.apply(style_rows, axis=1)
+        
+        # CSS pour le dataframe avec couleurs TMC
+        st.markdown("""
+        <style>
+        /* Dataframe professionnel avec couleurs TMC */
+        [data-testid="stDataFrame"] {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
+            border: 2px solid #193E92;
+        }
+        [data-testid="stDataFrame"] table {
+            border-collapse: collapse;
+        }
+        [data-testid="stDataFrame"] thead {
+            background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
+        }
+        [data-testid="stDataFrame"] thead th {
+            color: white !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+            padding: 18px 16px !important;
+            text-align: left !important;
+            border: none !important;
+        }
+        [data-testid="stDataFrame"] tbody td {
+            padding: 16px !important;
+            font-size: 0.9rem !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            vertical-align: middle !important;
+            line-height: 1.6 !important;
+        }
+        [data-testid="stDataFrame"] tbody tr:last-child td {
+            border-bottom: none !important;
+        }
+        /* Accent orange TMC sur hover */
+        [data-testid="stDataFrame"] tbody tr:hover {
+            box-shadow: inset 4px 0 0 #D97104;
+            transition: all 0.2s ease;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Afficher le dataframe sans lignes vides
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Domain": st.column_config.TextColumn(
+                    "Domain",
+                    width=400,
+                    help="Technical/functional domain"
+                ),
+                "Weight": st.column_config.TextColumn(
+                    "Weight",
+                    width=70,
+                    help="Importance weight (%)"
+                ),
+                "Score": st.column_config.TextColumn(
+                    "Score",
+                    width=70,
+                    help="Candidate score"
+                ),
+                "Comment": st.column_config.TextColumn(
+                    "Comment",
+                    width=None,  # Prend l'espace restant
+                    help="Detailed assessment"
+                ),
+            }
+        )
+        
+        # ===== BLOC RÉSUMÉ TEXTUEL =====
+        st.markdown("<br>", unsafe_allow_html=True)
+        if results.get('synthese_matching'):
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                border-left: 4px solid #3b82f6;
+                border-radius: 12px;
+                padding: 20px 24px;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+            ">
+                <div style="display: flex; align-items: start;">
+                    <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
+                    <div>
+                        <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
+                        <div style="color: #1e3a8a; line-height: 1.6;">{results['synthese_matching']}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ===== KEY STRENGTHS =====
+    if results['points_forts']:
+        st.markdown("### 💪 Key Strengths Identified")
+        for i, pf in enumerate(results['points_forts'][:5], 1):
+            st.markdown(f"**{i}.** {pf}")
     
     st.markdown("<br>", unsafe_allow_html=True)
     
