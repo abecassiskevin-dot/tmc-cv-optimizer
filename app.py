@@ -212,9 +212,7 @@ if 'user_name' not in st.session_state:
 if 'matching_done' not in st.session_state:
     st.session_state.matching_done = False
 if 'matching_data' not in st.session_state:
-    st.session_state.matching_data = None
-if 'generation_in_progress' not in st.session_state:
-    st.session_state.generation_in_progress = False    
+    st.session_state.matching_data = None    
 
 # Fonction pour vérifier et restaurer la session depuis les cookies
 def restore_session_from_cookies():
@@ -857,20 +855,6 @@ with button_placeholder.container():
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =====================================================
-# ✨ SHOW GENERATION STEPPER (if generate button was clicked)
-# =====================================================
-if 'show_generation_stepper' not in st.session_state:
-    st.session_state.show_generation_stepper = False
-
-if st.session_state.show_generation_stepper:
-    with st.container():
-        st.markdown("### ✨ Generating CV...")
-        generation_stepper_placeholder = st.empty()
-        # Store placeholder in session_state so generate_button block can access it
-        st.session_state.generation_stepper_placeholder = generation_stepper_placeholder
-        st.markdown("<br>", unsafe_allow_html=True)
-
-# =====================================================
 # 📊 DISPLAY ANALYSIS RESULTS (if matching done)
 # =====================================================
 if st.session_state.matching_done and st.session_state.matching_data:
@@ -1187,9 +1171,6 @@ if generate_button:
         st.error("❌ Please upload **the resume** and **the job description**.")
         st.stop()
     
-    # Activate generation stepper display (will show on next section)
-    st.session_state.show_generation_stepper = True
-    
     # Reset previous full results
     st.session_state.results = None
     
@@ -1218,11 +1199,14 @@ if generate_button:
         jd_text = enricher.read_job_description(str(jd_path))
         matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
 
-    # Get the stepper placeholder that was created above
-    generation_stepper_placeholder = st.session_state.get('generation_stepper_placeholder', st.empty())
-    
-    # Timeline Generation Step 1
-    with generation_stepper_placeholder.container():
+    # Create stepper section HERE (so it appears right after button, before results)
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.container():
+        st.markdown("### ✨ Generating CV...")
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Timeline Generation Step 1
+        generation_stepper_placeholder = st.empty()
         st.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
     
     try:
@@ -1259,8 +1243,6 @@ if generate_button:
         
         # Clear the generation stepper
         generation_stepper_placeholder.empty()
-        st.session_state.show_generation_stepper = False
-        st.session_state.generation_in_progress = False
         
         # Store results
         cv_bytes = read_bytes(out_path)
