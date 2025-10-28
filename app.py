@@ -212,7 +212,9 @@ if 'user_name' not in st.session_state:
 if 'matching_done' not in st.session_state:
     st.session_state.matching_done = False
 if 'matching_data' not in st.session_state:
-    st.session_state.matching_data = None    
+    st.session_state.matching_data = None
+if 'generation_in_progress' not in st.session_state:
+    st.session_state.generation_in_progress = False    
 
 # Fonction pour vérifier et restaurer la session depuis les cookies
 def restore_session_from_cookies():
@@ -855,6 +857,20 @@ with button_placeholder.container():
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =====================================================
+# ✨ SHOW GENERATION STEPPER (if generate button was clicked)
+# =====================================================
+if 'show_generation_stepper' not in st.session_state:
+    st.session_state.show_generation_stepper = False
+
+if st.session_state.show_generation_stepper:
+    with st.container():
+        st.markdown("### ✨ Generating CV...")
+        generation_stepper_placeholder = st.empty()
+        # Store placeholder in session_state so generate_button block can access it
+        st.session_state.generation_stepper_placeholder = generation_stepper_placeholder
+        st.markdown("<br>", unsafe_allow_html=True)
+
+# =====================================================
 # 📊 DISPLAY ANALYSIS RESULTS (if matching done)
 # =====================================================
 if st.session_state.matching_done and st.session_state.matching_data:
@@ -1171,6 +1187,9 @@ if generate_button:
         st.error("❌ Please upload **the resume** and **the job description**.")
         st.stop()
     
+    # Activate generation stepper display (will show on next section)
+    st.session_state.show_generation_stepper = True
+    
     # Reset previous full results
     st.session_state.results = None
     
@@ -1199,54 +1218,52 @@ if generate_button:
         jd_text = enricher.read_job_description(str(jd_path))
         matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
 
-    # Processing container
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Get the stepper placeholder that was created above
+    generation_stepper_placeholder = st.session_state.get('generation_stepper_placeholder', st.empty())
     
-    with st.container():
-        st.markdown("### ✨ Generating CV...")
-        st.markdown("<br>", unsafe_allow_html=True)
+    # Timeline Generation Step 1
+    with generation_stepper_placeholder.container():
+        st.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
+    
+    try:
+        enricher = load_backend()
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = cv_path.parent / f"CV_TMC_{ts}.docx"
         
-        # Timeline Generation Step 1
-        timeline_placeholder = st.empty()
-        with timeline_placeholder.container():
-            st.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
+        # Step 4: Enrichment
+        target_language = "English" if template_lang == "EN" else "French"
+        enriched_cv = enricher.enrich_cv_with_prompt(
+            parsed_cv, 
+            jd_text, 
+            language=target_language
+        )
         
-        try:
-            enricher = load_backend()
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            out_path = cv_path.parent / f"CV_TMC_{ts}.docx"
-            
-            # Step 4: Enrichment
-            target_language = "English" if template_lang == "EN" else "French"
-            enriched_cv = enricher.enrich_cv_with_prompt(
-                parsed_cv, 
-                jd_text, 
-                language=target_language
-            )
-            
-            # Update timeline - step 2 active
-            with timeline_placeholder.container():
-                st.markdown(generation_progress_timeline(2), unsafe_allow_html=True)
-            
-            # Step 5: Structuring
-            tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
-            
-            # Update timeline - step 3 active
-            with timeline_placeholder.container():
-                st.markdown(generation_progress_timeline(3), unsafe_allow_html=True)
-            
-            # Step 6: Generation
-            enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
-            
-            # Post-processing
-            keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
-            if keywords:
-                enricher.apply_bold_post_processing(str(out_path), keywords)
-            
-            timeline_placeholder.empty()
-            
-            # Store results
-            cv_bytes = read_bytes(out_path)
+        # Update timeline - step 2 active
+        with generation_stepper_placeholder.container():
+            st.markdown(generation_progress_timeline(2), unsafe_allow_html=True)
+        
+        # Step 5: Structuring
+        tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
+        
+        # Update timeline - step 3 active
+        with generation_stepper_placeholder.container():
+            st.markdown(generation_progress_timeline(3), unsafe_allow_html=True)
+        
+        # Step 6: Generation
+        enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
+        
+        # Post-processing
+        keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
+        if keywords:
+            enricher.apply_bold_post_processing(str(out_path), keywords)
+        
+        # Clear the generation stepper
+        generation_stepper_placeholder.empty()
+        st.session_state.show_generation_stepper = False
+        st.session_state.generation_in_progress = False
+        
+        # Store results
+        cv_bytes = read_bytes(out_path)
             
             # Format: TMC - Prénom NOM - Titre Court.docx
             nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
