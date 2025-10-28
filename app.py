@@ -853,6 +853,180 @@ with button_placeholder.container():
             )
 
 st.markdown("<br>", unsafe_allow_html=True)
+
+# =====================================================
+# 📊 DISPLAY ANALYSIS RESULTS (if matching done)
+# =====================================================
+if st.session_state.matching_done and st.session_state.matching_data:
+    matching_analysis = st.session_state.matching_data['matching_analysis']
+    parsed_cv = st.session_state.matching_data['parsed_cv']
+    
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Display score metrics
+    score = matching_analysis.get('score_matching', 0)
+    nom = parsed_cv.get('nom_complet', 'Candidate')
+    
+    col_m1, col_m2, col_m3 = st.columns(3)
+    with col_m1:
+        st.metric("📊 Matching Score", f"{score}/100")
+    
+    with col_m2:
+        nom_display = nom if len(nom) < 20 else nom[:17] + "..."
+        st.metric("👤 Candidate", nom_display)
+    
+    with col_m3:
+        # Calculate years of experience
+        experiences = parsed_cv.get('experiences', [])
+        total_years = 0
+        
+        import re
+        from datetime import datetime
+        current_year = datetime.now().year
+        
+        for exp in experiences:
+            periode = exp.get('periode', '')
+            periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
+            years_found = re.findall(r'\b(\d{4})\b', periode_clean)
+            
+            if len(years_found) >= 2:
+                try:
+                    start = int(years_found[0])
+                    end = int(years_found[-1])
+                    if end >= start:
+                        total_years += (end - start)
+                except:
+                    pass
+            elif len(years_found) == 1:
+                try:
+                    start = int(years_found[0])
+                    total_years += (current_year - start)
+                except:
+                    pass
+        
+        years_display = f"{total_years} years" if total_years > 0 else "N/A"
+        st.metric("📅 Experience", years_display)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Display domain analysis table
+    if matching_analysis.get('domaines_analyses'):
+        import pandas as pd
+        
+        st.markdown("""
+        <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
+                ⚙️ Detailed Weighting Analysis
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        df_domaines = pd.DataFrame(matching_analysis['domaines_analyses'])
+        
+        def format_domain(row):
+            match = row['match']
+            if match == 'incompatible':
+                icon = "❌"
+            elif match == 'partiel':
+                icon = "⚠️"
+            else:
+                icon = "✅"
+            return f"{icon} {row['domaine']}"
+        
+        df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
+        df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
+        df_domaines['Score'] = df_domaines.apply(
+            lambda row: f"{row['score']}/{row['score_max']}", axis=1
+        )
+        
+        def truncate(text, max_len=150):
+            if len(text) <= max_len:
+                return text
+            text = text[:max_len]
+            last_space = text.rfind(' ')
+            if last_space > 0:
+                text = text[:last_space]
+            if text and text[-1] not in '.!?':
+                text += '.'
+            return text
+        
+        df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
+        df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
+        
+        def style_rows(row):
+            idx = row.name
+            match = df_domaines.loc[idx, 'match']
+            
+            if match == 'incompatible':
+                bg = '#fef2f2'
+            elif match == 'partiel':
+                bg = '#fffbeb'
+            else:
+                bg = '#f0fdf4'
+            
+            return [f'background-color: {bg}'] * len(row)
+        
+        styled_df = df_display.style.apply(style_rows, axis=1)
+        
+        st.markdown("""
+        <style>
+        [data-testid="stDataFrame"] {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
+            border: 2px solid #193E92;
+        }
+        [data-testid="stDataFrame"] thead {
+            background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
+        }
+        [data-testid="stDataFrame"] thead th {
+            color: white !important;
+            font-weight: 700 !important;
+            padding: 18px 16px !important;
+        }
+        [data-testid="stDataFrame"] tbody td {
+            padding: 16px !important;
+            line-height: 1.6 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Domain": st.column_config.TextColumn("Domain", width=400),
+                "Weight": st.column_config.TextColumn("Weight", width=70),
+                "Score": st.column_config.TextColumn("Score", width=70),
+                "Comment": st.column_config.TextColumn("Comment", width=None),
+            }
+        )
+        
+        # Analysis summary
+        st.markdown("<br>", unsafe_allow_html=True)
+        if matching_analysis.get('synthese_matching'):
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                border-left: 4px solid #3b82f6;
+                border-radius: 12px;
+                padding: 20px 24px;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+            ">
+                <div style="display: flex; align-items: start;">
+                    <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
+                    <div>
+                        <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
+                        <div style="color: #1e3a8a; line-height: 1.6;">{matching_analysis['synthese_matching']}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
 # =====================================================
 # 🔧 FONCTIONS HELPER
 # =====================================================
@@ -975,178 +1149,9 @@ if analyze_button:
             time.sleep(3)
             success_placeholder.empty()
             
-            # Switch to Generate button
+            # Switch to Generate button and rerun
             st.session_state.show_generate_button = True
-            
-            # ===== DISPLAY MATCHING RESULTS =====
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Display score metrics - AMÉLIORATION #4: Score simple et élégant (st.metric)
-            score = matching_analysis.get('score_matching', 0)
-            nom = parsed_cv.get('nom_complet', 'Candidate')
-            
-            col_m1, col_m2, col_m3 = st.columns(3)
-            with col_m1:
-                st.metric("📊 Matching Score", f"{score}/100")
-            
-            with col_m2:
-                nom_display = nom if len(nom) < 20 else nom[:17] + "..."
-                st.metric("👤 Candidate", nom_display)
-            
-            with col_m3:
-                # Calculate years of experience
-                experiences = parsed_cv.get('experiences', [])
-                total_years = 0
-                
-                import re
-                from datetime import datetime
-                current_year = datetime.now().year
-                
-                for exp in experiences:
-                    periode = exp.get('periode', '')
-                    periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year)).replace('present', str(current_year))
-                    years_found = re.findall(r'\b(\d{4})\b', periode_clean)
-                    
-                    if len(years_found) >= 2:
-                        try:
-                            start = int(years_found[0])
-                            end = int(years_found[-1])
-                            if end >= start:
-                                total_years += (end - start)
-                        except:
-                            pass
-                    elif len(years_found) == 1:
-                        try:
-                            start = int(years_found[0])
-                            total_years += (current_year - start)
-                        except:
-                            pass
-                
-                years_display = f"{total_years} years" if total_years > 0 else "N/A"
-                st.metric("📅 Experience", years_display)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Display domain analysis table
-            if matching_analysis.get('domaines_analyses'):
-                import pandas as pd
-                
-                st.markdown("""
-                <div style="margin-bottom: 20px;">
-                    <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
-                        ⚙️ Detailed Weighting Analysis
-                    </h3>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                df_domaines = pd.DataFrame(matching_analysis['domaines_analyses'])
-                
-                def format_domain(row):
-                    match = row['match']
-                    if match == 'incompatible':
-                        icon = "❌"
-                    elif match == 'partiel':
-                        icon = "⚠️"
-                    else:
-                        icon = "✅"
-                    return f"{icon} {row['domaine']}"
-                
-                df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
-                df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
-                df_domaines['Score'] = df_domaines.apply(
-                    lambda row: f"{row['score']}/{row['score_max']}", axis=1
-                )
-                
-                def truncate(text, max_len=150):
-                    if len(text) <= max_len:
-                        return text
-                    text = text[:max_len]
-                    last_space = text.rfind(' ')
-                    if last_space > 0:
-                        text = text[:last_space]
-                    if text and text[-1] not in '.!?':
-                        text += '.'
-                    return text
-                
-                df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
-                df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
-                
-                def style_rows(row):
-                    idx = row.name
-                    match = df_domaines.loc[idx, 'match']
-                    
-                    if match == 'incompatible':
-                        bg = '#fef2f2'
-                    elif match == 'partiel':
-                        bg = '#fffbeb'
-                    else:
-                        bg = '#f0fdf4'
-                    
-                    return [f'background-color: {bg}'] * len(row)
-                
-                styled_df = df_display.style.apply(style_rows, axis=1)
-                
-                st.markdown("""
-                <style>
-                [data-testid="stDataFrame"] {
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
-                    border: 2px solid #193E92;
-                }
-                [data-testid="stDataFrame"] thead {
-                    background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
-                }
-                [data-testid="stDataFrame"] thead th {
-                    color: white !important;
-                    font-weight: 700 !important;
-                    padding: 18px 16px !important;
-                }
-                [data-testid="stDataFrame"] tbody td {
-                    padding: 16px !important;
-                    line-height: 1.6 !important;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-                
-                st.dataframe(
-                    styled_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Domain": st.column_config.TextColumn("Domain", width=400),
-                        "Weight": st.column_config.TextColumn("Weight", width=70),
-                        "Score": st.column_config.TextColumn("Score", width=70),
-                        "Comment": st.column_config.TextColumn("Comment", width=None),
-                    }
-                )
-                
-                # Analysis summary
-                st.markdown("<br>", unsafe_allow_html=True)
-                if matching_analysis.get('synthese_matching'):
-                    st.markdown(f"""
-                    <div style="
-                        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-                        border-left: 4px solid #3b82f6;
-                        border-radius: 12px;
-                        padding: 20px 24px;
-                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-                    ">
-                        <div style="display: flex; align-items: start;">
-                            <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
-                            <div>
-                                <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
-                                <div style="color: #1e3a8a; line-height: 1.6;">{matching_analysis['synthese_matching']}</div>
-                            </div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("---")
-            
-            # Display info message
-            st.info("💡 **Analysis complete!** Scroll up to generate the CV.")
+            st.rerun()
             
         except Exception as e:
             st.error(f"❌ **Analysis error:** {str(e)}")
