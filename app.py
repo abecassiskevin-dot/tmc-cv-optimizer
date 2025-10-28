@@ -1216,26 +1216,41 @@ if analyze_button:
 # =====================================================
 # ⚙️ STEP 2: CV GENERATION PIPELINE
 # =====================================================
+
+# Gérer la confirmation du low score
 if generate_button:
-    # Allow generation even without prior matching
     if not can_run:
         st.error("❌ Please upload **the resume** and **the job description**.")
         st.stop()
     
-    # CONFIRMATION SI SCORE < 30
+    # Vérifier si on a besoin de confirmation
     if st.session_state.matching_done and st.session_state.matching_data:
         score = st.session_state.matching_data['matching_analysis'].get('score_matching', 0)
         if score < 30:
-            st.warning("⚠️ **Low match score detected!**")
-            st.markdown(f"The candidate's matching score is **{score}/100**, which is below the recommended threshold of 30.")
-            
-            col_conf1, col_conf2, col_conf3 = st.columns([1, 2, 1])
-            with col_conf2:
-                if not st.button("✅ Yes, Continue Anyway", use_container_width=True, key="confirm_low_score"):
-                    st.stop()
+            # Afficher le warning dans generation_stepper_container
+            with generation_stepper_container.container():
                 st.markdown("<br>", unsafe_allow_html=True)
+                st.warning("⚠️ **Low match score detected!**")
+                st.markdown(f"The candidate's matching score is **{score}/100**, which is below the recommended threshold of 30.")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                col_conf1, col_conf2, col_conf3 = st.columns([1, 2, 1])
+                with col_conf2:
+                    if st.button("✅ Yes, Continue Anyway", use_container_width=True, key="confirm_low_score"):
+                        # Marquer qu'on veut générer malgré le low score
+                        st.session_state.force_generation = True
+                        st.rerun()
+                    st.markdown("<br>", unsafe_allow_html=True)
+            st.stop()
     
-    # Reset previous full results
+    # Si on arrive ici, soit score >= 30, soit pas de matching data
+    # On marque qu'on veut générer
+    st.session_state.force_generation = True
+
+# Lancer la génération si le flag est actif
+if st.session_state.get('force_generation', False):
+    # Reset le flag immédiatement
+    st.session_state.force_generation = False
     st.session_state.results = None
     
     # If matching was done, retrieve Step 1 data; otherwise process from scratch
