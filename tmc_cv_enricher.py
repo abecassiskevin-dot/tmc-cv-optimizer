@@ -565,12 +565,34 @@ Return the corrected JSON directly:"""
                 'synthese_matching': f'Erreur lors de l\'analyse: {str(e)}'
             }
     
-    def enrich_cv_with_prompt(self, parsed_cv: Dict[str, Any], jd_text: str, language: str = "French") -> Dict[str, Any]:
-        """Enrichir le CV avec ton prompt exact"""
+    def enrich_cv_with_prompt(
+        self, 
+        parsed_cv: Dict[str, Any], 
+        jd_text: str, 
+        language: str = "French",
+        matching_analysis: Dict[str, Any] = None  # ✅ FIX: Nouveau paramètre pour réutiliser le matching
+    ) -> Dict[str, Any]:
+        """
+        Enrichir le CV avec l'IA
+        
+        Args:
+            parsed_cv: CV parsé
+            jd_text: Job Description
+            language: Langue cible (French/English)
+            matching_analysis: Résultat optionnel du matching préalable (Step 1)
+                              Si fourni, réutilise le score au lieu de le recalculer
+        
+        Returns:
+            CV enrichi avec tous les champs nécessaires
+        """
         import time
+        
+        # ⚠️ CRITICIAL: Déterminer si on réutilise le scoring du Step 1
+        reuse_scoring = matching_analysis is not None
         
         print(f"✨ Enrichissement du CV avec l'IA...", flush=True)
         print(f"   Langue cible: {language}", flush=True)
+        print(f"   Mode: {'Réutilisation scoring Step 1' if reuse_scoring else 'Scoring complet'}", flush=True)
         
         # ⏱️ Démarrer le chronomètre
         start_time = time.time()
@@ -625,7 +647,109 @@ IMPORTANT TITRE:
 - Tu notes comme un examinateur professionnel, pas comme un vendeur
 """
             
-            prompt = f"""Voici la job description et le CV actuel ci-dessous.
+            # ✅ FIX: Choisir le prompt selon si on réutilise le matching ou non
+            if reuse_scoring:
+                # ============================================
+                # VERSION SIMPLIFIÉE - Matching déjà fait au Step 1
+                # ============================================
+                prompt = f"""Voici la job description et le CV actuel ci-dessous.
+
+🔹 Améliore le CV pour qu'il soit parfaitement aligné avec la job description tout en gardant le format d'origine (titres, mise en page, structure, ton professionnel).
+{language_instruction}
+
+⚠️ IMPORTANT: L'analyse de matching a DÉJÀ été faite. Tu dois UNIQUEMENT faire l'ENRICHISSEMENT du contenu.
+
+Fais :
+
+1. Une version réécrite et enrichie du CV
+
+2a. TITRE: TITRE COURT adapté à la JD en {language} (3-5 mots max)
+
+2b. PROFIL exceptionnel : écris un paragraphe NARRATIF fluide (pas de liste), 5-6 lignes avec progression logique.
+
+2c. GRAS ULTRA-SÉLECTIF : identifie UNIQUEMENT 3-5 technologies CRITIQUES.
+
+3. Intègre naturellement les mots-clés techniques de la JD
+4. Ajuste les intitulés pour que le profil paraisse livrable immédiatement
+5. N'invente rien — reformule uniquement les éléments présents
+6. EXPÉRIENCES : bullets courts (1 ligne max), maximum 5-6 bullets par expérience
+
+Réponds en JSON STRICT (sans markdown) avec cette structure:
+{{
+  "titre_professionnel_enrichi": "TITRE COURT en {language} (3-5 mots max)",
+  
+  "profil_enrichi": "Profil NARRATIF 5-6 lignes en {language} avec **3-5 technologies clés** en gras",
+  
+  "mots_cles_a_mettre_en_gras": ["Liste 15-20 TECHNOLOGIES de la JD - PAS de verbes génériques"],
+  
+  "competences_enrichies": {{
+    "Nom Catégorie 1 (3-6 mots max)": [
+      "**Technologie principale** : description en 2-3 lignes (MAXIMUM 100-150 caractères) incluant contexte, outils associés (**outil1**, **outil2**) et résultats. Style concis et percutant.",
+      "**Autre technologie** : description COURTE avec contexte + outils (**tech1**, **tech2**) + impact. 2-3 technologies en **gras** par compétence."
+    ],
+    "Nom Catégorie 2": [
+      "Compétence concise..."
+    ]
+  }},
+  
+  RÈGLES ULTRA-CRITIQUES pour les compétences (NON-NÉGOCIABLE):
+  - Noms de catégories COURTS (3-6 mots max)
+  - 5-6 catégories ADAPTÉES à la JD
+  - Chaque catégorie: 3-5 compétences MAXIMUM
+  - CHAQUE compétence : 2-3 LIGNES MAXIMUM (100-150 caractères) - NE PAS DÉPASSER
+  - Format: "**Technologie** : description concise avec outils (**outil1**, **outil2**) + résultats"
+  - 2-3 technologies en **gras** par compétence (PAS PLUS)
+  - Descriptions CONCISES, CLAIRES et PROFESSIONNELLES
+  - Privilégier CLARTÉ et CONCISION sur la longueur
+  
+  "experiences_enrichies": [
+    {{
+      "periode": "2020-2023",
+      "entreprise": "Nom entreprise",
+      "poste": "Titre reformulé selon JD",
+      "responsabilites": [
+        "Configuration **Open edX** incluant structuration et intégration avec **SharePoint** pour gestion contenus",
+        "Automatisation processus documentaires via **Power Automate** et **Teams** pour améliorer efficacité"
+      ],
+      "environment": "**Open edX**, **SharePoint**, **Microsoft 365**, Teams, Power Automate, OneDrive, SQL"
+    }}
+  ]
+}}
+
+FORMAT OBLIGATOIRE (COPIER format compétences):
+- Responsabilités: Technologies **isolées** dans texte normal (ex: "Configuration **Tech1** incluant **Tech2** pour résultats")
+- Environnement: Liste virgules avec 3-5 technologies **critiques** en gras, autres sans
+- JAMAIS phrases entières en gras
+- Maximum 2-3 mots entre **astérisques**
+
+---
+
+JOB DESCRIPTION:
+{jd_text}
+
+---
+
+CV ACTUEL:
+{cv_text}
+
+---
+
+IMPORTANT FINAL - RÈGLES JSON STRICTES:
+- Génère UNIQUEMENT du JSON valide
+- PAS de commentaires (// ou /* */)
+- PAS de virgules finales (trailing commas)
+- PAS de markdown (```json ou ```)
+- TOUS les strings doivent utiliser des guillemets doubles ""
+- Vérifie que TOUTES les accolades et crochets sont fermés
+- Si tu hésites sur un champ, mets une valeur par défaut plutôt qu'une erreur
+
+Réponds UNIQUEMENT avec du JSON pur, sans rien d'autre avant ou après."""
+
+            else:
+                # ============================================
+                # VERSION COMPLÈTE - Mode legacy/fallback avec matching inclus
+                # ============================================
+                prompt = f"""Voici la job description et le CV actuel ci-dessous.
 
 🔹 Améliore le CV pour qu'il soit parfaitement aligné avec la job description tout en gardant le format d'origine (titres, mise en page, structure, ton professionnel).
 {language_instruction}
@@ -1022,8 +1146,21 @@ Return the corrected JSON directly:"""
         }
         
         print(f"✅ Enrichissement réussi!")
-        print(f"   Score matching: {enriched.get('score_matching', 0)}/100")
-        print(f"   Domaines analysés: {len(enriched.get('domaines_analyses', []))}")
+        
+        # ✅ FIX: Si on réutilise le matching, merger les résultats
+        if reuse_scoring and matching_analysis:
+            print(f"   Mode: Réutilisation du matching du Step 1", flush=True)
+            # Récupérer les résultats du Step 1
+            enriched['score_matching'] = matching_analysis.get('score_matching', 0)
+            enriched['domaines_analyses'] = matching_analysis.get('domaines_analyses', [])
+            enriched['synthese_matching'] = matching_analysis.get('synthese_matching', '')
+            enriched['points_forts'] = matching_analysis.get('points_forts', [])
+            print(f"   Score réutilisé: {enriched['score_matching']}/100")
+            print(f"   Domaines réutilisés: {len(enriched['domaines_analyses'])}")
+        else:
+            print(f"   Mode: Calcul complet du matching", flush=True)
+            print(f"   Score matching: {enriched.get('score_matching', 0)}/100")
+            print(f"   Domaines analysés: {len(enriched.get('domaines_analyses', []))}")
         print(f"   Mots-clés en gras: {len(enriched.get('mots_cles_a_mettre_en_gras', []))}")
         print(f"   ⏱️ Temps de traitement: {processing_time}s")
         print(f"   📊 Tokens: {total_tokens:,} ({input_tokens:,} in + {output_tokens:,} out)")
