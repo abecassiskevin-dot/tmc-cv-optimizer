@@ -849,6 +849,18 @@ with button_placeholder.container():
                 key="download_tmc_cv_button"
             )
             st.markdown('</div>', unsafe_allow_html=True)
+            
+            # START OVER BUTTON
+            st.markdown("<br>", unsafe_allow_html=True)
+            col_so1, col_so2, col_so3 = st.columns([2, 3, 2])
+            with col_so2:
+                if st.button("🔄 Start Over", use_container_width=True, key="start_over_button"):
+                    # Reset all states
+                    st.session_state.matching_done = False
+                    st.session_state.matching_data = None
+                    st.session_state.results = None
+                    st.session_state.show_generate_button = False
+                    st.rerun()
         elif st.session_state.show_generate_button:
             # Show Generate button after analysis is done (with inverted gradient)
             st.markdown('<div id="generate-btn-wrapper">', unsafe_allow_html=True)
@@ -954,6 +966,11 @@ if st.session_state.matching_done and st.session_state.matching_data and not st.
             </h3>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Placeholder pour affichage progressif
+        table_placeholder = st.empty()
+        with st.spinner("⚙️ Building detailed analysis table..."):
+            time.sleep(0.15)  # Petite pause pour que le spinner s'affiche
         
         df_domaines = pd.DataFrame(matching_analysis['domaines_analyses'])
         
@@ -1204,6 +1221,19 @@ if generate_button:
         st.error("❌ Please upload **the resume** and **the job description**.")
         st.stop()
     
+    # CONFIRMATION SI SCORE < 30
+    if st.session_state.matching_done and st.session_state.matching_data:
+        score = st.session_state.matching_data['matching_analysis'].get('score_matching', 0)
+        if score < 30:
+            st.warning("⚠️ **Low match score detected!**")
+            st.markdown(f"The candidate's matching score is **{score}/100**, which is below the recommended threshold of 30.")
+            
+            col_conf1, col_conf2, col_conf3 = st.columns([1, 2, 1])
+            with col_conf2:
+                if not st.button("✅ Yes, Continue Anyway", use_container_width=True, key="confirm_low_score"):
+                    st.stop()
+                st.markdown("<br>", unsafe_allow_html=True)
+    
     # Reset previous full results
     st.session_state.results = None
     
@@ -1240,11 +1270,20 @@ if generate_button:
         # Timeline - will be updated as we progress
         stepper_timeline = st.empty()
         stepper_timeline.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
+        
+        # TIMER VISIBLE
+        st.markdown("<br>", unsafe_allow_html=True)
+        timer_col1, timer_col2, timer_col3 = st.columns([1, 3, 1])
+        with timer_col2:
+            timer_text = st.empty()
+            timer_text.info("⏱️ **Estimated time:** ~45 seconds")
     
     try:
         enricher = load_backend()
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         out_path = cv_path.parent / f"CV_TMC_{ts}.docx"
+        
+        start_time = time.time()
         
         # Step 4: Enrichment
         target_language = "English" if template_lang == "EN" else "French"
@@ -1255,17 +1294,31 @@ if generate_button:
             matching_analysis=matching_analysis  # ✅ FIX: Réutilise le score du Step 1!
         )
         
+        # Update timer
+        elapsed = int(time.time() - start_time)
+        remaining = max(0, 45 - elapsed)
+        timer_text.info(f"⏱️ **Time remaining:** ~{remaining} seconds")
+        
         # Update timeline - step 2 active
         stepper_timeline.markdown(generation_progress_timeline(2), unsafe_allow_html=True)
         
         # Step 5: Structuring
         tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
         
+        # Update timer
+        elapsed = int(time.time() - start_time)
+        remaining = max(0, 45 - elapsed)
+        timer_text.info(f"⏱️ **Time remaining:** ~{remaining} seconds")
+        
         # Update timeline - step 3 active
         stepper_timeline.markdown(generation_progress_timeline(3), unsafe_allow_html=True)
         
         # Step 6: Generation
         enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
+        
+        # Final timer update
+        elapsed = int(time.time() - start_time)
+        timer_text.success(f"✅ **Completed in {elapsed} seconds!**")
         
         # Post-processing
         keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
@@ -1452,6 +1505,10 @@ if st.session_state.get('results'):
             </h3>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Placeholder pour affichage progressif
+        with st.spinner("⚙️ Building detailed analysis table..."):
+            time.sleep(0.15)  # Petite pause pour que le spinner s'affiche
         
         # Créer le DataFrame
         df_domaines = pd.DataFrame(results['domaines_analyses'])
