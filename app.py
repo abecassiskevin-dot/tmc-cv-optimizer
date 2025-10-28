@@ -814,7 +814,19 @@ st.markdown("<br>", unsafe_allow_html=True)
 if st.session_state.matching_done:
     col_status1, col_status2, col_status3 = st.columns([2, 3, 2])
     with col_status2:
-        st.success("✅ Matching Analysis Complete! You can now generate the CV.")
+        st.markdown("""
+        <div style="
+            background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
+            border-radius: 50px;
+            padding: 10px 20px;
+            text-align: center;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+        ">
+            <span style="color: white; font-size: 0.95rem; font-weight: 600;">
+                ✅ Matching Analysis Complete! You can now generate the CV.
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -919,16 +931,16 @@ if analyze_button:
             # ===== DISPLAY MATCHING RESULTS =====
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Success badge with GREEN GRADIENT (AMÉLIORATION #3)
-            col_s1, col_s2, col_s3 = st.columns([2, 1, 2])
+            # Success badge with GREEN GRADIENT (matching the download button)
+            col_s1, col_s2, col_s3 = st.columns([2, 3, 2])
             with col_s2:
                 st.markdown("""
                 <div style="
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
                     border-radius: 50px;
                     padding: 12px 24px;
                     text-align: center;
-                    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+                    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
                 ">
                     <span style="color: white; font-size: 1rem; font-weight: 600;">
                         ✅ Matching Analysis Complete!
@@ -1298,8 +1310,22 @@ if generate_button:
             except Exception as e:
                 print(f"⚠️ Airtable tracking failed: {e}")
             
-            st.success("✅ **CV generated successfully!**")
-            st.balloons()
+            # Success message with GREEN GRADIENT (matching the download button)
+            col_success1, col_success2, col_success3 = st.columns([2, 3, 2])
+            with col_success2:
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
+                    border-radius: 50px;
+                    padding: 12px 24px;
+                    text-align: center;
+                    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+                ">
+                    <span style="color: white; font-size: 1rem; font-weight: 600;">
+                        ✅ CV generated successfully!
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
             
         except Exception as e:
             st.error(f"❌ **Generation error:** {str(e)}")
