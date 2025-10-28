@@ -926,120 +926,25 @@ if st.session_state.matching_done and st.session_state.matching_data:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Display domain analysis table
-    if matching_analysis.get('domaines_analyses'):
-        import pandas as pd
-        
-        st.markdown("""
-        <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0; color: #111827; font-size: 1.4rem; font-weight: 700;">
-                ⚙️ Detailed Weighting Analysis
-            </h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        df_domaines = pd.DataFrame(matching_analysis['domaines_analyses'])
-        
-        def format_domain(row):
-            match = row['match']
-            if match == 'incompatible':
-                icon = "❌"
-            elif match == 'partiel':
-                icon = "⚠️"
-            else:
-                icon = "✅"
-            return f"{icon} {row['domaine']}"
-        
-        df_domaines['Domain'] = df_domaines.apply(format_domain, axis=1)
-        df_domaines['Weight'] = df_domaines['poids'].astype(str) + '%'
-        df_domaines['Score'] = df_domaines.apply(
-            lambda row: f"{row['score']}/{row['score_max']}", axis=1
-        )
-        
-        def truncate(text, max_len=150):
-            if len(text) <= max_len:
-                return text
-            text = text[:max_len]
-            last_space = text.rfind(' ')
-            if last_space > 0:
-                text = text[:last_space]
-            if text and text[-1] not in '.!?':
-                text += '.'
-            return text
-        
-        df_domaines['Comment'] = df_domaines['commentaire'].apply(truncate)
-        df_display = df_domaines[['Domain', 'Weight', 'Score', 'Comment']]
-        
-        def style_rows(row):
-            idx = row.name
-            match = df_domaines.loc[idx, 'match']
-            
-            if match == 'incompatible':
-                bg = '#fef2f2'
-            elif match == 'partiel':
-                bg = '#fffbeb'
-            else:
-                bg = '#f0fdf4'
-            
-            return [f'background-color: {bg}'] * len(row)
-        
-        styled_df = df_display.style.apply(style_rows, axis=1)
-        
-        st.markdown("""
-        <style>
-        [data-testid="stDataFrame"] {
+    # Display only Analysis Summary (table will be shown in final results section)
+    if matching_analysis.get('synthese_matching'):
+        st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 4px solid #3b82f6;
             border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
-            border: 2px solid #193E92;
-        }
-        [data-testid="stDataFrame"] thead {
-            background: linear-gradient(135deg, #193E92 0%, #2563eb 100%);
-        }
-        [data-testid="stDataFrame"] thead th {
-            color: white !important;
-            font-weight: 700 !important;
-            padding: 18px 16px !important;
-        }
-        [data-testid="stDataFrame"] tbody td {
-            padding: 16px !important;
-            line-height: 1.6 !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        st.dataframe(
-            styled_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Domain": st.column_config.TextColumn("Domain", width=400),
-                "Weight": st.column_config.TextColumn("Weight", width=70),
-                "Score": st.column_config.TextColumn("Score", width=70),
-                "Comment": st.column_config.TextColumn("Comment", width=None),
-            }
-        )
-        
-        # Analysis summary
-        st.markdown("<br>", unsafe_allow_html=True)
-        if matching_analysis.get('synthese_matching'):
-            st.markdown(f"""
-            <div style="
-                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-                border-left: 4px solid #3b82f6;
-                border-radius: 12px;
-                padding: 20px 24px;
-                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-            ">
-                <div style="display: flex; align-items: start;">
-                    <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
-                    <div>
-                        <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
-                        <div style="color: #1e3a8a; line-height: 1.6;">{matching_analysis['synthese_matching']}</div>
-                    </div>
+            padding: 20px 24px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        ">
+            <div style="display: flex; align-items: start;">
+                <div style="font-size: 1.5rem; margin-right: 12px;">📊</div>
+                <div>
+                    <div style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 8px;">Analysis Summary</div>
+                    <div style="color: #1e3a8a; line-height: 1.6;">{matching_analysis['synthese_matching']}</div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
