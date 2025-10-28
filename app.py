@@ -536,6 +536,15 @@ CUSTOM_CSS = f"""
     cursor: not-allowed !important;
     transform: none !important;
   }}
+  
+  /* ===== GENERATE BUTTON (inverted gradient: Orange → Blue) ===== */
+  .generate-button-wrapper .stButton>button {{
+    background: linear-gradient(90deg, {SECONDARY_ORANGE} 0%, {PRIMARY_BLUE} 100%) !important;
+    box-shadow: 0 4px 14px rgba(217, 113, 4, 0.25) !important;
+  }}
+  .generate-button-wrapper .stButton>button:hover {{
+    box-shadow: 0 8px 24px rgba(217, 113, 4, 0.35) !important;
+  }}
 
   /* ===== DOWNLOAD BUTTON ===== */
   .stDownloadButton>button {{
@@ -821,16 +830,19 @@ with button_placeholder.container():
                 data=st.session_state.results['cv_bytes'],
                 file_name=st.session_state.results['nom_fichier'],
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True
+                use_container_width=True,
+                key="download_tmc_cv_button"
             )
         elif st.session_state.show_generate_button:
-            # Show Generate button after analysis is done
+            # Show Generate button after analysis is done (with inverted gradient)
+            st.markdown('<div class="generate-button-wrapper">', unsafe_allow_html=True)
             generate_button = st.button(
                 "✨ Generate TMC CV",
                 disabled=not can_run,
                 use_container_width=True,
                 key="generate_cv_button"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
         else:
             # Show Analyze button initially
             analyze_button = st.button(
@@ -1133,8 +1145,8 @@ if analyze_button:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("---")
             
-            # Force rerun to show Generate button
-            st.rerun()
+            # Display info message
+            st.info("💡 **Analysis complete!** Scroll up to generate the CV.")
             
         except Exception as e:
             st.error(f"❌ **Analysis error:** {str(e)}")
