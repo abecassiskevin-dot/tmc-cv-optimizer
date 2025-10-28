@@ -306,6 +306,265 @@ RÈGLES CRITIQUES:
         else:
             return self.extract_from_txt(jd_path)
     
+    def analyze_cv_matching(self, parsed_cv: Dict[str, Any], jd_text: str) -> Dict[str, Any]:
+        """
+        Analyser le matching entre CV et JD sans enrichir le contenu.
+        Retourne uniquement: score_matching, domaines_analyses, synthese_matching
+        """
+        import time
+        
+        print(f"🔍 Analyse du matching CV/JD...", flush=True)
+        
+        start_time = time.time()
+        
+        try:
+            client = self._get_anthropic_client()
+            
+            # Reconstruire le CV en texte pour le prompt
+            cv_text = f"""
+PROFIL: {parsed_cv.get('profil_resume', '')}
+
+TITRE: {parsed_cv.get('titre_professionnel', '')}
+
+COMPÉTENCES:
+{chr(10).join(['- ' + comp for comp in parsed_cv.get('competences', [])])}
+
+EXPÉRIENCES:
+"""
+            for exp in parsed_cv.get('experiences', []):
+                cv_text += f"\n{exp.get('periode', '')} | {exp.get('entreprise', '')} | {exp.get('poste', '')}\n"
+                for resp in exp.get('responsabilites', []):
+                    cv_text += f"  - {resp}\n"
+            
+            cv_text += "\nFORMATION:\n"
+            for form in parsed_cv.get('formation', []):
+                cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
+        
+            # PROMPT FOCALISÉ SUR L'ANALYSE DE MATCHING UNIQUEMENT
+            prompt = f"""Tu es un système d'évaluation automatisé qui analyse le matching entre CV et Job Description.
+
+🎯 ANALYSE DE MATCHING PONDÉRÉE (ULTRA-CRITIQUE - COHÉRENCE ABSOLUE REQUISE):
+
+⚠️ PRINCIPE FONDAMENTAL DE COHÉRENCE - MÉTHODOLOGIE STRICTE:
+- Tu es un SYSTÈME D'ÉVALUATION AUTOMATISÉ, pas un humain
+- Pour le MÊME CV et la MÊME JD → EXACTEMENT le même score à chaque fois
+- Utilise une grille d'évaluation MATHÉMATIQUE et REPRODUCTIBLE
+- Agis comme un ALGORITHME, pas comme un recruteur subjectif
+- Chaque critère suit des règles BINAIRES strictes (oui/non, présent/absent)
+- Tu DOIS pouvoir justifier CHAQUE point attribué avec des FAITS du CV
+- Si tu hésites entre 2 scores → prends le PLUS BAS (principe de strictness)
+
+🔴 RÈGLE D'OR - SCORE GLOBAL = SOMME DOMAINES:
+- Le score_matching FINAL = somme EXACTE de tous les scores de domaines
+- VÉRIFIE 3 FOIS avant de répondre: somme des scores = score_matching
+- Si tu calcules 37/100 en sommant les domaines → score_matching DOIT être 37
+- NE JAMAIS inventer un score global différent de la somme calculée
+
+ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES (MÉTHODE ALGORITHIMQUE):
+
+📋 PROCESSUS AUTOMATIQUE D'IDENTIFICATION:
+1. Scan complet de la JD - repérer TOUS les mots techniques
+2. Compter la fréquence EXACTE de chaque technologie/compétence
+3. Créer une liste de domaines par ordre d'importance
+4. Appliquer la formule de pondération ci-dessous
+
+📊 FORMULE DE PONDÉRATION MATHÉMATIQUE:
+Pour chaque domaine, calcule son poids avec:
+- Poids = (Mentions_JD × 10) + (Niveau_requis × 5) + Bonus_contexte
+  * Mentions_JD: Nombre de fois mentionné dans la JD (1-3+)
+  * Niveau_requis: Must-have=3, Important=2, Nice-to-have=1
+  * Bonus_contexte: +5 si dans le titre du poste, +3 si dans requirements clés
+
+💡 EXEMPLES DE DOMAINES TYPES:
+- Technologies (ex: "SharePoint", "Power BI", "Python")
+- Méthodologies (ex: "Agile", "ITIL", "DevOps")
+- Compétences métier (ex: "Data Analysis", "Project Management")
+- Certifications (ex: "PMP", "AWS Certified")
+- Langues (ex: "Bilingual French/English")
+
+⚠️ INTERDICTIONS ABSOLUES:
+- NE JAMAIS créer de domaine vague type "Fit Général" ou "Soft Skills"
+- NE JAMAIS créer de domaine "bonus" pour ajuster artificiellement le score
+- TOUS les domaines doivent être EXPLICITES dans la JD
+
+ÉTAPE 2 - CALCULER LE SCORE DE CHAQUE DOMAINE (RÈGLES BINAIRES):
+
+Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE STRICTE:
+
+🎯 GRILLE D'ÉVALUATION (0-100 points par domaine):
+- 0 point: Aucune mention/compétence absente du CV
+- 25 points: Mention superficielle OU expérience <1 an OU formation théorique seulement
+- 50 points: Expérience 1-3 ans OU plusieurs projets pertinents OU certification sans pratique
+- 75 points: Expérience 3-5 ans OU expertise démontrée par réalisations concrètes
+- 100 points: Expérience 5+ ans OU leadership/formation d'équipes OU expertise reconnue
+
+⚙️ RÈGLES DE CALCUL:
+1. Score brut du domaine = évaluation selon grille ci-dessus (0-100)
+2. Score pondéré = (score_brut × poids) / 100
+3. Score_max du domaine = poids (car 100 × poids / 100 = poids)
+
+Exemple:
+- Domaine: "SharePoint" | Poids: 25%
+- Évaluation: Candidat a 4 ans d'expérience + certifications → 75 points
+- Score: (75 × 25) / 100 = 18.75 points
+- Score_max: 25 points
+- Notation: 18.75/25
+
+ÉTAPE 3 - CALCULER LE SCORE TOTAL:
+- Score_matching = SOMME de tous les scores pondérés
+- Exemple: 18.75 + 12 + 8.5 + 15 + 10 = 64.25 → arrondi à 64/100
+
+⚠️ VÉRIFICATION FINALE OBLIGATOIRE:
+- Refaire le calcul 2 fois pour confirmer
+- Vérifier: somme des poids = 100%
+- Vérifier: score_matching = somme des scores pondérés
+- Si incohérence détectée → REFAIRE TOUS LES CALCULS
+
+ÉTAPE 4 - SYNTHÈSE QUALITATIVE:
+Rédige une synthèse en 2-3 phrases qui:
+- Mentionne les 2-3 forces principales du candidat
+- Mentionne les 1-2 gaps critiques (s'il y en a)
+- Donne une recommandation factuelle (fort/moyen/faible match)
+
+═══════════════════════════════════════════════════
+
+📄 JOB DESCRIPTION:
+{jd_text}
+
+📄 CV DU CANDIDAT:
+{cv_text}
+
+═══════════════════════════════════════════════════
+
+🎯 ANALYSE REQUISE - FORMAT JSON STRICT:
+
+Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
+
+{{
+    "score_matching": 67,
+    "domaines_analyses": [
+        {{
+            "domaine": "Nom du domaine technique/compétence",
+            "poids": 25,
+            "score": 18,
+            "score_max": 25,
+            "match": "bon",
+            "commentaire": "Justification factuelle basée sur des éléments du CV"
+        }}
+    ],
+    "synthese_matching": "Synthèse qualitative en 2-3 phrases"
+}}
+
+⚠️ RÈGLES JSON:
+- "match" peut être: "excellent", "bon", "partiel", "incompatible"
+- Tous les scores doivent être des NOMBRES (pas de strings)
+- La somme des poids doit faire exactement 100
+- Le score_matching doit être la somme exacte des scores de tous les domaines
+
+⚠️ CRITICAL INSTRUCTION: ALL output must be in ENGLISH.
+- Domain names must be in English (e.g., "Central Database (DB2, IMS)", not "Bases de données centrales")
+- Comments must be in English
+- Synthesis must be in English
+
+Génère l'analyse maintenant:"""
+            
+            print(f">>> Calling Claude API for matching analysis...", flush=True)
+            
+            response = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=4000,
+                timeout=60.0,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            # Extraire tokens
+            usage = response.usage
+            input_tokens = usage.input_tokens
+            output_tokens = usage.output_tokens
+            total_tokens = input_tokens + output_tokens
+            
+            print(f">>> API Response received. Tokens: {total_tokens}", flush=True)
+            
+            # Parser la réponse
+            response_text = response.content[0].text.strip()
+            
+            # Nettoyer le JSON
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
+            # Parser le JSON
+            try:
+                matching_result = json.loads(response_text)
+                print(f">>> JSON parsed successfully!", flush=True)
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON Error: {e}", flush=True)
+                print(f">>> Attempting to fix JSON...", flush=True)
+                
+                # Tentative de réparation
+                fix_prompt = f"""The following JSON is malformed. Please fix it and return ONLY the corrected JSON without any explanation or markdown:
+
+{response_text}
+
+Return the corrected JSON directly:"""
+                
+                fix_response = client.messages.create(
+                    model="claude-sonnet-4-5-20250929",
+                    max_tokens=4000,
+                    timeout=60.0,
+                    messages=[{"role": "user", "content": fix_prompt}]
+                )
+                
+                fixed_text = fix_response.content[0].text.strip()
+                if fixed_text.startswith('```json'):
+                    fixed_text = fixed_text[7:]
+                if fixed_text.startswith('```'):
+                    fixed_text = fixed_text[3:]
+                if fixed_text.endswith('```'):
+                    fixed_text = fixed_text[:-3]
+                fixed_text = fixed_text.strip()
+                
+                matching_result = json.loads(fixed_text)
+                print(f">>> JSON successfully fixed and parsed!", flush=True)
+            
+            # Calculer le temps et coût
+            processing_time = round(time.time() - start_time, 2)
+            cost_input = (input_tokens / 1_000_000) * 3.0
+            cost_output = (output_tokens / 1_000_000) * 15.0
+            total_cost = round(cost_input + cost_output, 4)
+            
+            # Ajouter les métadonnées
+            matching_result['_metadata'] = {
+                'processing_time_seconds': processing_time,
+                'input_tokens': input_tokens,
+                'output_tokens': output_tokens,
+                'total_tokens': total_tokens,
+                'estimated_cost_usd': total_cost
+            }
+            
+            print(f"✅ Analyse de matching réussie!")
+            print(f"   Score matching: {matching_result.get('score_matching', 0)}/100")
+            print(f"   Domaines analysés: {len(matching_result.get('domaines_analyses', []))}")
+            print(f"   ⏱️ Temps: {processing_time}s")
+            print(f"   📊 Tokens: {total_tokens:,}")
+            print(f"   💰 Coût: ${total_cost}")
+            
+            return matching_result
+            
+        except Exception as e:
+            print(f"❌ Erreur analyse matching: {e}", flush=True)
+            import traceback
+            print(traceback.format_exc(), flush=True)
+            return {
+                'score_matching': 0,
+                'domaines_analyses': [],
+                'synthese_matching': f'Erreur lors de l\'analyse: {str(e)}'
+            }
+    
     def enrich_cv_with_prompt(self, parsed_cv: Dict[str, Any], jd_text: str, language: str = "French") -> Dict[str, Any]:
         """Enrichir le CV avec ton prompt exact"""
         import time
