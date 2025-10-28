@@ -1376,39 +1376,8 @@ if generate_button:
         except Exception as e:
             print(f"⚠️ Airtable tracking failed: {e}")
         
-        # Show temporary success badge
-        import time
-        gen_success_placeholder = st.empty()
-        
-        with gen_success_placeholder.container():
-            col_g1, col_g2, col_g3 = st.columns([3, 2, 3])
-            with col_g2:
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
-                    border-radius: 30px;
-                    padding: 8px 16px;
-                    text-align: center;
-                    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
-                    animation: fadeIn 0.3s ease-in;
-                ">
-                    <span style="color: white; font-size: 0.85rem; font-weight: 600;">
-                        ✅ Generation Complete!
-                    </span>
-                </div>
-                <style>
-                    @keyframes fadeIn {
-                        from { opacity: 0; transform: translateY(-10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
-                </style>
-                """, unsafe_allow_html=True)
-        
-        # Auto-disappear after 2 seconds (réduit pour meilleure réactivité)
-        time.sleep(2)
-        gen_success_placeholder.empty()
-        
-        # ✅ FIX: Pas de st.rerun() - le tableau du Step 1 reste visible!
+        # Rerun immediately to hide Step 1 section and show Download button
+        st.rerun()
         
     except Exception as e:
         st.error(f"❌ **Generation error:** {str(e)}")
