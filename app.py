@@ -835,7 +835,18 @@ with button_placeholder.container():
             )
         elif st.session_state.show_generate_button:
             # Show Generate button after analysis is done (with inverted gradient)
-            st.markdown('<div class="generate-button-wrapper">', unsafe_allow_html=True)
+            st.markdown('<div id="generate-btn-wrapper">', unsafe_allow_html=True)
+            st.markdown("""
+            <style>
+            #generate-btn-wrapper button {
+                background: linear-gradient(90deg, #D97104 0%, #193E92 100%) !important;
+                box-shadow: 0 4px 14px rgba(217, 113, 4, 0.25) !important;
+            }
+            #generate-btn-wrapper button:hover {
+                box-shadow: 0 8px 24px rgba(217, 113, 4, 0.35) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
             generate_button = st.button(
                 "✨ Generate TMC CV",
                 disabled=not can_run,
