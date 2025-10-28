@@ -825,6 +825,21 @@ with button_placeholder.container():
         # Show either Analyze or Generate button (or Download if results exist)
         if st.session_state.get('results'):
             # Show Download button (green) if CV is generated
+            st.markdown('<div id="download-btn-wrapper">', unsafe_allow_html=True)
+            st.markdown("""
+            <style>
+            #download-btn-wrapper button {
+                background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
+                color: white !important;
+                border: none !important;
+                box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+            }
+            #download-btn-wrapper button:hover {
+                box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45) !important;
+                transform: translateY(-1px);
+            }
+            </style>
+            """, unsafe_allow_html=True)
             st.download_button(
                 label="📥 Download TMC CV",
                 data=st.session_state.results['cv_bytes'],
@@ -833,6 +848,7 @@ with button_placeholder.container():
                 use_container_width=True,
                 key="download_tmc_cv_button"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
         elif st.session_state.show_generate_button:
             # Show Generate button after analysis is done (with inverted gradient)
             st.markdown('<div id="generate-btn-wrapper">', unsafe_allow_html=True)
@@ -873,7 +889,8 @@ generation_stepper_container = st.empty()
 # =====================================================
 # 📊 DISPLAY ANALYSIS RESULTS (if matching done)
 # =====================================================
-if st.session_state.matching_done and st.session_state.matching_data:
+# Only show Step 1 results if CV not yet generated (to avoid duplicates with final results section)
+if st.session_state.matching_done and st.session_state.matching_data and not st.session_state.get('results'):
     matching_analysis = st.session_state.matching_data['matching_analysis']
     parsed_cv = st.session_state.matching_data['parsed_cv']
     
@@ -1161,11 +1178,11 @@ if analyze_button:
                     </style>
                     """, unsafe_allow_html=True)
             
-            # Auto-disappear after 3 seconds
-            time.sleep(3)
+            # Auto-disappear after 2 seconds (réduit pour meilleure réactivité)
+            time.sleep(2)
             success_placeholder.empty()
             
-            # Switch to Generate button and rerun
+            # Switch to Generate button and rerun to show results
             st.session_state.show_generate_button = True
             st.rerun()
             
@@ -1234,7 +1251,8 @@ if generate_button:
         enriched_cv = enricher.enrich_cv_with_prompt(
             parsed_cv, 
             jd_text, 
-            language=target_language
+            language=target_language,
+            matching_analysis=matching_analysis  # ✅ FIX: Réutilise le score du Step 1!
         )
         
         # Update timeline - step 2 active
@@ -1358,39 +1376,7 @@ if generate_button:
         except Exception as e:
             print(f"⚠️ Airtable tracking failed: {e}")
         
-        # Show temporary success badge
-        import time
-        gen_success_placeholder = st.empty()
-        
-        with gen_success_placeholder.container():
-            col_g1, col_g2, col_g3 = st.columns([3, 2, 3])
-            with col_g2:
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
-                    border-radius: 30px;
-                    padding: 8px 16px;
-                    text-align: center;
-                    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
-                    animation: fadeIn 0.3s ease-in;
-                ">
-                    <span style="color: white; font-size: 0.85rem; font-weight: 600;">
-                        ✅ Generation Complete!
-                    </span>
-                </div>
-                <style>
-                    @keyframes fadeIn {
-                        from { opacity: 0; transform: translateY(-10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
-                </style>
-                """, unsafe_allow_html=True)
-        
-        # Auto-disappear after 3 seconds
-        time.sleep(3)
-        gen_success_placeholder.empty()
-        
-        # Force rerun to show Download button
+        # Rerun immediately to hide Step 1 section and show Download button
         st.rerun()
         
     except Exception as e:
@@ -1623,27 +1609,6 @@ if st.session_state.get('results'):
             st.markdown(f"**{i}.** {pf}")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # ===== DOWNLOAD =====
-    st.markdown("""
-    <style>
-    .download-button-container {
-        display: flex;
-        justify-content: center;
-        margin: 20px 0;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    col_dl1, col_dl2, col_dl3 = st.columns([1.5, 2, 1.5])
-    with col_dl2:
-        st.download_button(
-            label="📥 Download TMC CV",
-            data=results['cv_bytes'],
-            file_name=results['nom_fichier'],
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            use_container_width=True
-        )
 
 # =====================================================
 # 🔚 FOOTER
