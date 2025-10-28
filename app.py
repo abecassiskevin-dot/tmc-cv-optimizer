@@ -1264,145 +1264,145 @@ if generate_button:
         
         # Store results
         cv_bytes = read_bytes(out_path)
-            
-            # Format: TMC - Prénom NOM - Titre Court.docx
-            nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
-            nom_parts = nom_complet.split()
+        
+        # Format: TMC - Prénom NOM - Titre Court.docx
+        nom_complet = parsed_cv.get('nom_complet', 'Candidate Name')
+        nom_parts = nom_complet.split()
 
-            if len(nom_parts) >= 2:
-                prenom = nom_parts[0]
-                nom = ' '.join(nom_parts[1:]).upper()
+        if len(nom_parts) >= 2:
+            prenom = nom_parts[0]
+            nom = ' '.join(nom_parts[1:]).upper()
+        else:
+            prenom = nom_parts[0] if nom_parts else 'Candidate'
+            nom = ''
+
+        titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
+        titre_words = titre_brut.split()
+        titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
+
+        # NOUVEAU: Choisir le préfixe selon le mode anonymisé
+        if mode_anonymise:
+            # Mode anonymisé: remplacer "TMC" par "CV" pour cacher l'entreprise
+            if nom:
+                nom_fichier = f"CV - {prenom} {nom} - {titre_court}.docx"
             else:
-                prenom = nom_parts[0] if nom_parts else 'Candidate'
-                nom = ''
-
-            titre_brut = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Professional'))
-            titre_words = titre_brut.split()
-            titre_court = ' '.join(titre_words[:5]) if len(titre_words) > 5 else titre_brut
-
-            # NOUVEAU: Choisir le préfixe selon le mode anonymisé
-            if mode_anonymise:
-                # Mode anonymisé: remplacer "TMC" par "CV" pour cacher l'entreprise
-                if nom:
-                    nom_fichier = f"CV - {prenom} {nom} - {titre_court}.docx"
-                else:
-                    nom_fichier = f"CV - {prenom} - {titre_court}.docx"
+                nom_fichier = f"CV - {prenom} - {titre_court}.docx"
+        else:
+            # Mode standard: garder "TMC"
+            if nom:
+                nom_fichier = f"TMC - {prenom} {nom} - {titre_court}.docx"
             else:
-                # Mode standard: garder "TMC"
-                if nom:
-                    nom_fichier = f"TMC - {prenom} {nom} - {titre_court}.docx"
+                nom_fichier = f"TMC - {prenom} - {titre_court}.docx"
+        
+        st.session_state.results = {
+            'score': enriched_cv.get('score_matching', 0),
+            'nom': parsed_cv.get('nom_complet', 'N/A'),
+            'nb_exp': len(enriched_cv.get('experiences_enrichies', [])),
+            'experiences_raw': parsed_cv.get('experiences', []),
+            'points_forts': enriched_cv.get('points_forts', []),
+            'domaines_analyses': enriched_cv.get('domaines_analyses', []),
+            'synthese_matching': enriched_cv.get('synthese_matching', ''),
+            'cv_bytes': cv_bytes,
+            'nom_fichier': nom_fichier
+        }
+        
+        # Airtable tracking
+        try:
+            import os
+            import requests
+            import json
+            
+            AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
+            BASE_ID = 'apptzRcN1NnoNLCJ7'
+            TABLE_ID = 'tblYjn3wCdMBU6Gcq'
+            
+            if AIRTABLE_API_KEY:
+                now = datetime.now()
+                timestamp_iso = now.strftime('%Y-%m-%dT%H:%M:%S')
+                language = "French" if template_lang == "FR" else "English"
+                
+                metadata = enriched_cv.get('_metadata', {})
+                processing_time = metadata.get('processing_time_seconds', 0)
+                total_tokens = metadata.get('total_tokens', 0)
+                estimated_cost = metadata.get('estimated_cost_usd', 0)
+                
+                user_full_name = st.session_state.get('user_name', 'Unknown User')
+                user_location = st.session_state.get('user_location', 'Unknown')
+                
+                name_parts = user_full_name.split(' ', 1)
+                first_name_user = name_parts[0] if len(name_parts) > 0 else 'Unknown'
+                last_name_user = name_parts[1] if len(name_parts) > 1 else ''
+                
+                record_data = {
+                    "fields": {
+                        "Timestamp": timestamp_iso,
+                        "Candidate Name": nom_complet[:100] if nom_complet else "Unknown",
+                        "Matching Score": int(enriched_cv.get('score_matching', 0)),
+                        "Language": language,
+                        "First Name": first_name_user,
+                        "Last Name": last_name_user,
+                        "User Location": user_location,
+                        "Processing Time": round(processing_time, 2),
+                        "Total Tokens": int(total_tokens),
+                        "Estimated Cost ($)": round(estimated_cost, 4)
+                    }
+                }
+                
+                url = f'https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}'
+                headers = {
+                    'Authorization': f'Bearer {AIRTABLE_API_KEY}',
+                    'Content-Type': 'application/json'
+                }
+                
+                response = requests.post(url, headers=headers, data=json.dumps(record_data), timeout=5)
+                
+                if response.status_code == 200:
+                    print(f"✅ Airtable tracking success: {nom_complet}")
                 else:
-                    nom_fichier = f"TMC - {prenom} - {titre_court}.docx"
-            
-            st.session_state.results = {
-                'score': enriched_cv.get('score_matching', 0),
-                'nom': parsed_cv.get('nom_complet', 'N/A'),
-                'nb_exp': len(enriched_cv.get('experiences_enrichies', [])),
-                'experiences_raw': parsed_cv.get('experiences', []),
-                'points_forts': enriched_cv.get('points_forts', []),
-                'domaines_analyses': enriched_cv.get('domaines_analyses', []),
-                'synthese_matching': enriched_cv.get('synthese_matching', ''),
-                'cv_bytes': cv_bytes,
-                'nom_fichier': nom_fichier
-            }
-            
-            # Airtable tracking
-            try:
-                import os
-                import requests
-                import json
-                
-                AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
-                BASE_ID = 'apptzRcN1NnoNLCJ7'
-                TABLE_ID = 'tblYjn3wCdMBU6Gcq'
-                
-                if AIRTABLE_API_KEY:
-                    now = datetime.now()
-                    timestamp_iso = now.strftime('%Y-%m-%dT%H:%M:%S')
-                    language = "French" if template_lang == "FR" else "English"
-                    
-                    metadata = enriched_cv.get('_metadata', {})
-                    processing_time = metadata.get('processing_time_seconds', 0)
-                    total_tokens = metadata.get('total_tokens', 0)
-                    estimated_cost = metadata.get('estimated_cost_usd', 0)
-                    
-                    user_full_name = st.session_state.get('user_name', 'Unknown User')
-                    user_location = st.session_state.get('user_location', 'Unknown')
-                    
-                    name_parts = user_full_name.split(' ', 1)
-                    first_name_user = name_parts[0] if len(name_parts) > 0 else 'Unknown'
-                    last_name_user = name_parts[1] if len(name_parts) > 1 else ''
-                    
-                    record_data = {
-                        "fields": {
-                            "Timestamp": timestamp_iso,
-                            "Candidate Name": nom_complet[:100] if nom_complet else "Unknown",
-                            "Matching Score": int(enriched_cv.get('score_matching', 0)),
-                            "Language": language,
-                            "First Name": first_name_user,
-                            "Last Name": last_name_user,
-                            "User Location": user_location,
-                            "Processing Time": round(processing_time, 2),
-                            "Total Tokens": int(total_tokens),
-                            "Estimated Cost ($)": round(estimated_cost, 4)
-                        }
-                    }
-                    
-                    url = f'https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}'
-                    headers = {
-                        'Authorization': f'Bearer {AIRTABLE_API_KEY}',
-                        'Content-Type': 'application/json'
-                    }
-                    
-                    response = requests.post(url, headers=headers, data=json.dumps(record_data), timeout=5)
-                    
-                    if response.status_code == 200:
-                        print(f"✅ Airtable tracking success: {nom_complet}")
-                    else:
-                        print(f"⚠️ Airtable error: {response.status_code}")
-            except Exception as e:
-                print(f"⚠️ Airtable tracking failed: {e}")
-            
-            # Show temporary success badge
-            import time
-            gen_success_placeholder = st.empty()
-            
-            with gen_success_placeholder.container():
-                col_g1, col_g2, col_g3 = st.columns([3, 2, 3])
-                with col_g2:
-                    st.markdown("""
-                    <div style="
-                        background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
-                        border-radius: 30px;
-                        padding: 8px 16px;
-                        text-align: center;
-                        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
-                        animation: fadeIn 0.3s ease-in;
-                    ">
-                        <span style="color: white; font-size: 0.85rem; font-weight: 600;">
-                            ✅ Generation Complete!
-                        </span>
-                    </div>
-                    <style>
-                        @keyframes fadeIn {
-                            from { opacity: 0; transform: translateY(-10px); }
-                            to { opacity: 1; transform: translateY(0); }
-                        }
-                    </style>
-                    """, unsafe_allow_html=True)
-            
-            # Auto-disappear after 3 seconds
-            time.sleep(3)
-            gen_success_placeholder.empty()
-            
-            # Force rerun to show Download button
-            st.rerun()
-            
+                    print(f"⚠️ Airtable error: {response.status_code}")
         except Exception as e:
-            st.error(f"❌ **Generation error:** {str(e)}")
-            with st.expander("🔍 Technical details"):
-                import traceback
-                st.code(traceback.format_exc())
+            print(f"⚠️ Airtable tracking failed: {e}")
+        
+        # Show temporary success badge
+        import time
+        gen_success_placeholder = st.empty()
+        
+        with gen_success_placeholder.container():
+            col_g1, col_g2, col_g3 = st.columns([3, 2, 3])
+            with col_g2:
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(90deg, #22c55e 0%, #047857 100%);
+                    border-radius: 30px;
+                    padding: 8px 16px;
+                    text-align: center;
+                    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+                    animation: fadeIn 0.3s ease-in;
+                ">
+                    <span style="color: white; font-size: 0.85rem; font-weight: 600;">
+                        ✅ Generation Complete!
+                    </span>
+                </div>
+                <style>
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(-10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                </style>
+                """, unsafe_allow_html=True)
+        
+        # Auto-disappear after 3 seconds
+        time.sleep(3)
+        gen_success_placeholder.empty()
+        
+        # Force rerun to show Download button
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"❌ **Generation error:** {str(e)}")
+        with st.expander("🔍 Technical details"):
+            import traceback
+            st.code(traceback.format_exc())
 
 # =====================================================
 # 📊 AFFICHAGE FINAL (si results présent)
