@@ -1161,13 +1161,13 @@ if analyze_button:
                     </style>
                     """, unsafe_allow_html=True)
             
-            # Auto-disappear after 3 seconds
-            time.sleep(3)
+            # Auto-disappear after 2 seconds (réduit pour meilleure réactivité)
+            time.sleep(2)
             success_placeholder.empty()
             
-            # Switch to Generate button and rerun
+            # Switch to Generate button - PAS de rerun pour garder l'affichage!
             st.session_state.show_generate_button = True
-            st.rerun()
+            # ✅ FIX: Pas de st.rerun() ici - l'affichage du Step 1 persiste!
             
         except Exception as e:
             st.error(f"❌ **Analysis error:** {str(e)}")
@@ -1234,7 +1234,8 @@ if generate_button:
         enriched_cv = enricher.enrich_cv_with_prompt(
             parsed_cv, 
             jd_text, 
-            language=target_language
+            language=target_language,
+            matching_analysis=matching_analysis  # ✅ FIX: Réutilise le score du Step 1!
         )
         
         # Update timeline - step 2 active
@@ -1386,12 +1387,11 @@ if generate_button:
                 </style>
                 """, unsafe_allow_html=True)
         
-        # Auto-disappear after 3 seconds
-        time.sleep(3)
+        # Auto-disappear after 2 seconds (réduit pour meilleure réactivité)
+        time.sleep(2)
         gen_success_placeholder.empty()
         
-        # Force rerun to show Download button
-        st.rerun()
+        # ✅ FIX: Pas de st.rerun() - le tableau du Step 1 reste visible!
         
     except Exception as e:
         st.error(f"❌ **Generation error:** {str(e)}")
