@@ -1160,19 +1160,17 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
     }}
   ],
   "score_matching": 45,
-  "synthese_matching": "COMPREHENSIVE ANALYSIS (4-6 paragraphs, 200-300 words):
+  "synthese_matching": "CONCISE PROFESSIONAL SUMMARY (1 paragraph, 80-120 words):
   
-  Paragraph 1 - Overall Assessment: Start with the match level (Excellent/Strong/Partial/Weak) and score. Provide 2-3 sentences explaining the overall fit and candidate's seniority level.
+  Write a single comprehensive paragraph that includes:
+  - Match level (Excellent/Strong/Good/Partial/Weak) with the score (X/100)
+  - Candidate's years of experience and seniority level
+  - Top 2-3 strongest domains that align perfectly with requirements
+  - 1-2 areas that are partial matches or transferable skills
+  - 1-2 critical gaps if any
+  - Brief recommendation (Recommend/Conditional/Not Recommend)
   
-  Paragraph 2 - Key Strengths: Detail the candidate's strongest areas (3-4 specific technical skills or experiences) that align perfectly with the job. Be specific with technologies and years of experience. Use examples from their CV.
-  
-  Paragraph 3 - Partial Matches: Explain areas where the candidate has transferable skills or relevant but not perfect experience (2-3 areas). Describe how these could still add value to the role.
-  
-  Paragraph 4 - Critical Gaps: Identify any significant missing requirements (2-3 areas max). Explain the impact of these gaps on the candidate's ability to succeed in the role.
-  
-  Paragraph 5 - Recommendation: Provide a clear hiring recommendation with 2-3 specific reasons. For partial matches, suggest what additional training or support might be needed.
-  
-  Write in professional, analytical tone. Use concrete examples. Be honest about weaknesses while highlighting potential. ALWAYS WRITE IN ENGLISH.",
+  Keep it analytical and professional. Use concrete examples from the CV. Be honest about both strengths and weaknesses. Make it scannable for busy recruiters. ALWAYS WRITE IN ENGLISH.",
   
   "titre_professionnel_enrichi": "TITRE COURT en {language} (3-5 mots max)",
   
