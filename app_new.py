@@ -65,7 +65,12 @@ def local_css():
         .block-container {{
             padding-top: 2rem;
             padding-bottom: 2rem;
-            max-width: 1200px;
+            max-width: 1100px !important;  /* ✨ FIXED: Reduced from 1200px for better margins */
+            width: 100% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            padding-left: 2rem !important;  /* ✨ NEW: Consistent padding */
+            padding-right: 2rem !important;
         }}
         
         /* Hide Streamlit default elements */
@@ -73,11 +78,50 @@ def local_css():
         footer {{visibility: hidden;}}
         header {{visibility: hidden;}}
         
-        /* Hide secrets.toml error message */
+        /* ========== HIDE SECRETS ERROR MESSAGE - COMPREHENSIVE ========== */
+        /* Target all possible classes and containers for secrets.toml error */
         .element-container:has(> .stException) {{
-            display: none;
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
         }}
+        
         [data-testid="stException"] {{
+            display: none !important;
+            visibility: hidden !important;
+        }}
+        
+        .stException {{
+            display: none !important;
+            visibility: hidden !important;
+        }}
+        
+        div.stException {{
+            display: none !important;
+        }}
+        
+        /* Target error messages containing "secrets" keyword */
+        [data-testid="stException"]:has([class*="secrets"]) {{
+            display: none !important;
+        }}
+        
+        /* Target specific error alert containers */
+        [data-testid="stAlert"] {{
+            display: none !important;
+        }}
+        
+        div[data-testid="stNotification"] {{
+            display: none !important;
+        }}
+        
+        /* Hide any error message in main container */
+        .main [data-testid="stException"] {{
+            display: none !important;
+        }}
+        
+        /* Nuclear option: hide all exception elements */
+        [class*="Exception"] {{
             display: none !important;
         }}
         
@@ -154,6 +198,7 @@ def local_css():
             transition: all 0.3s ease !important;
             box-shadow: 0 4px 14px rgba(25, 62, 146, 0.25) !important;
             width: 100% !important;
+            min-height: 60px !important;  /* ✨ MATCHED: Same as Download button */
         }}
         
         .stButton>button:hover {{
@@ -285,6 +330,63 @@ def local_css():
             font-size: 0.9rem;
             border-top: 1px solid #E5E7EB;
             margin-top: 3rem;
+        }}
+        
+        /* ========== DOWNLOAD BUTTON - GREEN GRADIENT ========== */
+        /* Global styling for download button wrapper */
+        #download-btn-wrapper {{
+            margin: 1rem 0;
+        }}
+        
+        #download-btn-wrapper button {{
+            background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.9rem 2rem !important;  /* ✨ MATCHED: Same as Generate button */
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+            min-height: 60px !important;  /* ✨ MATCHED: Same height as Generate */
+        }}
+        
+        #download-btn-wrapper button:hover {{
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45) !important;
+            transform: translateY(-2px) !important;
+        }}
+        
+        #download-btn-wrapper button:active {{
+            transform: translateY(0) !important;
+        }}
+        
+        /* ✨ V9 FIX: Force Download button to full width with green gradient */
+        [data-testid="stDownloadButton"] {{
+            width: 100% !important;
+        }}
+        
+        [data-testid="stDownloadButton"] > button {{
+            background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.9rem 2rem !important;
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+            min-height: 60px !important;
+        }}
+        
+        [data-testid="stDownloadButton"] > button:hover {{
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45) !important;
+            transform: translateY(-2px) !important;
+        }}
+        
+        [data-testid="stDownloadButton"] > button:active {{
+            transform: translateY(0) !important;
         }}
     </style>
     """, unsafe_allow_html=True)
@@ -586,12 +688,19 @@ def clear_session():
 
 def log_to_airtable(user_name, event_type, metadata=None):
     """Log events to Airtable"""
+    print(f"🔍 AIRTABLE LOG CALLED: {event_type} by {user_name}", flush=True)
+    
     try:
         AIRTABLE_TOKEN = os.getenv('AIRTABLE_TOKEN') or st.secrets.get("AIRTABLE_TOKEN")
         AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID') or st.secrets.get("AIRTABLE_BASE_ID")
         AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME') or st.secrets.get("AIRTABLE_TABLE_NAME")
         
+        print(f"   Token present: {bool(AIRTABLE_TOKEN)}", flush=True)
+        print(f"   Base ID: {AIRTABLE_BASE_ID}", flush=True)
+        print(f"   Table: {AIRTABLE_TABLE_NAME}", flush=True)
+        
         if not all([AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME]):
+            print(f"❌ AIRTABLE: Missing config - Token:{bool(AIRTABLE_TOKEN)} BaseID:{bool(AIRTABLE_BASE_ID)} Table:{bool(AIRTABLE_TABLE_NAME)}", flush=True)
             return
         
         url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
@@ -610,9 +719,21 @@ def log_to_airtable(user_name, event_type, metadata=None):
             fields["Metadata"] = json.dumps(metadata)
         
         data = {"fields": fields}
-        requests.post(url, headers=headers, json=data)
-    except:
-        pass
+        
+        print(f"📤 AIRTABLE: Sending POST to {url[:50]}...", flush=True)
+        response = requests.post(url, headers=headers, json=data, timeout=5)
+        
+        print(f"📥 AIRTABLE: Response {response.status_code}", flush=True)
+        
+        if response.status_code == 200:
+            print(f"✅ AIRTABLE: Log sent successfully!", flush=True)
+        else:
+            print(f"❌ AIRTABLE: Error {response.status_code} - {response.text[:200]}", flush=True)
+            
+    except Exception as e:
+        print(f"❌ AIRTABLE EXCEPTION: {repr(e)}", flush=True)
+        import traceback
+        print(traceback.format_exc(), flush=True)
 
 # ==========================================
 # 🔓 LOGIN SCREEN
@@ -633,7 +754,7 @@ def show_login_screen():
                     </linearGradient>
                 </defs>
                 <text x="50%" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="url(#titleGradient)" text-anchor="middle">
-                    🚀 CV Optimizer
+                    CV Optimizer
                 </text>
             </svg>
         </div>
@@ -661,20 +782,43 @@ def show_login_screen():
             key="location_select"
         )
         
+        # ✅ V9 FIX: Add password field
+        password = st.text_input(
+            "Password",
+            type="password",
+            key="password_input"
+        )
+        
         if st.button("🚀 Access CV Optimizer", use_container_width=True):
-            st.session_state.authenticated = True
-            st.session_state.user_name = name
-            st.session_state.user_location = location
-            st.session_state.login_time = datetime.now()
-            st.session_state.last_activity = datetime.now()
+            # Check password
+            correct_password = os.getenv('APP_PASSWORD') or st.secrets.get("APP_PASSWORD", "")
             
-            # Save to cookies
-            save_session_to_cookies()
-            
-            # Log to Airtable
-            log_to_airtable(name, "login", {"location": location})
-            
-            st.rerun()
+            if not correct_password:
+                st.error("❌ Password not configured on server. Contact administrator.")
+            elif password != correct_password:
+                st.error("❌ Incorrect password. Please try again.")
+            else:
+                st.session_state.authenticated = True
+                st.session_state.user_name = name
+                st.session_state.user_location = location
+                st.session_state.login_time = datetime.now()
+                st.session_state.last_activity = datetime.now()
+                
+                # Save to cookies
+                save_session_to_cookies()
+                
+                # Log to Airtable
+                log_to_airtable(name, "login", {"location": location})
+                
+                st.rerun()
+    
+    # Signature Ekinext at bottom of login page
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align: center; margin-top: 3rem; font-size: 0.85rem; color: #6B7280;">
+        Made by <strong>Kevin Abecassis | Ekinext</strong> © 2025
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # 🏠 MAIN APPLICATION
@@ -682,6 +826,10 @@ def show_login_screen():
 
 def main_app():
     """Application principale"""
+    
+    # Initialize reset counter for file uploaders (if not exists)
+    if 'reset_counter' not in st.session_state:
+        st.session_state.reset_counter = 0
     
     # Apply custom CSS
     local_css()
@@ -750,6 +898,10 @@ def main_app():
                 st.session_state.processing = False
                 st.session_state.skills_matrix_file = None  # ✨ FIXED: Reset skills matrix
                 st.session_state.show_generate_button = False  # ✨ FIXED: Reset Generate button
+                
+                # ✨ NEW: Increment reset counter to force file_uploader recreation
+                st.session_state.reset_counter += 1
+                
                 st.rerun()
         
         with col_logout:
@@ -761,19 +913,33 @@ def main_app():
                 st.rerun()
         
         # TMC Logo at bottom of sidebar
-        # TMC Logo from GitHub (simpler than local path management)
-        # TODO: Replace with your actual GitHub raw URL once logo is uploaded
-        logo_url = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/clients/tmc-montreal/branding/logos/TMC%20big%20logo.png"
+        # Use local logo from repository (simpler than GitHub URL)
+        logo_path = "TMC big logo.png"  # Logo in root directory
         
         try:
-            # Try to load logo from GitHub
-            st.markdown(f"""
-            <div style="text-align: center; margin-top: auto; padding-top: 2rem;">
-                <img src="{logo_url}" style="width: 120px; opacity: 0.7;" onerror="this.style.display='none'">
-            </div>
-            """, unsafe_allow_html=True)
-        except:
-            # Fallback: Text logo if GitHub URL fails
+            # Try to load logo using base64 encoding for Streamlit
+            import base64
+            from pathlib import Path
+            
+            if Path(logo_path).exists():
+                with open(logo_path, "rb") as f:
+                    logo_bytes = f.read()
+                    logo_base64 = base64.b64encode(logo_bytes).decode()
+                
+                st.markdown(f"""
+                <div style="text-align: center; margin-top: auto; padding-top: 2rem;">
+                    <img src="data:image/png;base64,{logo_base64}" style="width: 120px; opacity: 0.7;">
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Fallback: Text logo if file not found
+                st.markdown("""
+                <div style="text-align: center; margin-top: auto; padding-top: 2rem; color: #193E92; font-weight: 700; font-size: 1.2rem;">
+                    TMC
+                </div>
+                """, unsafe_allow_html=True)
+        except Exception as e:
+            # Fallback: Text logo if any error
             st.markdown("""
             <div style="text-align: center; margin-top: auto; padding-top: 2rem; opacity: 0.6;">
                 <div style="font-size: 1.2rem; font-weight: 700; color: #193E92;">TMC</div>
@@ -794,11 +960,12 @@ def main_app():
                     </linearGradient>
                 </defs>
                 <text x="50%" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="url(#titleGradient)" text-anchor="middle">
-                    🚀 CV Optimizer
+                    CV Optimizer
                 </text>
             </svg>
         </div>
-        <p class="tmc-subtitle">Generate optimized TMC CVs with AI</p>
+        <p class="tmc-subtitle">Generate a professional TMC CV perfectly aligned with your Job Description</p>
+        <p class="tmc-subtitle" style="margin-top: 0.2rem; font-size: 0.95rem;">Designed for Business Managers and Recruiters</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -811,7 +978,7 @@ def main_app():
             "Upload your CV",
             type=['pdf', 'docx', 'doc', 'txt'],
             label_visibility="collapsed",
-            key="cv_uploader"
+            key=f"cv_uploader_{st.session_state.reset_counter}"  # ✨ FIXED: Dynamic key for reset
         )
         if cv_file:
             if 'cv_upload_status' not in st.session_state:
@@ -825,7 +992,7 @@ def main_app():
             "Upload job description",
             type=['txt', 'docx', 'doc', 'pdf'],
             label_visibility="collapsed",
-            key="jd_uploader"
+            key=f"jd_uploader_{st.session_state.reset_counter}"  # ✨ FIXED: Dynamic key for reset
         )
         if jd_file:
             if 'jd_upload_status' not in st.session_state:
@@ -845,9 +1012,12 @@ def main_app():
             key="language_selector"
         )
         st.session_state.selected_language = language.split()[1]
+        # ✅ DEBUG: Confirm language stored
+        print(f"🌐 CAE Language selected and stored: {st.session_state.selected_language}", flush=True)
     else:
         # Set language based on client
         st.session_state.selected_language = CLIENT_DATA[st.session_state.selected_client]["language"]
+        print(f"🌐 {st.session_state.selected_client} Language auto-set: {st.session_state.selected_language}", flush=True)
     
     # Analyze button (only show if Generate button is not active)
     if not st.session_state.show_generate_button:
@@ -1154,37 +1324,40 @@ def display_matching_results(data):
             score_level = "Weak match"
         
         # Build summary text
-        summary_parts = []
-        summary_parts.append(f"{score_level} with {score}/100 score.")
+        # ✨ V9 FIX: Use Claude's comprehensive synthesis instead of auto-generated one
+        # Claude provides 4-6 paragraph detailed analysis (250-350 words)
+        generated_summary = results.get('synthese_matching', '')
         
-        if total_years > 0:
-            summary_parts.append(f"Candidate has {total_years} years of experience.")
-        
-        if strong_domains:
-            if len(strong_domains) > 3:
-                domains_text = ", ".join(strong_domains[:3]) + f", and {len(strong_domains)-3} other domains"
-            else:
-                domains_text = ", ".join(strong_domains)
-            summary_parts.append(f"Exceeds requirements in: {domains_text}.")
-        
-        if partial_domains:
-            if len(partial_domains) > 2:
-                summary_parts.append(f"Partial match in {len(partial_domains)} domains.")
-            else:
-                domains_text = ", ".join(partial_domains)
-                summary_parts.append(f"Partial match in: {domains_text}.")
-        
-        if missing_domains:
-            if len(missing_domains) > 2:
-                summary_parts.append(f"Gaps identified in {len(missing_domains)} areas.")
-            else:
-                domains_text = ", ".join(missing_domains)
-                summary_parts.append(f"Gap in: {domains_text}.")
-        
-        # Recommendation based on score - REMOVED per user request
-        # Users typically show this summary when presenting to clients, not for interview stage
-        
-        generated_summary = " ".join(summary_parts)
+        # Fallback: If synthesis is missing, generate short summary
+        if not generated_summary or len(generated_summary.strip()) < 50:
+            summary_parts = []
+            summary_parts.append(f"{score_level} with {score}/100 score.")
+            
+            if total_years > 0:
+                summary_parts.append(f"Candidate has {total_years} years of experience.")
+            
+            if strong_domains:
+                if len(strong_domains) > 3:
+                    domains_text = ", ".join(strong_domains[:3]) + f", and {len(strong_domains)-3} other domains"
+                else:
+                    domains_text = ", ".join(strong_domains)
+                summary_parts.append(f"Exceeds requirements in: {domains_text}.")
+            
+            if partial_domains:
+                if len(partial_domains) > 2:
+                    summary_parts.append(f"Partial match in {len(partial_domains)} domains.")
+                else:
+                    domains_text = ", ".join(partial_domains)
+                    summary_parts.append(f"Partial match in: {domains_text}.")
+            
+            if missing_domains:
+                if len(missing_domains) > 2:
+                    summary_parts.append(f"Gaps identified in {len(missing_domains)} areas.")
+                else:
+                    domains_text = ", ".join(missing_domains)
+                    summary_parts.append(f"Gap in: {domains_text}.")
+            
+            generated_summary = " ".join(summary_parts)
         
         st.markdown(f"""
         <div style="
@@ -1198,7 +1371,7 @@ def display_matching_results(data):
                 <div style="font-size: 1.8rem; margin-right: 14px;">📊</div>
                 <div>
                     <div style="font-weight: 700; color: #1e40af; font-size: 1.25rem; margin-bottom: 10px;">Analysis Summary</div>
-                    <div style="color: #1e3a8a; line-height: 1.7; font-size: 1.05rem;">{generated_summary}</div>
+                    <div style="color: #1e3a8a; line-height: 1.7; font-size: 1.05rem; white-space: pre-line;">{generated_summary}</div>
                 </div>
             </div>
         </div>
@@ -1231,7 +1404,7 @@ def display_matching_results(data):
             skills_matrix_file = st.file_uploader(
                 "Upload Skills Matrix (.docx only)",
                 type=['docx'],
-                key="skills_matrix_uploader",
+                key=f"skills_matrix_uploader_{st.session_state.reset_counter}",  # ✨ FIXED: Dynamic key for reset
                 help="Morgan Stanley requires a Skills Matrix as page 2 of the CV"
             )
             
@@ -1287,6 +1460,10 @@ def generate_cv(data):
         
         # Step 1: Enrichment
         timeline_placeholder.markdown(horizontal_progress_timeline(1, 3, generation_steps), unsafe_allow_html=True)
+        
+        # ✅ DEBUG: Log selected language
+        print(f"🌐 LANGUAGE SELECTED: {st.session_state.selected_language}", flush=True)
+        print(f"📋 CLIENT: {st.session_state.selected_client}", flush=True)
         
         enriched_cv = enricher.enrich_cv_with_prompt(
             data['parsed_cv'],
@@ -1366,7 +1543,9 @@ def generate_cv(data):
             # Generate filename with correct format per client
             parsed_cv = data.get('parsed_cv', {})
             nom_complet = parsed_cv.get('nom_complet', 'Candidate')
-            titre = parsed_cv.get('titre_professionnel', 'Profile')
+            
+            # ✅ FIX: Use ENRICHED title (in correct language) instead of original
+            titre = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Profile'))
             
             # Format name as "Prenom NOM" (last name in uppercase)
             import re
@@ -1400,7 +1579,7 @@ def generate_cv(data):
                 filename = f"TMC - {nom_formatted} - {titre_clean}.docx"
             
             # Download button with GREEN gradient (like app_working.py)
-            st.markdown('<div id="download-btn-wrapper">', unsafe_allow_html=True)
+            # CRITICAL: Define CSS BEFORE opening wrapper div!
             st.markdown("""
             <style>
             #download-btn-wrapper button {
@@ -1424,6 +1603,8 @@ def generate_cv(data):
             }
             </style>
             """, unsafe_allow_html=True)
+            
+            st.markdown('<div id="download-btn-wrapper">', unsafe_allow_html=True)
             st.download_button(
                 label="📥 Download Optimized CV",
                 data=cv_bytes,
@@ -1477,8 +1658,8 @@ def show_footer():
     st.markdown(
         f"""
         <div class='tmc-footer'>
-            <strong>TMC CV Optimizer V1.3.4 FIXED</strong> — Designed for TMC Business Managers & Recruiters<br>
-            Made by <strong>Kevin Abecassis</strong> | Powered by Streamlit & Claude AI
+            <strong>TMC CV Optimizer V1.3.9</strong> — Designed for TMC Business Managers & Recruiters<br>
+            Made by <strong>Kevin Abecassis | Ekinext</strong> © 2025
         </div>
         """,
         unsafe_allow_html=True,
