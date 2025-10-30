@@ -198,6 +198,7 @@ def local_css():
             transition: all 0.3s ease !important;
             box-shadow: 0 4px 14px rgba(25, 62, 146, 0.25) !important;
             width: 100% !important;
+            min-height: 60px !important;  /* ✨ NEW: Match Download button height */
         }}
         
         .stButton>button:hover {{
@@ -342,13 +343,13 @@ def local_css():
             color: white !important;
             border: none !important;
             border-radius: 12px !important;
-            padding: 1.15rem 2rem !important;  /* ✨ INCREASED from 0.9rem to match Analyze button height */
+            padding: 0.9rem 2rem !important;  /* ✨ MATCHED with Generate button */
             font-weight: 700 !important;
             font-size: 1.1rem !important;
             box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
             transition: all 0.3s ease !important;
             width: 100% !important;
-            min-height: 60px !important;  /* ✨ NEW: Ensure consistent height */
+            min-height: 60px !important;  /* ✨ Same height as Generate */
         }}
         
         #download-btn-wrapper button:hover {{
@@ -895,11 +896,11 @@ def main_app():
                     </linearGradient>
                 </defs>
                 <text x="50%" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="url(#titleGradient)" text-anchor="middle">
-                    🚀 CV Optimizer
+                    &#x1F680;&#xFE0E; CV Optimizer
                 </text>
             </svg>
         </div>
-        <p class="tmc-subtitle">Generate optimized TMC CVs with AI</p>
+        <p class="tmc-subtitle">Generate a professional TMC CV perfectly aligned with your Job Description — Designed for Business Managers and Recruiters</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1580,8 +1581,8 @@ def show_footer():
     st.markdown(
         f"""
         <div class='tmc-footer'>
-            <strong>TMC CV Optimizer V1.3.4 FIXED</strong> — Designed for TMC Business Managers & Recruiters<br>
-            Made by <strong>Kevin Abecassis</strong> | Powered by Streamlit & Claude AI
+            <strong>CV Optimizer</strong> — Designed for TMC Business Managers & Recruiters<br>
+            Made by <strong>Kevin Abecassis</strong> | Ekinext ©
         </div>
         """,
         unsafe_allow_html=True,
