@@ -16,6 +16,12 @@ import re
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 
+# === NOUVEAUX IMPORTS POUR OCR ===
+from pdf2image import convert_from_path
+import pytesseract
+from PIL import Image
+import tempfile
+
 print(">>> tmc_universal_enricher module loading", flush=True)
 
 
@@ -109,18 +115,100 @@ class TMCUniversalEnricher:
             return 'unknown'
     
     def extract_from_pdf(self, file_path: str) -> str:
-        """Extraire texte d'un PDF"""
+        """
+        Extraire texte d'un PDF avec fallback OCR automatique
+        1. Essaye PyPDF2 pour texte sélectionnable
+        2. Si échec/texte vide → Utilise OCR sur images
+        """
+        print(f"📄 Extracting PDF: {file_path}", flush=True)
+        
         try:
+            # ===== ÉTAPE 1: Tentative extraction PyPDF2 =====
             text = []
             with open(file_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
-                for page in pdf_reader.pages:
+                num_pages = len(pdf_reader.pages)
+                print(f"📊 PDF has {num_pages} pages", flush=True)
+                
+                for page_num, page in enumerate(pdf_reader.pages, 1):
                     page_text = page.extract_text()
                     if page_text:
                         text.append(page_text)
-            return "\n".join(text)
+                    print(f"  Page {page_num}: {len(page_text) if page_text else 0} chars", flush=True)
+            
+            extracted_text = "\n".join(text).strip()
+            
+            # ===== VÉRIFIER SI L'EXTRACTION A FONCTIONNÉ =====
+            # Seuil: Si moins de 100 caractères ou trop peu de mots → C'est scanné
+            word_count = len(extracted_text.split())
+            char_count = len(extracted_text)
+            
+            print(f"📈 PyPDF2 extraction: {char_count} chars, {word_count} words", flush=True)
+            
+            # Si extraction suffisante → Retourner
+            if char_count > 100 and word_count > 20:
+                print("✅ PDF text extraction successful (text-based PDF)", flush=True)
+                return extracted_text
+            
+            # ===== ÉTAPE 2: PDF scanné détecté → OCR =====
+            print("⚠️ PDF appears to be scanned (image-based). Switching to OCR...", flush=True)
+            return self._extract_from_pdf_ocr(file_path)
+            
         except Exception as e:
-            print(f"⚠️ Erreur extraction PDF: {e}")
+            print(f"❌ Error in PDF extraction: {e}", flush=True)
+            # En cas d'erreur PyPDF2, essayer quand même OCR
+            try:
+                print("🔄 Trying OCR as fallback...", flush=True)
+                return self._extract_from_pdf_ocr(file_path)
+            except Exception as e2:
+                print(f"❌ OCR fallback also failed: {e2}", flush=True)
+                return ""
+    
+    def _extract_from_pdf_ocr(self, file_path: str) -> str:
+        """
+        Extraire texte d'un PDF scanné via OCR
+        Utilise pdf2image + pytesseract
+        """
+        print("🔍 Starting OCR extraction...", flush=True)
+        
+        try:
+            # Convertir PDF en images (une par page)
+            # poppler_path peut être nécessaire sur Windows, mais pas sur Linux/Render
+            images = convert_from_path(
+                file_path,
+                dpi=300,  # Haute résolution pour meilleur OCR
+                fmt='jpeg',
+                thread_count=2  # Parallélisation
+            )
+            
+            print(f"📷 Converted {len(images)} pages to images", flush=True)
+            
+            # Extraire texte de chaque image
+            all_text = []
+            for i, image in enumerate(images, 1):
+                print(f"  🔎 OCR processing page {i}/{len(images)}...", flush=True)
+                
+                # Appliquer OCR avec config optimisée
+                # lang='eng+fra' pour anglais ET français
+                page_text = pytesseract.image_to_string(
+                    image,
+                    lang='eng+fra',  # Anglais + Français
+                    config='--psm 1 --oem 3'  # PSM 1 = automatic page segmentation with OSD
+                )
+                
+                if page_text.strip():
+                    all_text.append(f"--- Page {i} ---\n{page_text}")
+                    print(f"  ✓ Page {i}: {len(page_text)} chars extracted", flush=True)
+            
+            extracted_text = "\n\n".join(all_text)
+            print(f"✅ OCR extraction complete: {len(extracted_text)} chars total", flush=True)
+            
+            return extracted_text
+            
+        except Exception as e:
+            print(f"❌ OCR extraction failed: {e}", flush=True)
+            import traceback
+            print(traceback.format_exc(), flush=True)
             return ""
     
      
