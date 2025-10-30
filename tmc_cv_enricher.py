@@ -544,56 +544,27 @@ Pose-toi ces questions pour CHAQUE domaine où tu as donné ≥60 points:
 Si la réponse n'est pas un OUI catégorique avec preuves multiples → BAISSE le score.
 
 ═══════════════════════════════════════════════════
-📝 ÉTAPE 4 - SYNTHÈSE QUALITATIVE DÉTAILLÉE
+📝 ÉTAPE 4 - SYNTHÈSE EXECUTIVE (4-5 LIGNES MAX)
 ═══════════════════════════════════════════════════
 
-Rédige une synthèse professionnelle COMPLÈTE en 4-6 PARAGRAPHES DÉTAILLÉS (250-350 mots minimum) qui:
+Rédige une synthèse ULTRA-CONCISE en 4-5 LIGNES (80-100 mots maximum) qui:
 
-PARAGRAPH 1 - OVERALL ASSESSMENT (3-4 sentences):
-- Lead with the match score and overall alignment level (Strong fit / Good fit / Moderate fit / Poor fit)
-- State years of experience and professional seniority level
-- Provide immediate hiring recommendation with confidence level
-- Mention key industry or domain expertise relevant to role
+STRUCTURE OBLIGATOIRE (1 paragraphe fluide):
+1. Lead with match level + score (e.g., "GOOD match (73/100) for [Role]")
+2. Highlight 2-3 TOP strengths with brief evidence (years, key achievement, metric)
+3. Mention 1-2 minor gaps or "nice-to-haves" missing
+4. End with clear recommendation: "Interview - [reason]" or "Pass - [reason]"
 
-PARAGRAPH 2 - TOP STRENGTHS (4-5 sentences):
-- Detail 3-4 strongest technical/professional competencies with SPECIFIC EVIDENCE from CV
-- For EACH strength, cite CONCRETE achievements or project experience
-- Use metrics/numbers where available (years, team size, project scope, budget, impact %)
-- Explain WHY these strengths matter for THIS specific role and how they align with JD requirements
+EXEMPLE FORMAT:
+"GOOD match (73/100) for Senior Full-Stack Developer. Strong Python backend (8 years) with proven cloud migration leadership (60% deployment time reduction). Full-stack capability confirmed with React + modern DevOps. Minor gaps: Kubernetes nice-to-have, limited Montreal-specific experience. Recommendation: Interview - solid technical fit with measurable impact."
 
-PARAGRAPH 3 - PARTIAL MATCHES & TRANSFERABLE SKILLS (3-4 sentences):
-- Identify 2-3 areas where candidate has related but not exact experience
-- Explain how these adjacent skills could transfer or compensate for gaps
-- Assess learning curve and adaptation potential (Quick / Moderate / Slow)
-- Note any certifications, training, or side projects that could help bridge gaps
-
-PARAGRAPH 4 - GAPS & DEVELOPMENT AREAS (3-4 sentences):
-- List 2-3 critical requirements from JD that are weak or missing in the CV
-- Assess impact of each gap: Critical blocker vs. Can learn on job vs. Not essential
-- Suggest mitigation strategies (training plan, mentorship, phased onboarding, partner with senior)
-- For strong candidates (>75), reframe as 'growth opportunities' rather than weaknesses
-
-PARAGRAPH 5 - FINAL RECOMMENDATION (3-4 sentences):
-- Clear hiring decision: Strongly recommend / Recommend / Consider with reservations / Pass
-- Justify decision based on role criticality, urgency, and candidate alignment
-- Next steps suggestion: Immediate interview / Phone screen first / Technical assessment / Reference check priority
-- One-line summary of candidate's unique value proposition or main concern
-
-(OPTIONAL) PARAGRAPH 6 - MARKET CONTEXT & SALARY (2-3 sentences, if relevant):
-- How this candidate compares to typical market (above/at/below average for this profile)
-- Salary expectations based on experience level and market standards
-- Hiring urgency recommendation (Move fast vs. Keep looking)
-
-TONE & STYLE REQUIREMENTS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Professional but conversational (like speaking to a hiring manager colleague)
-- Evidence-based and analytical, NEVER vague or generic
-- Balanced: acknowledge both strengths and weaknesses honestly (no sugar-coating)
-- Forward-looking: focus on potential and fit, not just past experience
-- CLIENT/RECRUITER PERSPECTIVE: "This candidate would/wouldn't be strong because..."
-- Use specific examples and metrics from the CV to support every claim
-- Be HONEST about gaps and concerns - hiring managers value transparency
-- NO marketing language, NO over-selling - just facts and professional assessment
+RÈGLES CRITIQUES:
+- MAX 4-5 lignes (80-100 mots)
+- NO paragraphs, NO bullet points - juste 1 bloc de texte fluide
+- Include score + match level (EXCELLENT 85+, GOOD 70-84, MODERATE 55-69, WEAK <55)
+- Be specific with numbers/metrics when available
+- Professional but direct tone
+- Clear go/no-go recommendation at the end
 
 ═══════════════════════════════════════════════════
 📄 FORMAT DE SORTIE JSON
@@ -648,12 +619,12 @@ Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
 - La somme des poids doit faire exactement 100
 - Le score_matching doit être la somme exacte des scores de tous les domaines
 - Commentaire: minimum 2-3 phrases complètes avec détails factuels précis du CV
-- Synthèse: minimum 250 mots, 4-6 paragraphes distincts, détaillés et factuels
+- Synthèse: MAXIMUM 4-5 lignes (80-100 mots), format executive summary
 
 ⚠️ LANGUE: ALL output must be in ENGLISH.
 - Domain names in English (e.g., "Python Backend Development", not "Développement Backend Python")
 - All comments in English
-- Synthesis in English
+- Synthesis in English (4-5 lines max)
 
 Génère l'analyse maintenant:"""
             
