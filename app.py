@@ -687,7 +687,7 @@ def clear_session():
 # ==========================================
 
 def log_to_airtable(user_name, event_type, metadata=None):
-    """Log events to Airtable - maps to all available fields"""
+    """Log events to Airtable"""
     print(f"🔍 AIRTABLE LOG CALLED: {event_type} by {user_name}", flush=True)
     
     try:
@@ -709,52 +709,18 @@ def log_to_airtable(user_name, event_type, metadata=None):
             "Content-Type": "application/json"
         }
         
-        # Parse user_name into First Name and Last Name
-        name_parts = user_name.strip().split(maxsplit=1)
-        first_name = name_parts[0] if len(name_parts) > 0 else user_name
-        last_name = name_parts[1] if len(name_parts) > 1 else ""
-        
-        # Base fields (always present)
         fields = {
             "User": user_name,
-            "First Name": first_name,
-            "Last Name": last_name,
             "Event_Type": event_type,
-            "Timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),  # Format sans microsecondes
+            "Timestamp": datetime.now().isoformat(),
         }
         
-        # Add metadata as JSON string
         if metadata:
             fields["Metadata"] = json.dumps(metadata)
-            
-            # Map metadata fields to dedicated Airtable columns
-            if "location" in metadata:
-                fields["User Location"] = metadata["location"]
-            
-            if "candidate_name" in metadata:
-                fields["Candidate Name"] = metadata["candidate_name"]
-            
-            if "score" in metadata:
-                fields["Matching Score"] = metadata["score"]
-            
-            if "language" in metadata:
-                # Map to single select options (French or English)
-                lang = metadata["language"]
-                if lang in ["French", "English"]:
-                    fields["Language"] = lang
-            
-            if "processing_time" in metadata:
-                fields["Processing Time"] = metadata["processing_time"]
-            
-            if "total_tokens" in metadata:
-                fields["Total Tokens"] = metadata["total_tokens"]
-            
-            if "estimated_cost" in metadata:
-                fields["Estimated Cost ($)"] = metadata["estimated_cost"]
         
         data = {"fields": fields}
         
-        print(f"📤 AIRTABLE: Sending {len(fields)} fields...", flush=True)
+        print(f"📤 AIRTABLE: Sending POST to {url[:50]}...", flush=True)
         response = requests.post(url, headers=headers, json=data, timeout=5)
         
         print(f"📥 AIRTABLE: Response {response.status_code}", flush=True)
@@ -1358,12 +1324,34 @@ def display_matching_results(data):
             score_level = "Weak match"
         
         # Build summary text
-        # ✨ V9 FIX: Use Claude's comprehensive synthesis instead of auto-generated one
-        # Claude provides 4-6 paragraph detailed analysis (250-350 words)
-        generated_summary = results.get('synthese_matching', '')
+        # ✨ V1.3.10: Extract only the first paragraph (Overall Assessment) from Claude's synthesis
+        full_synthesis = results.get('synthese_matching', '')
         
-        # Fallback: If synthesis is missing, generate short summary
-        if not generated_summary or len(generated_summary.strip()) < 50:
+        # Extract first paragraph only
+        if full_synthesis and len(full_synthesis.strip()) >= 50:
+            # Split by double newlines or look for [Top Strengths] marker
+            paragraphs = full_synthesis.split('\n\n')
+            
+            # Get first paragraph (skip header if present)
+            first_para = paragraphs[0].strip()
+            if first_para.startswith('[Overall Assessment]'):
+                first_para = first_para.replace('[Overall Assessment]', '').strip()
+            elif first_para.startswith('COMPREHENSIVE PROFESSIONAL ANALYSIS:'):
+                # Skip the header line and get next paragraph
+                first_para = paragraphs[1].strip() if len(paragraphs) > 1 else first_para
+                if first_para.startswith('[Overall Assessment]'):
+                    first_para = first_para.replace('[Overall Assessment]', '').strip()
+            
+            # Stop at next section marker
+            if '[Top Strengths]' in first_para:
+                first_para = first_para.split('[Top Strengths]')[0].strip()
+            elif '[Paragraph 2' in first_para:
+                first_para = first_para.split('[Paragraph 2')[0].strip()
+            
+            generated_summary = first_para
+        
+        # Fallback: If synthesis is missing or extraction failed, generate short summary
+        elif not full_synthesis or len(full_synthesis.strip()) < 50:
             summary_parts = []
             summary_parts.append(f"{score_level} with {score}/100 score.")
             
