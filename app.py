@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-TMC CV Optimizer — VERSION 2.0 PRO (Streamlit Cloud Safe) + TWO-STEP MATCHING
+TMC CV Optimizer — VERSION 1.3.4 (Client Selector Enhanced)
 Interface Streamlit premium pour générer des CVs TMC optimisés
+
+V1.3.4 Changes:
+- Morgan Stanley: Always EN + Anonymized (auto)
+- CAE: Always Anonymized + Language choice
+- Desjardins: Never Anonymized + Language choice
+- Analyze Matching button grays out during processing
 """
 
 import streamlit as st
@@ -12,7 +18,6 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 import extra_streamlit_components as stx
-import time
 
 # Charger les variables d'environnement depuis .env
 load_dotenv()
@@ -723,6 +728,30 @@ st.markdown(
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =====================================================
+# 🏢 CLIENT SELECTOR (V1.3.3)
+# =====================================================
+st.markdown("""
+<div style="text-align: center; margin-bottom: 15px;">
+    <strong style="color: #193E92; font-size: 1.15rem;">🏢 Select Client Type</strong>
+</div>
+""", unsafe_allow_html=True)
+
+col_left_client, col_center_client, col_right_client = st.columns([2, 3, 2])
+with col_center_client:
+    client_type = st.selectbox(
+        "Client Type",
+        options=["🏦 Morgan Stanley", "✈️ CAE", "🏛️ Desjardins"],
+        index=2,  # Default: Desjardins
+        label_visibility="collapsed",
+        key="client_selector",
+        help="Select the client to apply appropriate CV formatting and requirements"
+    )
+    # Store in session state
+    st.session_state.client_type = client_type
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# =====================================================
 # 📤 UPLOAD SECTION
 # =====================================================
 left, right = st.columns(2, gap="large")
@@ -752,7 +781,7 @@ if not cv_file or not jd_file:
     st.info("📌 **Instructions:** Upload your resume and job description to start the optimization.")
 
 # =====================================================
-# 🌍 SÉLECTEUR DE LANGUE
+# 🌍 SÉLECTEUR DE LANGUE (V1.3.4 - Client-Specific)
 # =====================================================
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -762,41 +791,51 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-col_left, col_center, col_right = st.columns([3, 2, 3])
-with col_center:
-    language_choice = st.radio(
-        "Select language",
-        options=["🇫🇷 French", "🇬🇧 English"],
-        horizontal=True,
-        label_visibility="collapsed",
-        key="language_selector"
-    )
+# Get client type
+client_text = st.session_state.get('client_type', '🏛️ Desjardins')
+
+# 🏦 MORGAN STANLEY: Always English (forced)
+if "Morgan Stanley" in client_text:
+    template_lang = "EN"
+    col_left, col_center, col_right = st.columns([2, 3, 2])
+    with col_center:
+        st.info("📌 **Morgan Stanley CVs are always generated in English**")
+
+# ✈️ CAE & 🏛️ DESJARDINS: User can choose language
+else:
+    col_left, col_center, col_right = st.columns([3, 2, 3])
+    with col_center:
+        language_choice = st.radio(
+            "Select language",
+            options=["🇫🇷 French", "🇬🇧 English"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="language_selector"
+        )
+    template_lang = "FR" if "🇫🇷" in language_choice else "EN"
 
 # =====================================================
-# 🔒 MODE ANONYMISÉ
+# 🔒 CLIENT-BASED FORMATTING (V1.3.4 - Enhanced)
 # =====================================================
 st.markdown("<br>", unsafe_allow_html=True)
 
-st.markdown("""
-<div style="text-align: center; margin-bottom: 15px;">
-    <strong style="color: #193E92; font-size: 1.15rem;">🔒 Anonymous Mode</strong>
-</div>
-""", unsafe_allow_html=True)
+# Determine anonymization based on client type
+client_text = st.session_state.get('client_type', '🏛️ Desjardins')
 
-col_anon_left, col_anon_center, col_anon_right = st.columns([3, 2, 3])
-with col_anon_center:
-    mode_anonymise_choice = st.radio(
-        "Select anonymous mode",
-        options=["Disabled", "Enabled"],
-        horizontal=True,
-        label_visibility="collapsed",
-        key="anonymous_mode_selector"
-    )
+# 🏦 MORGAN STANLEY: Always anonymized + English
+# ✈️ CAE: Always anonymized + Language choice
+# 🏛️ DESJARDINS: Never anonymized + Language choice
+mode_anonymise = ("Morgan Stanley" in client_text or "CAE" in client_text)
 
-# Determine template to use based on language AND anonymous mode
-template_lang = "FR" if "🇫🇷" in language_choice else "EN"
-mode_anonymise = (mode_anonymise_choice == "Enabled")
+# Display formatting info based on client
+if "Morgan Stanley" in client_text:
+    st.info("🔒 **Morgan Stanley Format**: Anonymous CV (no TMC logos) • English language")
+elif "CAE" in client_text:
+    st.info("🔒 **CAE Format**: Anonymous CV (no TMC logos) • Your selected language")
+else:  # Desjardins
+    st.info("✅ **Desjardins Format**: Standard CV with TMC branding • Your selected language")
 
+# Determine template to use based on language AND client type
 if mode_anonymise:
     template_file = f"TMC_NA_template_{template_lang}_Anonymise.docx"
 else:
@@ -812,6 +851,10 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Initialize button visibility states
 if 'show_generate_button' not in st.session_state:
     st.session_state.show_generate_button = False
+
+# Initialize matching progress state (V1.3.4)
+if 'matching_in_progress' not in st.session_state:
+    st.session_state.matching_in_progress = False
 
 # Initialize button variables
 analyze_button = False
@@ -850,47 +893,60 @@ with button_placeholder.container():
                 key="download_tmc_cv_button"
             )
             st.markdown('</div>', unsafe_allow_html=True)
-            
-            # START OVER BUTTON
-            st.markdown("<br>", unsafe_allow_html=True)
-            col_so1, col_so2, col_so3 = st.columns([2, 3, 2])
-            with col_so2:
-                if st.button("🔄 Start Over", use_container_width=True, key="start_over_button"):
-                    # Reset all states
-                    st.session_state.matching_done = False
-                    st.session_state.matching_data = None
-                    st.session_state.results = None
-                    st.session_state.show_generate_button = False
-                    st.rerun()
         elif st.session_state.show_generate_button:
             # Show Generate button after analysis is done (with inverted gradient)
             st.markdown('<div id="generate-btn-wrapper">', unsafe_allow_html=True)
-            st.markdown("""
+            
+            is_disabled_generate = not can_run
+            st.markdown(f"""
             <style>
-            #generate-btn-wrapper button {
+            #generate-btn-wrapper button {{
                 background: linear-gradient(90deg, #D97104 0%, #193E92 100%) !important;
                 box-shadow: 0 4px 14px rgba(217, 113, 4, 0.25) !important;
-            }
-            #generate-btn-wrapper button:hover {
+            }}
+            #generate-btn-wrapper button:hover {{
                 box-shadow: 0 8px 24px rgba(217, 113, 4, 0.35) !important;
-            }
+            }}
+            {"#generate-btn-wrapper button:disabled { background: linear-gradient(90deg, #9CA3AF 0%, #6B7280 100%) !important; cursor: not-allowed !important; opacity: 0.6 !important; box-shadow: none !important; }" if is_disabled_generate else ""}
             </style>
             """, unsafe_allow_html=True)
             generate_button = st.button(
                 "✨ Generate TMC CV",
-                disabled=not can_run,
+                disabled=is_disabled_generate,
                 use_container_width=True,
                 key="generate_cv_button"
             )
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            # Show Analyze button initially
+            # Show Analyze button initially (V1.3.4 - with disabled state)
+            st.markdown('<div id="analyze-btn-wrapper">', unsafe_allow_html=True)
+            
+            # Add CSS for disabled state
+            is_disabled = not can_run or st.session_state.matching_in_progress
+            disabled_css = """
+            <style>
+            #analyze-btn-wrapper button:disabled {
+                background: linear-gradient(90deg, #9CA3AF 0%, #6B7280 100%) !important;
+                cursor: not-allowed !important;
+                opacity: 0.6 !important;
+                box-shadow: none !important;
+            }
+            #analyze-btn-wrapper button:disabled:hover {
+                transform: none !important;
+                box-shadow: none !important;
+            }
+            </style>
+            """ if is_disabled else ""
+            
+            st.markdown(disabled_css, unsafe_allow_html=True)
+            
             analyze_button = st.button(
                 "📊 Analyze Matching",
-                disabled=not can_run,
+                disabled=is_disabled,
                 use_container_width=True,
                 key="analyze_matching_button"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -967,11 +1023,6 @@ if st.session_state.matching_done and st.session_state.matching_data and not st.
             </h3>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Placeholder pour affichage progressif
-        table_placeholder = st.empty()
-        with st.spinner("⚙️ Building detailed analysis table..."):
-            time.sleep(0.15)  # Petite pause pour que le spinner s'affiche
         
         df_domaines = pd.DataFrame(matching_analysis['domaines_analyses'])
         
@@ -1076,6 +1127,44 @@ if st.session_state.matching_done and st.session_state.matching_data and not st.
             </div>
             """, unsafe_allow_html=True)
 
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# =====================================================
+# 📊 SKILLS MATRIX UPLOAD (V1.3.3 - Morgan Stanley Only)
+# =====================================================
+if st.session_state.matching_done and st.session_state.matching_data:
+    client_text = st.session_state.get('client_type', '🏛️ Desjardins')
+    
+    if "Morgan Stanley" in client_text:
+        st.markdown("---")
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 15px;">
+            <strong style="color: #193E92; font-size: 1.15rem;">📊 Skills Matrix Upload (Required)</strong>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # File uploader for Skills Matrix
+        col_sm_left, col_sm_center, col_sm_right = st.columns([1, 2, 1])
+        with col_sm_center:
+            skills_matrix_file = st.file_uploader(
+                "Upload Skills Matrix (.docx only)",
+                type=['docx'],
+                key="skills_matrix_uploader",
+                help="Morgan Stanley requires a Skills Matrix as page 2 of the CV"
+            )
+            
+            # Store in session state and show feedback
+            if skills_matrix_file:
+                st.session_state.skills_matrix_file = skills_matrix_file
+                st.success(f"✅ Skills Matrix Uploaded: **{skills_matrix_file.name}**")
+            else:
+                if 'skills_matrix_file' in st.session_state:
+                    # Show previously uploaded file
+                    st.info(f"✅ Skills Matrix Ready: **{st.session_state.skills_matrix_file.name}**")
+
 st.markdown("<br>", unsafe_allow_html=True)
 
 # =====================================================
@@ -1099,12 +1188,16 @@ def read_bytes(path: Path) -> bytes:
 # ⚙️ STEP 1: MATCHING ANALYSIS PIPELINE
 # =====================================================
 if analyze_button:
+    # Set processing flag (V1.3.4)
+    st.session_state.matching_in_progress = True
+    
     # Reset previous results
     st.session_state.results = None
     st.session_state.matching_done = False
     st.session_state.matching_data = None
     
     if not can_run:
+        st.session_state.matching_in_progress = False  # Reset flag on error
         st.error("❌ Please upload **the resume** and **the job description**.")
         st.stop()
 
@@ -1200,11 +1293,17 @@ if analyze_button:
             time.sleep(2)
             success_placeholder.empty()
             
+            # Reset processing flag (V1.3.4)
+            st.session_state.matching_in_progress = False
+            
             # Switch to Generate button and rerun to show results
             st.session_state.show_generate_button = True
             st.rerun()
             
         except Exception as e:
+            # Reset processing flag on error (V1.3.4)
+            st.session_state.matching_in_progress = False
+            
             st.error(f"❌ **Analysis error:** {str(e)}")
             with st.expander("🔍 Technical details"):
                 import traceback
@@ -1216,60 +1315,47 @@ if analyze_button:
 # =====================================================
 # ⚙️ STEP 2: CV GENERATION PIPELINE
 # =====================================================
-
-# Détecter si on doit générer (clic bouton OU génération en attente)
-should_generate = generate_button or st.session_state.get('pending_generation', False)
-
-if should_generate:
-    # Si c'est un nouveau clic sur generate (pas une génération en attente)
-    if generate_button:
-        # Vérifier can_run
-        if not can_run:
-            st.error("❌ Please upload **the resume** and **the job description**.")
-            st.stop()
-        
-        # CONFIRMATION SI SCORE < 30
-        if st.session_state.matching_done and st.session_state.matching_data:
-            score = st.session_state.matching_data['matching_analysis'].get('score_matching', 0)
-            
-            # Si score < 30 et pas encore confirmé
-            if score < 30 and not st.session_state.get('low_score_confirmed', False):
-                # Afficher le warning
-                with generation_stepper_container.container():
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    st.warning("⚠️ **Low match score detected!**")
-                    st.markdown(f"The candidate's matching score is **{score}/100**, which is below the recommended threshold of 30.")
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    
-                    col_conf1, col_conf2, col_conf3 = st.columns([1, 2, 1])
-                    with col_conf2:
-                        if st.button("✅ Yes, Continue Anyway", use_container_width=True, key="confirm_low_score"):
-                            st.session_state.low_score_confirmed = True
-                            st.session_state.pending_generation = True
-                            st.rerun()
-                        st.markdown("<br>", unsafe_allow_html=True)
-                st.stop()
-    
-    # Reset les flags de confirmation
-    st.session_state.pending_generation = False
-    st.session_state.low_score_confirmed = False
-    st.session_state.results = None
-    
-    # Vérifier qu'on a les données
-    if not st.session_state.matching_done or not st.session_state.matching_data:
-        st.error("❌ Matching data not found. Please run 'Analyze Matching' first.")
+if generate_button:
+    # Allow generation even without prior matching
+    if not can_run:
+        st.error("❌ Please upload **the resume** and **the job description**.")
         st.stop()
     
-    # Reuse existing matching data
-    data = st.session_state.matching_data
-    parsed_cv = data['parsed_cv']
-    jd_text = data['jd_text']
-    matching_analysis = data['matching_analysis']
-    cv_path = data['cv_path']
-    jd_path = data['jd_path']
-    template_lang = data['template_lang']
-    mode_anonymise = data['mode_anonymise']
-    template_file = data['template_file']
+    # ⚠️ VALIDATION: Morgan Stanley requires Skills Matrix (V1.3.3)
+    client_text = st.session_state.get('client_type', '🏛️ Desjardins')
+    if "Morgan Stanley" in client_text:
+        if not st.session_state.get('skills_matrix_file'):
+            st.error("❌ **Skills Matrix is required for Morgan Stanley clients**")
+            st.error("📊 Please upload the Skills Matrix document before generating the CV.")
+            st.stop()
+    
+    # Reset previous full results
+    st.session_state.results = None
+    
+    # If matching was done, retrieve Step 1 data; otherwise process from scratch
+    if st.session_state.matching_done and st.session_state.matching_data:
+        # Reuse existing matching data
+        data = st.session_state.matching_data
+        parsed_cv = data['parsed_cv']
+        jd_text = data['jd_text']
+        matching_analysis = data['matching_analysis']
+        cv_path = data['cv_path']
+        jd_path = data['jd_path']
+        template_lang = data['template_lang']
+        mode_anonymise = data['mode_anonymise']
+        template_file = data['template_file']
+    else:
+        # Process from scratch without matching
+        with st.spinner("📁 Preparing files..."):
+            cv_path = save_uploaded(cv_file)
+            jd_path = save_uploaded(jd_file)
+        
+        # Quick extraction and parsing
+        enricher = load_backend()
+        cv_text = enricher.extract_cv_text(str(cv_path))
+        parsed_cv = enricher.parse_cv_with_claude(cv_text)
+        jd_text = enricher.read_job_description(str(jd_path))
+        matching_analysis = enricher.analyze_cv_matching(parsed_cv, jd_text)
 
     # Use the placeholder created ABOVE (appears right after button, before results)
     with generation_stepper_container.container():
@@ -1279,20 +1365,11 @@ if should_generate:
         # Timeline - will be updated as we progress
         stepper_timeline = st.empty()
         stepper_timeline.markdown(generation_progress_timeline(1), unsafe_allow_html=True)
-        
-        # TIMER VISIBLE
-        st.markdown("<br>", unsafe_allow_html=True)
-        timer_col1, timer_col2, timer_col3 = st.columns([1, 3, 1])
-        with timer_col2:
-            timer_text = st.empty()
-            timer_text.info("⏱️ **Estimated time:** ~45 seconds")
     
     try:
         enricher = load_backend()
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         out_path = cv_path.parent / f"CV_TMC_{ts}.docx"
-        
-        start_time = time.time()
         
         # Step 4: Enrichment
         target_language = "English" if template_lang == "EN" else "French"
@@ -1303,36 +1380,57 @@ if should_generate:
             matching_analysis=matching_analysis  # ✅ FIX: Réutilise le score du Step 1!
         )
         
-        # Update timer
-        elapsed = int(time.time() - start_time)
-        remaining = max(0, 45 - elapsed)
-        timer_text.info(f"⏱️ **Time remaining:** ~{remaining} seconds")
-        
         # Update timeline - step 2 active
         stepper_timeline.markdown(generation_progress_timeline(2), unsafe_allow_html=True)
         
         # Step 5: Structuring
         tmc_context = enricher.map_to_tmc_structure(parsed_cv, enriched_cv, template_lang=template_lang)
         
-        # Update timer
-        elapsed = int(time.time() - start_time)
-        remaining = max(0, 45 - elapsed)
-        timer_text.info(f"⏱️ **Time remaining:** ~{remaining} seconds")
-        
         # Update timeline - step 3 active
         stepper_timeline.markdown(generation_progress_timeline(3), unsafe_allow_html=True)
         
         # Step 6: Generation
-        enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
+        # 🎯 V1.3.3: Detection client pour génération adaptée
+        client_text = st.session_state.get('client_type', '🏛️ Desjardins')
         
-        # Final timer update
-        elapsed = int(time.time() - start_time)
-        timer_text.success(f"✅ **Completed in {elapsed} seconds!**")
+        if "Morgan Stanley" in client_text and st.session_state.get('skills_matrix_file'):
+            # 🚀 MORGAN STANLEY: Génération 3-parts avec Skills Matrix en page 2
+            print("\n🎯 Morgan Stanley detected - Using 3-part generation")
+            
+            # Sauvegarder Skills Matrix temporairement
+            skills_matrix_file = st.session_state.skills_matrix_file
+            skills_matrix_path = cv_path.parent / f"skills_matrix_{ts}.docx"
+            with open(skills_matrix_path, 'wb') as f:
+                f.write(skills_matrix_file.read())
+            
+            # Générer CV 3-parts
+            success, result_path = enricher.generate_ms_cv_3parts(
+                tmc_context=tmc_context,
+                skills_matrix_path=str(skills_matrix_path),
+                output_path=str(out_path)
+            )
+            
+            if not success:
+                st.error(f"❌ Error generating Morgan Stanley CV: {result_path}")
+                raise Exception(result_path)
+            
+            print(f"✅ Morgan Stanley CV generated: {result_path}")
+            
+            # Post-processing: Bold keywords
+            keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
+            if keywords:
+                enricher.apply_bold_post_processing(str(out_path), keywords)
         
-        # Post-processing
-        keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
-        if keywords:
-            enricher.apply_bold_post_processing(str(out_path), keywords)
+        else:
+            # 📝 STANDARD GENERATION (CAE / Desjardins / MS sans Skills Matrix)
+            print("\n📝 Standard generation (non-MS or no Skills Matrix)")
+            
+            enricher.generate_tmc_docx(tmc_context, str(out_path), template_path=template_file)
+            
+            # Post-processing: Bold keywords
+            keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
+            if keywords:
+                enricher.apply_bold_post_processing(str(out_path), keywords)
         
         # Clear the generation stepper
         generation_stepper_container.empty()
@@ -1408,6 +1506,15 @@ if should_generate:
                 first_name_user = name_parts[0] if len(name_parts) > 0 else 'Unknown'
                 last_name_user = name_parts[1] if len(name_parts) > 1 else ''
                 
+                # V1.3.3: Client and Skills Matrix tracking
+                client_type_raw = st.session_state.get('client_type', '🏛️ Desjardins')
+                # Clean client type (remove emoji)
+                client_type_clean = client_type_raw.replace('🏦', '').replace('✈️', '').replace('🏛️', '').strip()
+                
+                skills_matrix_uploaded = bool(st.session_state.get('skills_matrix_file'))
+                skills_matrix_filename = st.session_state.skills_matrix_file.name if skills_matrix_uploaded else ""
+                cv_pages = 2 if skills_matrix_uploaded and "Morgan Stanley" in client_type_raw else 1
+                
                 record_data = {
                     "fields": {
                         "Timestamp": timestamp_iso,
@@ -1419,7 +1526,12 @@ if should_generate:
                         "User Location": user_location,
                         "Processing Time": round(processing_time, 2),
                         "Total Tokens": int(total_tokens),
-                        "Estimated Cost ($)": round(estimated_cost, 4)
+                        "Estimated Cost ($)": round(estimated_cost, 4),
+                        "Client_Type": client_type_clean,  # V1.3.3
+                        "Skills_Matrix_Uploaded": skills_matrix_uploaded,  # V1.3.3
+                        "Skills_Matrix_Filename": skills_matrix_filename[:100] if skills_matrix_filename else "",  # V1.3.3
+                        "CV_Anonymized": mode_anonymise,  # V1.3.3
+                        "CV_Pages": cv_pages  # V1.3.3
                     }
                 }
                 
@@ -1514,10 +1626,6 @@ if st.session_state.get('results'):
             </h3>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Placeholder pour affichage progressif
-        with st.spinner("⚙️ Building detailed analysis table..."):
-            time.sleep(0.15)  # Petite pause pour que le spinner s'affiche
         
         # Créer le DataFrame
         df_domaines = pd.DataFrame(results['domaines_analyses'])
