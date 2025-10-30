@@ -431,16 +431,30 @@ Pour chaque domaine, calcule son poids avec:
 - NE JAMAIS créer de domaine "bonus" pour ajuster artificiellement le score
 - TOUS les domaines doivent être EXPLICITES dans la JD
 
-ÉTAPE 2 - CALCULER LE SCORE DE CHAQUE DOMAINE (RÈGLES BINAIRES):
+ÉTAPE 2 - CALCULER LE SCORE DE CHAQUE DOMAINE (RÈGLES BINAIRES ULTRA-STRICTES):
 
-Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE STRICTE:
+Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE TRÈS SÉVÈRE:
 
-🎯 GRILLE D'ÉVALUATION (0-100 points par domaine):
-- 0 point: Aucune mention/compétence absente du CV
-- 25 points: Mention superficielle OU expérience <1 an OU formation théorique seulement
-- 50 points: Expérience 1-3 ans OU plusieurs projets pertinents OU certification sans pratique
-- 75 points: Expérience 3-5 ans OU expertise démontrée par réalisations concrètes
-- 100 points: Expérience 5+ ans OU leadership/formation d'équipes OU expertise reconnue
+🎯 GRILLE D'ÉVALUATION STRICTE (0-100 points par domaine):
+- 0 point: Aucune mention/compétence totalement absente du CV
+- 25 points: Mention superficielle OU expérience <1 an OU formation théorique seulement (pas de pratique)
+- 50 points: Expérience 1-2 ans OU 2-3 projets pertinents OU certification récente avec pratique limitée
+- 75 points: Expérience 3-4 ans solide OU expertise démontrée par réalisations mesurables OU rôle de lead technique
+- 100 points: RÉSERVÉ AUX CAS EXCEPTIONNELS - Expérience 5+ ans + leadership prouvé + expertise reconnue (publications, formations données, architecture de solutions complexes)
+
+⚠️ PHILOSOPHIE DE NOTATION:
+- 100/100 doit être EXCEPTIONNEL (top 5% des candidats du marché)
+- 90-99 = Excellent (tous les critères majeurs + bonus significatifs)
+- 80-89 = Très bon (tous les critères majeurs couverts solidement)
+- 70-79 = Bon (critères majeurs OK, quelques gaps mineurs)
+- 60-69 = Acceptable (fit correct mais gaps notables)
+- <60 = Insuffisant (gaps critiques ou manque d'expérience)
+
+🔴 RÈGLES ANTI-INFLATION:
+- NE JAMAIS donner 100 points à un domaine si le candidat a <5 ans d'expérience dans ce domaine exact
+- NE JAMAIS donner 100 points si le candidat n'a pas de réalisations QUANTIFIABLES (metrics, budget, team size)
+- Si tu hésites entre 75 et 100 → TOUJOURS choisir 75
+- Un score de 100/100 global devrait arriver <1% du temps (candidat parfait rarissime)
 
 ⚙️ RÈGLES DE CALCUL:
 1. Score brut du domaine = évaluation selon grille ci-dessus (0-100)
@@ -449,7 +463,7 @@ Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE STRICTE:
 
 Exemple:
 - Domaine: "SharePoint" | Poids: 25%
-- Évaluation: Candidat a 4 ans d'expérience + certifications → 75 points
+- Évaluation: Candidat a 4 ans d'expérience + certifications → 75 points (pas 100 car <5 ans)
 - Score: (75 × 25) / 100 = 18.75 points
 - Score_max: 25 points
 - Notation: 18.75/25
@@ -465,6 +479,7 @@ Exemple:
 - Vérifier: somme des poids = 100%
 - Vérifier: score_matching = somme des scores pondérés
 - Si incohérence détectée → REFAIRE TOUS LES CALCULS
+- Si score > 95 → TRIPLE-CHECK: est-ce vraiment un candidat exceptionnel top 5%?
 
 ÉTAPE 4 - SYNTHÈSE QUALITATIVE:
 Rédige une synthèse professionnelle en 4-5 phrases complètes qui:
@@ -502,7 +517,48 @@ Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
             "commentaire": "Justification factuelle basée sur des éléments du CV"
         }}
     ],
-    "synthese_matching": "COMPREHENSIVE ANALYSIS in 4-6 detailed paragraphs covering: Overall Assessment (match level + score + seniority), Key Strengths (3-4 specific skills with examples), Partial Matches (2-3 transferable areas), Critical Gaps (2-3 missing requirements), and Final Recommendation (clear hiring decision with reasons). 200-300 words, professional analytical tone. ALWAYS IN ENGLISH."
+    "synthese_matching": "COMPREHENSIVE PROFESSIONAL ANALYSIS (4-6 PARAGRAPHS, 250-350 WORDS):
+
+YOU ARE THE HIRING MANAGER/CLIENT reviewing this candidate. Write a detailed professional assessment as if presenting to your team or stakeholders.
+
+PARAGRAPH 1 - OVERALL ASSESSMENT (3-4 sentences):
+- Lead with the match score and overall alignment level
+- State years of experience and professional seniority
+- Provide immediate hiring recommendation (Strong fit / Good fit / Consider with reservations / Not recommended)
+- Mention key industry or domain expertise relevant to role
+
+PARAGRAPH 2 - TOP STRENGTHS (4-5 sentences):
+- Detail 3-4 strongest technical/professional competencies with SPECIFIC EVIDENCE
+- For each strength, cite concrete achievements or project experience from CV
+- Use metrics where available (years, team size, project scope, budget, etc.)
+- Explain WHY these strengths matter for THIS specific role
+
+PARAGRAPH 3 - PARTIAL MATCHES & TRANSFERABLE SKILLS (3-4 sentences):
+- Identify 2-3 areas where candidate has related but not exact experience
+- Explain how these adjacent skills could transfer or compensate
+- Assess learning curve and adaptation potential
+- Note any certifications or training that could bridge gaps
+
+PARAGRAPH 4 - GAPS & DEVELOPMENT AREAS (3-4 sentences):
+- List 2-3 critical requirements from JD that are weak or missing
+- Assess impact of each gap (Critical blocker vs. Can learn on job)
+- Suggest mitigation strategies (training plan, mentorship, phased onboarding)
+- For strong candidates (>85), reframe as 'growth opportunities' rather than weaknesses
+
+PARAGRAPH 5 - FINAL RECOMMENDATION (3-4 sentences):
+- Clear hiring decision with confidence level (Strongly recommend / Recommend / Consider carefully / Pass)
+- Justify decision based on role criticality and candidate alignment
+- Next steps suggestion (Immediate interview / Phone screen first / Additional assessment needed)
+- One-line summary of candidate's unique value proposition
+
+TONE & STYLE REQUIREMENTS:
+- Professional but conversational (like speaking to a colleague)
+- Evidence-based and analytical, never vague or generic
+- Balanced: acknowledge both strengths and weaknesses honestly
+- Forward-looking: focus on potential and fit, not just past experience
+- CLIENT/RECRUITER PERSPECTIVE: 'This candidate would/wouldn't be strong because...'
+
+⚠️ MANDATORY: ALL text must be in ENGLISH, written as a cohesive narrative assessment."
 }}
 
 ⚠️ RÈGLES JSON:
@@ -693,21 +749,52 @@ EXPÉRIENCES:
         
             # PROMPT ULTRA-RENFORCÉ POUR COHÉRENCE ABSOLUE
             language_instruction = f"""
-⚠️ RÈGLE ABSOLUE - LANGUE {language.upper()}:
-- Tu DOIS générer 100% du contenu en {language}
-- Le TITRE PROFESSIONNEL doit être en {language}
-- TOUTES les descriptions doivent être en {language}
-- TOUS les mots-clés doivent être en {language}
-- Respecte les conventions professionnelles de la langue {language}
-- Si {language} = French: utilise "Analyste", "Gestion", "Configuration", etc.
-- Si {language} = English: utilise "Analyst", "Management", "Configuration", etc.
+🚨 RÈGLE ABSOLUE - LANGUE {language.upper()} 🚨
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IMPORTANT TITRE:
-- Adapte le titre professionnel à la Job Description
+⚠️ INSTRUCTION CRITIQUE - LANGUE OBLIGATOIRE: {language.upper()}
+
+Tu DOIS générer 100% du contenu en {language} - AUCUNE EXCEPTION:
+✓ Le TITRE PROFESSIONNEL en {language}
+✓ Le PROFIL ENRICHI en {language}
+✓ TOUTES les COMPÉTENCES en {language}
+✓ TOUTES les EXPÉRIENCES en {language}
+✓ TOUS les noms de catégories en {language}
+✓ TOUTES les descriptions en {language}
+✓ TOUS les mots-clés en {language}
+
+🔴 SI {language} = "French":
+- Utilise: "Analyste", "Gestion", "Configuration", "Développement", "Senior"
+- PAS: "Analyst", "Management", "Development"
+- Exemple titre: "Analyste QA Senior" ✓ (PAS "Senior QA Analyst" ✗)
+- Exemple description: "Configuration de SharePoint incluant gestion..."
+- Style: Français professionnel standard
+
+🔴 SI {language} = "English":
+- Utilise: "Analyst", "Management", "Configuration", "Development", "Senior"
+- PAS: "Analyste", "Gestion", "Développement"
+- Exemple titre: "Senior QA Analyst" ✓ (PAS "Analyste QA Senior" ✗)
+- Exemple description: "SharePoint configuration including management..."
+- Style: Professional English standard
+
+IMPORTANT TITRE PROFESSIONNEL:
+- Adapte le titre à la Job Description
 - Le titre doit être COURT (3-5 mots maximum)
-- Le titre doit être en {language}
-- Exemple en français: "Analyste QA Senior" ou "Analyste Configuration SharePoint"
-- Exemple en anglais: "Senior QA Analyst" or "SharePoint Configuration Analyst"
+- Le titre doit être en {language} - VÉRIFIE 2 FOIS
+- Si langue = French: ordre français (ex: "Analyste Configuration SharePoint")
+- Si langue = English: ordre anglais (ex: "SharePoint Configuration Analyst")
+
+VÉRIFICATION FINALE OBLIGATOIRE:
+Avant de répondre, relis TOUT ton JSON et confirme que:
+1. Le titre_professionnel_enrichi est en {language} ✓
+2. Le profil_enrichi est en {language} ✓
+3. Toutes les catégories de compétences sont en {language} ✓
+4. Toutes les descriptions sont en {language} ✓
+5. Les responsabilités des expériences sont en {language} ✓
+
+Si UNE SEULE phrase n'est pas en {language} → RECOMMENCE TOUT.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🎯 RÔLE CRITIQUE - TU ES UN RECRUTEUR SENIOR PROFESSIONNEL:
 - Tu as 15+ ans d'expérience en recrutement technique
