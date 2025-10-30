@@ -19,6 +19,50 @@ from xml.etree import ElementTree as ET
 print(">>> tmc_universal_enricher module loading", flush=True)
 
 
+def fix_table_width_to_auto(doc):
+    """
+    Change table width from fixed to auto to prevent horizontal shift after merge.
+    
+    This fixes the issue where Skills Matrix tables with fixed width (e.g., 8.1 inches)
+    get shifted right after merging because they don't fit within the page margins.
+    
+    Args:
+        doc: Document object to fix
+    
+    Returns:
+        int: Number of tables fixed
+    """
+    w = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+    tables_fixed = 0
+    
+    for table in doc.tables:
+        tbl = table._element
+        tblPr = tbl.find(f'.//{w}tblPr')
+        
+        if tblPr is not None:
+            # Find and fix tblW (table width)
+            tblW = tblPr.find(f'.//{w}tblW')
+            if tblW is not None:
+                old_type = tblW.get(f'{w}type', 'unknown')
+                old_w = tblW.get(f'{w}w', 'unknown')
+                
+                # Change to auto width
+                tblW.set(f'{w}type', 'auto')
+                tblW.set(f'{w}w', '0')
+                
+                print(f"   🔧 Table width changed: {old_type}={old_w} → auto=0")
+                tables_fixed += 1
+            
+            # Remove fixed layout if present
+            tblLayout = tblPr.find(f'.//{w}tblLayout')
+            if tblLayout is not None:
+                old_layout = tblLayout.get(f'{w}type', 'unknown')
+                tblPr.remove(tblLayout)
+                print(f"   🔧 Removed tblLayout: {old_layout}")
+    
+    return tables_fixed
+
+
 class TMCUniversalEnricher:
     """Enrichisseur universel de CV au format TMC"""
     
@@ -501,6 +545,22 @@ Génère l'analyse maintenant:"""
             try:
                 matching_result = json.loads(response_text)
                 print(f">>> JSON parsed successfully!", flush=True)
+                
+                # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence
+                # Somme des scores de tous les domaines
+                if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
+                    calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
+                    original_score = matching_result.get('score_matching', 0)
+                    
+                    # Si différence > 2 points, utiliser le score calculé
+                    if abs(calculated_score - original_score) > 2:
+                        print(f"⚠️ Score mismatch detected: Claude={original_score}, Calculated={calculated_score}")
+                        print(f"   Using calculated score for consistency: {calculated_score}/100")
+                        matching_result['score_matching'] = round(calculated_score)
+                    else:
+                        # Petite différence acceptable (arrondis)
+                        matching_result['score_matching'] = round(calculated_score)
+                        
             except json.JSONDecodeError as e:
                 print(f"⚠️ JSON Error: {e}", flush=True)
                 print(f">>> Attempting to fix JSON...", flush=True)
@@ -1513,6 +1573,171 @@ Return the corrected JSON directly:"""
         doc.save(output_path)
         print(f"✅ CV TMC généré avec succès!")
 
+    def generate_ms_cv_3parts(self, tmc_context, skills_matrix_path, output_path, 
+                              cover_template="TMC_NA_template_EN_Anonymise_CoverPage.docx",
+                              content_template="TMC_NA_template_EN_Anonymise_Content.docx"):
+        """
+        Génère un CV Morgan Stanley en 3 parties:
+        1. Cover page (photo + nom + titre + location + langues)
+        2. Skills Matrix (uploadée par le recruteur)
+        3. Contenu détaillé (profile + skills + experiences + education)
+        
+        Args:
+            tmc_context: Contexte enrichi du candidat
+            skills_matrix_path: Path vers le fichier Skills Matrix uploadé
+            output_path: Path pour le fichier final
+            cover_template: Template pour la cover page
+            content_template: Template pour le contenu détaillé
+        
+        Returns:
+            tuple: (success: bool, output_path: str)
+        """
+        try:
+            from pathlib import Path
+            from docxcompose.composer import Composer
+            from docx import Document
+            import shutil
+            
+            # Dossier temporaire
+            temp_dir = Path("/tmp/cv_optimizer_ms")
+            temp_dir.mkdir(exist_ok=True)
+            
+            # ÉTAPE 1: Générer cover page
+            print("🎨 Generating cover page...")
+            cover_path = temp_dir / "cover.docx"
+            
+            # ✅ FIX: Passer seulement le nom du template, find_template_file va le chercher
+            print(f"   📄 Using cover template: {cover_template}")
+            
+            self.generate_tmc_docx(
+                tmc_context, 
+                str(cover_path), 
+                template_path=cover_template  # Juste le nom, pas le chemin complet
+            )
+            print(f"   ✅ Cover page generated: {cover_path.name}")
+            
+            # ÉTAPE 2: Merger cover + Skills Matrix
+            print("🔗 Merging cover with Skills Matrix...")
+            cover_with_skills = temp_dir / "cover_and_skills.docx"
+            
+            # Charger les deux documents
+            cover_doc = Document(str(cover_path))
+            skills_doc = Document(skills_matrix_path)
+            
+            # ✅ V1.3.4.2 FIX: Change table width from fixed to auto to prevent horizontal shift
+            print("🔧 Fixing Skills Matrix table width...")
+            tables_fixed = fix_table_width_to_auto(skills_doc)
+            print(f"   ✅ Fixed {tables_fixed} table(s) to auto width")
+            
+            # V1.3.4 FIX: Ajuster les marges de la Skills Matrix pour correspondre au template
+            # Copier les marges du cover vers skills avant merge
+            cover_sections = cover_doc.sections
+            skills_sections = skills_doc.sections
+            
+            if cover_sections and skills_sections:
+                # Utiliser les marges du template pour la Skills Matrix
+                for section in skills_sections:
+                    section.top_margin = cover_sections[0].top_margin
+                    section.bottom_margin = cover_sections[0].bottom_margin
+                    section.left_margin = cover_sections[0].left_margin
+                    section.right_margin = cover_sections[0].right_margin
+            
+            # V1.3.4.1 FIX: Supprimer les espacements au début de la Skills Matrix
+            # Ceci assure que le contenu commence exactement en haut de la page
+            from docx.shared import Pt
+            from docx.oxml import parse_xml
+            
+            # Supprimer TOUS les paragraphes vides au début du body XML
+            # Travailler directement sur body._element pour avoir l'ordre exact
+            body = skills_doc.element.body
+            elements_to_remove = []
+            
+            # Parcourir les éléments dans l'ordre et marquer les paragraphes vides au début
+            for elem in body:
+                tag = elem.tag.split('}')[-1] if '}' in elem.tag else elem.tag
+                
+                if tag == 'p':  # C'est un paragraphe
+                    # Vérifier s'il est vide (pas de texte)
+                    ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                    text_elems = elem.findall('.//w:t', ns)
+                    text_content = ''.join([t.text for t in text_elems if t.text])
+                    
+                    if not text_content.strip():
+                        # Paragraphe vide au début → marquer pour suppression
+                        elements_to_remove.append(elem)
+                    else:
+                        # Premier paragraphe avec texte → arrêter
+                        break
+                elif tag == 'tbl':
+                    # On a atteint une table → arrêter
+                    break
+            
+            # Supprimer les éléments marqués
+            for elem in elements_to_remove:
+                body.remove(elem)
+            
+            print(f"   🧹 Removed {len(elements_to_remove)} empty paragraphs from Skills Matrix")
+            
+            # Réinitialiser le spacing du premier élément restant (si paragraphe)
+            if skills_doc.paragraphs:
+                first_para = skills_doc.paragraphs[0]
+                first_para.paragraph_format.space_before = Pt(0)
+                first_para.paragraph_format.space_after = Pt(0)
+            
+            # Ajouter page break après cover
+            cover_doc.add_page_break()
+            
+            # Merger avec docxcompose
+            composer = Composer(cover_doc)
+            composer.append(skills_doc)
+            
+            # Sauvegarder
+            composer.save(str(cover_with_skills))
+            print(f"   ✅ Cover + Skills Matrix merged")
+            
+            # ÉTAPE 3: Générer contenu détaillé
+            print("📝 Generating detailed content...")
+            content_path = temp_dir / "content.docx"
+            
+            # ✅ FIX: Passer seulement le nom du template
+            print(f"   📄 Using content template: {content_template}")
+            
+            self.generate_tmc_docx(
+                tmc_context,
+                str(content_path),
+                template_path=content_template  # Juste le nom, pas le chemin complet
+            )
+            print(f"   ✅ Content generated: {content_path.name}")
+            
+            # ÉTAPE 4: Merger tout ensemble
+            print("🔗 Merging everything...")
+            
+            # Charger cover+skills
+            final_doc = Document(str(cover_with_skills))
+            
+            # Ajouter page break avant content
+            final_doc.add_page_break()
+            
+            # Merger avec content
+            final_composer = Composer(final_doc)
+            content_doc = Document(str(content_path))
+            final_composer.append(content_doc)
+            
+            # Sauvegarder le document final
+            final_composer.save(str(output_path))
+            print(f"✅ Final CV saved: {output_path}")
+            
+            # Nettoyer les fichiers temporaires
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            
+            return True, str(output_path)
+            
+        except Exception as e:
+            error_msg = f"Error generating MS CV: {str(e)}"
+            print(f"❌ {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return False, error_msg
     def apply_bold_post_processing(self, docx_path: str, keywords: list):
         """Post-traiter le document pour mettre en gras les technologies dans les tableaux"""
         print(f"🎨 Application du gras sur les technologies...")
