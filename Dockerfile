@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy requirements first (for better layer caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -21,5 +21,11 @@ COPY . .
 # Expose Streamlit default port
 EXPOSE 8501
 
-# Run the application
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Run the application with explicit binding
+# IMPORTANT: Must bind to 0.0.0.0 for Render to detect the port
+CMD ["streamlit", "run", "app.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true", \
+     "--browser.serverAddress=0.0.0.0", \
+     "--browser.gatherUsageStats=false"]
