@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-TMC CV Optimizer — VERSION 1.3.9 - FIXES COMPLETS
-✅ Système de scoring réaliste (plus de 100/100 faciles)
-✅ Vraie synthèse détaillée de Claude (4-6 paragraphes)
-✅ Bouton Download pleine largeur (= bouton Generate)
-✅ Signature Ekinext sur page de connexion
-✅ Emojis sans fusées
+TMC CV Optimizer — VERSION 1.3.4 INTEGRATED (FIXED)
+Interface Streamlit premium avec design moderne et backend complet
 
-Date: 30 octobre 2025
+✨ FIXED in this version:
+- Skills Matrix Upload section added for Morgan Stanley
+- Validation before CV generation for Morgan Stanley
+- Correct generation method (generate_ms_cv_3parts) with Skills Matrix path
+- Full functional parity with app_working.py
+- Modern UI preserved from app.py
 """
 
 import streamlit as st
@@ -39,13 +40,13 @@ SUCCESS_GREEN = "#10B981"
 # ==========================================
 st.set_page_config(
     page_title="CV Optimizer",
-    page_icon="📊",  # ✅ Changé: enlevé fusée
+    page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded"  # ✨ NEW: Sidebar expanded by default
 )
 
 # ==========================================
-# 🎨 CSS CENTRALISÉ (V1.3.9 Style)
+# 🎨 CSS CENTRALISÉ (V1.3.4 Style)
 # ==========================================
 def local_css():
     """Styles CSS modernes et centralisés"""
@@ -64,11 +65,11 @@ def local_css():
         .block-container {{
             padding-top: 2rem;
             padding-bottom: 2rem;
-            max-width: 1100px !important;
+            max-width: 1100px !important;  /* ✨ FIXED: Reduced from 1200px for better margins */
             width: 100% !important;
             margin-left: auto !important;
             margin-right: auto !important;
-            padding-left: 2rem !important;
+            padding-left: 2rem !important;  /* ✨ NEW: Consistent padding */
             padding-right: 2rem !important;
         }}
         
@@ -77,7 +78,8 @@ def local_css():
         footer {{visibility: hidden;}}
         header {{visibility: hidden;}}
         
-        /* ========== HIDE SECRETS ERROR MESSAGE ========== */
+        /* ========== HIDE SECRETS ERROR MESSAGE - COMPREHENSIVE ========== */
+        /* Target all possible classes and containers for secrets.toml error */
         .element-container:has(> .stException) {{
             display: none !important;
             visibility: hidden !important;
@@ -97,229 +99,304 @@ def local_css():
         
         div.stException {{
             display: none !important;
-            visibility: hidden !important;
         }}
         
-        /* ========== HEADER ========== */
+        /* Target error messages containing "secrets" keyword */
+        [data-testid="stException"]:has([class*="secrets"]) {{
+            display: none !important;
+        }}
+        
+        /* Target specific error alert containers */
+        [data-testid="stAlert"] {{
+            display: none !important;
+        }}
+        
+        div[data-testid="stNotification"] {{
+            display: none !important;
+        }}
+        
+        /* Hide any error message in main container */
+        .main [data-testid="stException"] {{
+            display: none !important;
+        }}
+        
+        /* Nuclear option: hide all exception elements */
+        [class*="Exception"] {{
+            display: none !important;
+        }}
+        
+        /* ========== SIDEBAR STYLES ========== */
+        [data-testid="stSidebar"] {{
+            background: white;
+            padding: 2rem 1.5rem;
+        }}
+        
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {{
+            padding: 0;
+        }}
+        
+        /* ========== HERO SECTION ========== */
         .tmc-hero {{
             text-align: center;
-            padding: 3rem 1rem 2rem 1rem;
-            margin-bottom: 2rem;
+            padding: 2rem 0;
         }}
         
         .tmc-subtitle {{
             color: #6B7280;
-            font-size: 1.15rem;
-            margin-top: 0.75rem;
-            font-weight: 400;
+            font-size: 1.1rem;
+            margin-top: 0.3rem;
+            line-height: 1.6;
         }}
         
-        /* ========== DIVIDER ========== */
-        .divider {{
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #CBD5E1, transparent);
-            margin: 2rem 0;
-        }}
-        
-        /* ========== CLIENT CARDS ========== */
+        /* ========== CLIENT INFO CARDS ========== */
         .client-card {{
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }}
+        
+        .client-card-ms {{
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            border-left: 4px solid #3B82F6;
+        }}
+        
+        .client-card-cae {{
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+            border-left: 4px solid #22C55E;
+        }}
+        
+        .client-card-desj {{
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border-left: 4px solid #F59E0B;
+        }}
+        
+        /* ========== CARDS ========== */
+        .tmc-card {{
+            background: white;
             border-radius: 16px;
             padding: 24px;
-            margin: 10px 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }}
-        
-        .client-card::before {{
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            transition: width 0.3s ease;
-        }}
-        
-        .client-card:hover {{
-            transform: translateX(8px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-        }}
-        
-        .client-card:hover::before {{
-            width: 100%;
-            opacity: 0.05;
-        }}
-        
-        /* Desjardins style */
-        .client-card-desj {{
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            border: 2px solid #86efac;
-            box-shadow: 0 4px 12px rgba(134, 239, 172, 0.2);
-        }}
-        
-        .client-card-desj::before {{
-            background: #16a34a;
-        }}
-        
-        /* Morgan Stanley style */
-        .client-card-ms {{
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border: 2px solid #93c5fd;
-            box-shadow: 0 4px 12px rgba(147, 197, 253, 0.2);
-        }}
-        
-        .client-card-ms::before {{
-            background: #2563eb;
-        }}
-        
-        /* CAE style */
-        .client-card-cae {{
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 2px solid #fbbf24;
-            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
-        }}
-        
-        .client-card-cae::before {{
-            background: #d97706;
-        }}
-        
-        /* ========== BUTTONS ========== */
-        .stButton > button {{
-            width: 100%;
-            background: linear-gradient(90deg, {PRIMARY_BLUE} 0%, {SECONDARY_ORANGE} 100%);
-            color: white;
-            border: none;
-            padding: 0.9rem 2rem;
-            font-size: 1.1rem;
-            font-weight: 700;
-            border-radius: 12px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
             transition: all 0.3s ease;
-            box-shadow: 0 4px 14px rgba(25, 62, 146, 0.3);
         }}
         
-        .stButton > button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(25, 62, 146, 0.4);
+        .tmc-card:hover {{
+            box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
         }}
         
-        .stButton > button:active {{
-            transform: translateY(0);
-        }}
-        
-        /* ✅ NEW: Style global pour TOUS les download buttons */
-        div[data-testid="stDownloadButton"] > button {{
-            background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
+        /* ========== BUTTONS WITH GRADIENT ========== */
+        .stButton>button {{
+            background: linear-gradient(90deg, {PRIMARY_BLUE} 0%, {SECONDARY_ORANGE} 100%) !important;
             color: white !important;
             border: none !important;
             border-radius: 12px !important;
             padding: 0.9rem 2rem !important;
             font-weight: 700 !important;
             font-size: 1.1rem !important;
-            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
             transition: all 0.3s ease !important;
+            box-shadow: 0 4px 14px rgba(25, 62, 146, 0.25) !important;
             width: 100% !important;
+            min-height: 60px !important;  /* ✨ MATCHED: Same as Download button */
         }}
         
-        div[data-testid="stDownloadButton"] > button:hover {{
-            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45) !important;
+        .stButton>button:hover {{
             transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px rgba(25, 62, 146, 0.35) !important;
         }}
         
-        div[data-testid="stDownloadButton"] > button:active {{
+        .stButton>button:active {{
             transform: translateY(0) !important;
+        }}
+        
+        .stButton>button:disabled {{
+            background: #D1D5DB !important;
+            color: #9CA3AF !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }}
+        
+        /* ========== DIVIDER ========== */
+        .divider {{
+            height: 1px;
+            background: #E5E7EB;
+            margin: 1.5rem 0;
+        }}
+        
+        /* ========== PRIVACY NOTE ========== */
+        .privacy-note {{
+            display: flex;
+            align-items: start;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+            color: #6B7280;
         }}
         
         /* ========== FILE UPLOADER ========== */
         [data-testid="stFileUploader"] {{
-            border: 2px dashed #CBD5E1;
-            border-radius: 12px;
-            padding: 1.5rem;
+            border: 2px dashed {PRIMARY_BLUE}40;
+            border-radius: 14px;
             background: white;
+            padding: 1.5rem;
             transition: all 0.3s ease;
         }}
         
         [data-testid="stFileUploader"]:hover {{
-            border-color: {PRIMARY_BLUE};
-            background: #F9FAFB;
+            border-color: {SECONDARY_ORANGE};
+            background: #FEF3E2;
         }}
         
-        /* ========== METRICS ========== */
-        [data-testid="stMetricValue"] {{
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, {PRIMARY_BLUE}, {SECONDARY_ORANGE});
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* ========== RADIO BUTTONS (Language) - CENTERED ========== */
+        .stRadio > div {{
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
         }}
         
-        /* ========== DATAFRAME ========== */
-        [data-testid="stDataFrame"] {{
+        .stRadio > div > label {{
+            background: white;
+            padding: 1rem 2rem;
             border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }}
-        
-        /* ========== FOOTER SIGNATURE ========== */
-        .footer-signature {{
-            text-align: center;
-            padding: 2rem 0 1rem 0;
-            color: #9CA3AF;
-            font-size: 0.9rem;
-            margin-top: 3rem;
-            border-top: 1px solid #E5E7EB;
-        }}
-        
-        .footer-signature a {{
-            color: {PRIMARY_BLUE};
-            text-decoration: none;
+            border: 2px solid #E5E7EB;
+            cursor: pointer;
+            transition: all 0.3s ease;
             font-weight: 600;
         }}
         
-        .footer-signature a:hover {{
-            color: {SECONDARY_ORANGE};
+        .stRadio > div > label:hover {{
+            border-color: {PRIMARY_BLUE};
+            background: {BG_LIGHT};
+        }}
+        
+        .stRadio > div > label[data-checked="true"] {{
+            border-color: {PRIMARY_BLUE};
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            color: {PRIMARY_BLUE};
+        }}
+        
+        /* ========== DATAFRAME STYLES (Professional Table) ========== */
+        [data-testid="stDataFrame"] {{
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(25, 62, 146, 0.12);
+            border: 2px solid {PRIMARY_BLUE};
+        }}
+        
+        [data-testid="stDataFrame"] table {{
+            border-collapse: collapse;
+        }}
+        
+        [data-testid="stDataFrame"] thead {{
+            background: linear-gradient(135deg, {PRIMARY_BLUE} 0%, #2563eb 100%);
+        }}
+        
+        [data-testid="stDataFrame"] thead th {{
+            color: white !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+            padding: 18px 16px !important;
+            text-align: left !important;
+            border: none !important;
+        }}
+        
+        [data-testid="stDataFrame"] tbody td {{
+            padding: 16px !important;
+            font-size: 0.9rem !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            vertical-align: middle !important;
+            line-height: 1.6 !important;
+        }}
+        
+        [data-testid="stDataFrame"] tbody tr:last-child td {{
+            border-bottom: none !important;
+        }}
+        
+        [data-testid="stDataFrame"] tbody tr:hover {{
+            box-shadow: inset 4px 0 0 {SECONDARY_ORANGE};
+            transition: all 0.2s ease;
+        }}
+        
+        /* ========== FOOTER ========== */
+        .tmc-footer {{
+            text-align: center;
+            color: #6B7280;
+            font-size: 0.9rem;
+            border-top: 1px solid #E5E7EB;
+            margin-top: 3rem;
+        }}
+        
+        /* ========== DOWNLOAD BUTTON - GREEN GRADIENT ========== */
+        /* Global styling for download button wrapper */
+        #download-btn-wrapper {{
+            margin: 1rem 0;
+        }}
+        
+        #download-btn-wrapper button {{
+            background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.9rem 2rem !important;  /* ✨ MATCHED: Same as Generate button */
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+            min-height: 60px !important;  /* ✨ MATCHED: Same height as Generate */
+        }}
+        
+        #download-btn-wrapper button:hover {{
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45) !important;
+            transform: translateY(-2px) !important;
+        }}
+        
+        #download-btn-wrapper button:active {{
+            transform: translateY(0) !important;
+        }}
+        
+        /* Fallback: Target download button by data-testid if wrapper fails */
+        [data-testid="stDownloadButton"] button {{
+            background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
+            color: white !important;
         }}
     </style>
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔐 AUTHORIZED USERS
-# ==========================================
-AUTHORIZED_USERS = [
-    "Kevin Abecassis",
-    "Morgan Richer", 
-    "Amelie Blais",
-    "Lauralie Martin",
-    "Admin Test"
-]
-
-# ==========================================
-# 🏢 CLIENT DATA (Updated with improved configs)
+# 📊 CLIENT DATA DICTIONARY (V1.3.4)
 # ==========================================
 CLIENT_DATA = {
     "Morgan Stanley": {
         "rules": [
-            "📄 3-page format with Skills Matrix",
-            "🎯 No TMC branding",
-            "⚙️ Technical depth required"
+            "🇬🇧 <strong>English only</strong> (auto)",
+            "🔒 <strong>Always Anonymized</strong> (auto)",
+            "📄 Format: Cover + Skills Matrix + Details",
+            "🎯 Financial experience highly valued"
         ],
         "card_class": "client-card-ms",
         "show_language": False,  # Pas de choix de langue
-        "anonymize": False,      # Jamais anonymisé
+        "anonymize": True,       # Toujours anonymisé
         "language": "English",   # Toujours anglais
-        "use_skizmatrix": True   # ✅ Utilise Skills Matrix
+        "use_skizmatrix": True   # Utilise la Skills Matrix
     },
     "CAE": {
         "rules": [
-            "🌐 <strong>Choose language: 🇫🇷 French or 🇬🇧 English</strong>",
-            "📄 Format: Clean 2-page CV",
-            "🎯 No TMC branding (anonymized)"
+            "🌐 <strong>French or English</strong> (your choice)",
+            "🔒 <strong>Always Anonymized</strong> (required)",
+            "📄 Format: TMC Standard",
+            "🎯 Aerospace/Defense experience valued"
         ],
         "card_class": "client-card-cae",
-        "show_language": True,   # ✅ Choix FR/EN
-        "anonymize": True,       # ✅ Mode anonymisé (pas de logo TMC)
-        "language": None,        # Sera défini par l'utilisateur
+        "show_language": True,   # Choix de langue
+        "anonymize": True,       # Toujours anonymisé
+        "language": None,        # À choisir par l'utilisateur
         "use_skizmatrix": False  # Pas de Skills Matrix
     },
     "Desjardins": {
@@ -337,7 +414,7 @@ CLIENT_DATA = {
 }
 
 # ==========================================
-# 🎨 HORIZONTAL TIMELINE
+# 🎨 HORIZONTAL TIMELINE (Keep from app.py)
 # ==========================================
 def horizontal_progress_timeline(current_step: int = 1, total_steps: int = 5, step_labels: list = None) -> str:
     """
@@ -513,6 +590,7 @@ if 'jd_file' not in st.session_state:
     st.session_state.jd_file = None
 if 'processing' not in st.session_state:
     st.session_state.processing = False
+# ✨ FIXED: Ajout de skills_matrix_file dans session state
 if 'skills_matrix_file' not in st.session_state:
     st.session_state.skills_matrix_file = None
 if 'show_generate_button' not in st.session_state:
@@ -522,49 +600,50 @@ if 'show_generate_button' not in st.session_state:
 # 🔐 AUTHENTICATION FUNCTIONS
 # ==========================================
 
-def check_session():
-    """Check if session is still valid (5 hours)"""
-    if st.session_state.authenticated and st.session_state.login_time:
-        elapsed = datetime.now() - st.session_state.login_time
-        if elapsed > timedelta(hours=5):
-            st.session_state.authenticated = False
-            return False
-    return st.session_state.authenticated
+AUTHORIZED_USERS = [
+    "Kevin Abecassis",
+    "Aurélien Bertrand",
+    "Julia Delpon",
+    "Lucas Maurer",
+    "Roberta Santiago"
+]
 
-def load_session_from_cookies():
-    """Load session from cookies if available"""
+def restore_session_from_cookies():
+    """Restaure la session depuis les cookies si valide"""
     try:
-        session_data = cookie_manager.get('tmc_session')
-        if session_data:
-            data = json.loads(session_data)
-            login_time = datetime.fromisoformat(data['login_time'])
-            elapsed = datetime.now() - login_time
+        cookies = cookie_manager.get_all()
+        
+        if cookies and 'tmc_session' in cookies:
+            session_data = cookies['tmc_session']
             
-            if elapsed <= timedelta(hours=5):
-                st.session_state.authenticated = True
-                st.session_state.user_name = data['user_name']
-                st.session_state.user_location = data['user_location']
-                st.session_state.login_time = login_time
-                st.session_state.last_activity = datetime.now()
-                return True
+            # Vérifier si la session est valide (moins de 8 heures)
+            if 'login_time' in session_data:
+                login_time = datetime.fromisoformat(session_data['login_time'])
+                if datetime.now() - login_time < timedelta(hours=8):
+                    st.session_state.authenticated = True
+                    st.session_state.user_name = session_data.get('user_name')
+                    st.session_state.user_location = session_data.get('user_location')
+                    st.session_state.login_time = login_time
+                    st.session_state.last_activity = datetime.now()
+                    return True
+        return False
     except:
-        pass
-    return False
+        return False
 
 def save_session_to_cookies():
-    """Save session to cookies"""
+    """Sauvegarde la session dans les cookies"""
     try:
         session_data = {
             'user_name': st.session_state.user_name,
             'user_location': st.session_state.user_location,
             'login_time': st.session_state.login_time.isoformat()
         }
-        cookie_manager.set('tmc_session', json.dumps(session_data))
+        cookie_manager.set('tmc_session', session_data, max_age=28800)  # 8 heures
     except:
         pass
 
-def logout():
-    """Logout user and clear session"""
+def clear_session():
+    """Clear session and cookies"""
     st.session_state.authenticated = False
     st.session_state.user_name = None
     st.session_state.user_location = None
@@ -574,8 +653,8 @@ def logout():
     st.session_state.cv_file = None
     st.session_state.jd_file = None
     st.session_state.processing = False
-    st.session_state.skills_matrix_file = None
-    st.session_state.show_generate_button = False
+    st.session_state.skills_matrix_file = None  # ✨ FIXED: Clear skills matrix
+    st.session_state.show_generate_button = False  # ✨ FIXED: Reset Generate button
     try:
         cookie_manager.delete('tmc_session')
     except:
@@ -623,7 +702,6 @@ def show_login_screen():
     """Display login screen"""
     local_css()
     
-    # ✅ Header SANS fusée
     st.markdown(f"""
     <div class="tmc-hero">
         <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
@@ -635,7 +713,7 @@ def show_login_screen():
                     </linearGradient>
                 </defs>
                 <text x="50%" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="url(#titleGradient)" text-anchor="middle">
-                    CV Optimizer
+                    🚀 CV Optimizer
                 </text>
             </svg>
         </div>
@@ -663,7 +741,7 @@ def show_login_screen():
             key="location_select"
         )
         
-        if st.button("📊 Access CV Optimizer", use_container_width=True):  # ✅ Emoji changé
+        if st.button("🚀 Access CV Optimizer", use_container_width=True):
             st.session_state.authenticated = True
             st.session_state.user_name = name
             st.session_state.user_location = location
@@ -677,13 +755,6 @@ def show_login_screen():
             log_to_airtable(name, "login", {"location": location})
             
             st.rerun()
-    
-    # ✅ Signature Ekinext en bas
-    st.markdown("""
-    <div class="footer-signature">
-        © 2025 <a href="https://ekinext.com" target="_blank">Ekinext</a> - Automation Consulting
-    </div>
-    """, unsafe_allow_html=True)
 
 # ==========================================
 # 🏠 MAIN APPLICATION
@@ -725,59 +796,95 @@ def main_app():
             # Reset matching when client changes
             st.session_state.matching_done = False
             st.session_state.matching_data = None
-            st.session_state.skills_matrix_file = None
-            st.session_state.show_generate_button = False
-            # Reset file uploaders by incrementing counter
-            st.session_state.reset_counter += 1
+            st.session_state.skills_matrix_file = None  # ✨ FIXED: Reset skills matrix
+            st.session_state.show_generate_button = False  # ✨ FIXED: Reset Generate button
             st.rerun()
         
-        # Show client rules
-        client_config = CLIENT_DATA[st.session_state.selected_client]
+        # Get current client info
+        client_info = CLIENT_DATA[st.session_state.selected_client]
+        rules_html = "<br>".join(client_info["rules"])
+        
+        # Display client card with dynamic styling
         st.markdown(f"""
-        <div class="client-card {client_config['card_class']}" style="margin-top: 1rem;">
-            <h4 style="margin: 0 0 12px 0; color: #111827; font-weight: 700;">{client}</h4>
-            <div style="line-height: 1.8;">
-                {"<br>".join(client_config['rules'])}
-            </div>
+        <div class="client-card {client_info['card_class']}">
+            {rules_html}
         </div>
         """, unsafe_allow_html=True)
         
-        # ✅ CAE Language Selector (si applicable)
-        if client_config.get("show_language", False):
-            st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-            st.markdown("#### 🌐 Select Language")
-            
-            language = st.radio(
-                "Language for CV",
-                options=["French 🇫🇷", "English 🇬🇧"],
-                index=0 if st.session_state.selected_language == "French" else 1,
-                label_visibility="collapsed",
-                key="language_select"
-            )
-            
-            # Extract language name
-            new_language = "French" if "French" in language else "English"
-            
-            # Update session state if changed
-            if new_language != st.session_state.selected_language:
-                st.session_state.selected_language = new_language
-                # ✅ DEBUG log
-                print(f"🌐 CAE Language selected: {st.session_state.selected_language}", flush=True)
-                st.rerun()
-        else:
-            # Auto-set language for non-CAE clients
-            st.session_state.selected_language = client_config.get("language", "French")
-        
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
         
-        # Logout button
-        if st.button("🚪 Logout", use_container_width=True):
-            logout()
-            st.rerun()
+        # Privacy note
+        st.markdown("""
+        <div class="privacy-note">
+            <span>🔒</span>
+            <span>Your data is processed securely and never stored</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Buttons
+        col_new, col_logout = st.columns(2)
+        
+        with col_new:
+            if st.button("🔄 New", use_container_width=True, key="new_button"):
+                # Clear matching data but keep auth
+                st.session_state.matching_done = False
+                st.session_state.matching_data = None
+                st.session_state.cv_file = None
+                st.session_state.jd_file = None
+                st.session_state.processing = False
+                st.session_state.skills_matrix_file = None  # ✨ FIXED: Reset skills matrix
+                st.session_state.show_generate_button = False  # ✨ FIXED: Reset Generate button
+                
+                # ✨ NEW: Increment reset counter to force file_uploader recreation
+                st.session_state.reset_counter += 1
+                
+                st.rerun()
+        
+        with col_logout:
+            if st.button("🚪 Logout", use_container_width=True, key="logout_button"):
+                log_to_airtable(st.session_state.user_name, "logout", {
+                    "duration_minutes": (datetime.now() - st.session_state.login_time).total_seconds() / 60
+                })
+                clear_session()
+                st.rerun()
+        
+        # TMC Logo at bottom of sidebar
+        # Use local logo from repository (simpler than GitHub URL)
+        logo_path = "TMC big logo.png"  # Logo in root directory
+        
+        try:
+            # Try to load logo using base64 encoding for Streamlit
+            import base64
+            from pathlib import Path
+            
+            if Path(logo_path).exists():
+                with open(logo_path, "rb") as f:
+                    logo_bytes = f.read()
+                    logo_base64 = base64.b64encode(logo_bytes).decode()
+                
+                st.markdown(f"""
+                <div style="text-align: center; margin-top: auto; padding-top: 2rem;">
+                    <img src="data:image/png;base64,{logo_base64}" style="width: 120px; opacity: 0.7;">
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Fallback: Text logo if file not found
+                st.markdown("""
+                <div style="text-align: center; margin-top: auto; padding-top: 2rem; color: #193E92; font-weight: 700; font-size: 1.2rem;">
+                    TMC
+                </div>
+                """, unsafe_allow_html=True)
+        except Exception as e:
+            # Fallback: Text logo if any error
+            st.markdown("""
+            <div style="text-align: center; margin-top: auto; padding-top: 2rem; opacity: 0.6;">
+                <div style="font-size: 1.2rem; font-weight: 700; color: #193E92;">TMC</div>
+                <div style="font-size: 0.7rem; color: #6B7280;">The Montreal Company</div>
+            </div>
+            """, unsafe_allow_html=True)
     
     # ========== MAIN CONTENT ==========
-    
-    # ✅ Header SANS fusée
+    # Header with gradient SVG - CENTERED
     st.markdown(f"""
     <div class="tmc-hero">
         <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
@@ -793,68 +900,91 @@ def main_app():
                 </text>
             </svg>
         </div>
-        <p class="tmc-subtitle">Generate optimized TMC CVs with AI</p>
+        <p class="tmc-subtitle">Generate a professional TMC CV perfectly aligned with your Job Description</p>
+        <p class="tmc-subtitle" style="margin-top: 0.2rem; font-size: 0.95rem;">Designed for Business Managers and Recruiters</p>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Upload section
+    col1, col2 = st.columns(2)
     
-    # File upload section
-    st.markdown("### 📁 Upload Files")
-    
-    col_upload1, col_upload2 = st.columns(2)
-    
-    with col_upload1:
+    with col1:
+        st.markdown("### 📄 Your Resume")
         cv_file = st.file_uploader(
-            "**Upload CV** (PDF or DOCX)",
-            type=['pdf', 'docx'],
-            key=f"cv_uploader_{st.session_state.reset_counter}",
-            help="Upload the candidate's resume"
+            "Upload your CV",
+            type=['pdf', 'docx', 'doc', 'txt'],
+            label_visibility="collapsed",
+            key=f"cv_uploader_{st.session_state.reset_counter}"  # ✨ FIXED: Dynamic key for reset
         )
         if cv_file:
+            if 'cv_upload_status' not in st.session_state:
+                st.session_state.cv_upload_status = st.empty()
+            st.session_state.cv_upload_status.success(f"✅ {cv_file.name}")
             st.session_state.cv_file = cv_file
-            st.success(f"✅ CV Uploaded: **{cv_file.name}**")
     
-    with col_upload2:
+    with col2:
+        st.markdown("### 📊 Job Description")
         jd_file = st.file_uploader(
-            "**Upload Job Description** (PDF, DOCX, or TXT)",
-            type=['pdf', 'docx', 'txt'],
-            key=f"jd_uploader_{st.session_state.reset_counter}",
-            help="Upload the job description"
+            "Upload job description",
+            type=['txt', 'docx', 'doc', 'pdf'],
+            label_visibility="collapsed",
+            key=f"jd_uploader_{st.session_state.reset_counter}"  # ✨ FIXED: Dynamic key for reset
         )
         if jd_file:
+            if 'jd_upload_status' not in st.session_state:
+                st.session_state.jd_upload_status = st.empty()
+            st.session_state.jd_upload_status.success(f"✅ {jd_file.name}")
             st.session_state.jd_file = jd_file
-            st.success(f"✅ JD Uploaded: **{jd_file.name}**")
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Language section (only for CAE)
+    if CLIENT_DATA[st.session_state.selected_client]["show_language"]:
+        st.markdown("---")
+        st.markdown('<h3 style="text-align: center;">🌐 Generated CV Language</h3>', unsafe_allow_html=True)
+        language = st.radio(
+            "Select language",
+            options=["🇫🇷 French", "🇬🇧 English"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="language_selector"
+        )
+        st.session_state.selected_language = language.split()[1]
+        # ✅ DEBUG: Confirm language stored
+        print(f"🌐 CAE Language selected and stored: {st.session_state.selected_language}", flush=True)
+    else:
+        # Set language based on client
+        st.session_state.selected_language = CLIENT_DATA[st.session_state.selected_client]["language"]
+        print(f"🌐 {st.session_state.selected_client} Language auto-set: {st.session_state.selected_language}", flush=True)
     
-    # Analyze button
-    if st.session_state.cv_file and st.session_state.jd_file and not st.session_state.processing:
-        if not st.session_state.matching_done:
-            if st.button("🔍 Analyze Matching", use_container_width=True, key="analyze_button"):
+    # Analyze button (only show if Generate button is not active)
+    if not st.session_state.show_generate_button:
+        st.markdown("---")
+        analyze_button = st.button(
+            "📊 Analyze Matching",
+            use_container_width=True,
+            disabled=st.session_state.processing,
+            key="analyze_button"
+        )
+        
+        if analyze_button:
+            if st.session_state.cv_file and st.session_state.jd_file:
+                # Clear upload status messages
+                if 'cv_upload_status' in st.session_state:
+                    st.session_state.cv_upload_status.empty()
+                if 'jd_upload_status' in st.session_state:
+                    st.session_state.jd_upload_status.empty()
+                
                 st.session_state.processing = True
-                st.rerun()
-    elif not (st.session_state.cv_file and st.session_state.jd_file):
-        st.info("📤 Please upload both CV and Job Description to start analysis")
-    
-    # Process matching if triggered
-    if st.session_state.processing and not st.session_state.matching_done:
-        process_cv_matching()
+                process_cv_matching()
+            else:
+                st.error("⚠️ Please upload both CV and Job Description files")
     
     # Display results if matching is done
     if st.session_state.matching_done and st.session_state.matching_data:
         display_matching_results(st.session_state.matching_data)
 
 # ==========================================
-# 🔍 CV MATCHING ANALYSIS
+# 🔄 CV PROCESSING
 # ==========================================
-
-def save_uploaded(uploaded_file) -> Path:
-    """Save uploaded file temporarily"""
-    suffix = Path(uploaded_file.name).suffix
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(uploaded_file.read())
-        return Path(tmp.name)
 
 def process_cv_matching():
     """Process CV matching analysis with 3-step timeline"""
@@ -908,7 +1038,7 @@ def process_cv_matching():
             'jd_path': jd_path
         }
         st.session_state.matching_done = True
-        st.session_state.show_generate_button = True
+        st.session_state.show_generate_button = True  # ✨ FIXED: Enable Generate button
         st.session_state.processing = False
         
         # Log to Airtable
@@ -1081,36 +1211,104 @@ def display_matching_results(data):
             }
         )
         
-        # ✅ UTILISER LA VRAIE SYNTHÈSE DE CLAUDE (détaillée, 4-6 paragraphes)
+        # Summary - Generate locally based on actual results
         st.markdown("<br>", unsafe_allow_html=True)
         
-        synthese_claude = results.get('synthese_matching', '')
+        # Generate summary from actual analysis data
+        score = results.get('score_matching', 0)
+        nom = parsed_cv.get('nom_complet', 'Candidate')
         
-        if synthese_claude:
-            # Format la synthèse avec des paragraphes
-            # La synthèse vient de Claude et contient déjà des paragraphes naturels
-            synthese_formatted = synthese_claude.replace('\n\n', '<br><br>').replace('\n', '<br>')
-            
-            st.markdown(f"""
-            <div style="
-                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-                border-left: 4px solid #3b82f6;
-                border-radius: 12px;
-                padding: 24px 28px;
-                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
-            ">
-                <div style="display: flex; align-items: start;">
-                    <div style="font-size: 1.8rem; margin-right: 14px;">📊</div>
-                    <div>
-                        <div style="font-weight: 700; color: #1e40af; font-size: 1.25rem; margin-bottom: 10px;">Analysis Summary</div>
-                        <div style="color: #1e3a8a; line-height: 1.7; font-size: 1.05rem;">{synthese_formatted}</div>
-                    </div>
+        # Calculate years of experience
+        import re
+        total_years = 0
+        current_year = datetime.now().year
+        for exp in experiences:
+            periode = exp.get('periode', '')
+            periode_clean = periode.replace('Present', str(current_year)).replace('Présent', str(current_year))
+            years_found = re.findall(r'\b(\d{4})\b', periode_clean)
+            if len(years_found) >= 2:
+                try:
+                    start = int(years_found[0])
+                    end = int(years_found[-1])
+                    if end >= start:
+                        total_years += (end - start)
+                except:
+                    pass
+            elif len(years_found) == 1:
+                try:
+                    start = int(years_found[0])
+                    total_years += (current_year - start)
+                except:
+                    pass
+        
+        # Get strong domains (matched)
+        domaines_analyses = results.get('domaines_analyses', [])
+        strong_domains = [d['domaine'] for d in domaines_analyses if d.get('match') == 'complet']
+        partial_domains = [d['domaine'] for d in domaines_analyses if d.get('match') == 'partiel']
+        missing_domains = [d['domaine'] for d in domaines_analyses if d.get('match') == 'incompatible']
+        
+        # Generate score assessment
+        if score >= 90:
+            score_level = "Excellent match"
+        elif score >= 80:
+            score_level = "Strong match"
+        elif score >= 70:
+            score_level = "Good match"
+        elif score >= 60:
+            score_level = "Moderate match"
+        else:
+            score_level = "Weak match"
+        
+        # Build summary text
+        summary_parts = []
+        summary_parts.append(f"{score_level} with {score}/100 score.")
+        
+        if total_years > 0:
+            summary_parts.append(f"Candidate has {total_years} years of experience.")
+        
+        if strong_domains:
+            if len(strong_domains) > 3:
+                domains_text = ", ".join(strong_domains[:3]) + f", and {len(strong_domains)-3} other domains"
+            else:
+                domains_text = ", ".join(strong_domains)
+            summary_parts.append(f"Exceeds requirements in: {domains_text}.")
+        
+        if partial_domains:
+            if len(partial_domains) > 2:
+                summary_parts.append(f"Partial match in {len(partial_domains)} domains.")
+            else:
+                domains_text = ", ".join(partial_domains)
+                summary_parts.append(f"Partial match in: {domains_text}.")
+        
+        if missing_domains:
+            if len(missing_domains) > 2:
+                summary_parts.append(f"Gaps identified in {len(missing_domains)} areas.")
+            else:
+                domains_text = ", ".join(missing_domains)
+                summary_parts.append(f"Gap in: {domains_text}.")
+        
+        # Recommendation based on score - REMOVED per user request
+        # Users typically show this summary when presenting to clients, not for interview stage
+        
+        generated_summary = " ".join(summary_parts)
+        
+        st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 4px solid #3b82f6;
+            border-radius: 12px;
+            padding: 24px 28px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        ">
+            <div style="display: flex; align-items: start;">
+                <div style="font-size: 1.8rem; margin-right: 14px;">📊</div>
+                <div>
+                    <div style="font-weight: 700; color: #1e40af; font-size: 1.25rem; margin-bottom: 10px;">Analysis Summary</div>
+                    <div style="color: #1e3a8a; line-height: 1.7; font-size: 1.05rem;">{generated_summary}</div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
-        else:
-            # Fallback si pas de synthèse (ne devrait pas arriver avec le nouveau système)
-            st.warning("⚠️ Detailed analysis not available")
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -1122,7 +1320,7 @@ def display_matching_results(data):
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ✨ Skills Matrix Upload Section (ONLY for Morgan Stanley)
+    # ✨ FIXED: Skills Matrix Upload Section (ONLY for Morgan Stanley)
     if st.session_state.selected_client == "Morgan Stanley":
         st.markdown("---")
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1139,7 +1337,7 @@ def display_matching_results(data):
             skills_matrix_file = st.file_uploader(
                 "Upload Skills Matrix (.docx only)",
                 type=['docx'],
-                key=f"skills_matrix_uploader_{st.session_state.reset_counter}",
+                key=f"skills_matrix_uploader_{st.session_state.reset_counter}",  # ✨ FIXED: Dynamic key for reset
                 help="Morgan Stanley requires a Skills Matrix as page 2 of the CV"
             )
             
@@ -1165,7 +1363,7 @@ def display_matching_results(data):
 def generate_cv(data):
     """Generate the optimized CV with 3-step timeline"""
     
-    # ✨ Validation pour Morgan Stanley
+    # ✨ FIXED: Validation pour Morgan Stanley
     if st.session_state.selected_client == "Morgan Stanley":
         if not st.session_state.skills_matrix_file:
             st.error("❌ **Skills Matrix is required for Morgan Stanley clients**")
@@ -1200,85 +1398,54 @@ def generate_cv(data):
         print(f"🌐 LANGUAGE SELECTED: {st.session_state.selected_language}", flush=True)
         print(f"📋 CLIENT: {st.session_state.selected_client}", flush=True)
         
-        parsed_cv = data.get('parsed_cv')
-        jd_text = data.get('jd_text')
-        matching_analysis = data.get('matching_analysis')
-        
-        # Enrichir le CV
-        enriched_cv = enricher.enrich_cv_with_claude(
-            parsed_cv, 
-            jd_text, 
-            matching_analysis,
+        enriched_cv = enricher.enrich_cv_with_prompt(
+            data['parsed_cv'],
+            data['jd_text'],
             language=st.session_state.selected_language
         )
         
         # Step 2: Structuring
         timeline_placeholder.markdown(horizontal_progress_timeline(2, 3, generation_steps), unsafe_allow_html=True)
-        
-        # Préparer le contexte TMC
-        tmc_context = enricher.prepare_tmc_context(enriched_cv, parsed_cv)
+        tmc_context = enricher.map_to_tmc_structure(data['parsed_cv'], enriched_cv)
         
         # Step 3: Generation
         timeline_placeholder.markdown(horizontal_progress_timeline(3, 3, generation_steps), unsafe_allow_html=True)
         
-        success = False
+        # Create temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+            output_path = tmp_file.name
         
-        # Generate based on client
-        if st.session_state.selected_client == "Morgan Stanley":
-            # ✨ Generate 3-part CV with Skills Matrix
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as output_tmp:
-                output_path = output_tmp.name
+        # ✨ FIXED: Génération correcte avec Skills Matrix pour Morgan Stanley
+        if client_config["use_skizmatrix"] and st.session_state.skills_matrix_file:
+            # Morgan Stanley with Skills Matrix - Use generate_ms_cv_3parts
             
             # Save Skills Matrix temporarily
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as sm_tmp:
-                sm_tmp.write(st.session_state.skills_matrix_file.read())
-                skills_matrix_path = sm_tmp.name
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            skills_matrix_path = Path(output_path).parent / f"skills_matrix_{ts}.docx"
+            with open(skills_matrix_path, 'wb') as f:
+                # Reset file pointer before reading
+                st.session_state.skills_matrix_file.seek(0)
+                f.write(st.session_state.skills_matrix_file.read())
             
-            # ✅ Use correct MS generation method
-            result = enricher.generate_ms_cv_3parts(
-                tmc_context,
-                output_path,
-                skills_matrix_path=skills_matrix_path
-            )
-            
-            if result == "SUCCESS":
-                success = True
-            else:
-                st.error(f"❌ Error generating Morgan Stanley CV: {result}")
-        
-        elif st.session_state.selected_client == "CAE":
-            # Generate anonymized 2-page CV (no logo)
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as output_tmp:
-                output_path = output_tmp.name
-            
-            # Use template without logo (anonymized)
-            template_file = "tmc_cv_template_anonymized.docx"
-            if not Path(template_file).exists():
-                st.error(f"❌ Template not found: {template_file}")
-                st.stop()
-            
-            enricher.generate_tmc_docx(
-                tmc_context,
-                output_path,
-                template_path=template_file
+            # Generate CV with 3 parts
+            success, result = enricher.generate_ms_cv_3parts(
+                tmc_context=tmc_context,
+                skills_matrix_path=str(skills_matrix_path),
+                output_path=output_path
             )
             
             # Post-processing: Bold keywords
-            keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
-            if keywords:
-                enricher.apply_bold_post_processing(output_path, keywords)
-            
-            success = True
-        
+            if success:
+                keywords = enriched_cv.get('mots_cles_a_mettre_en_gras', [])
+                if keywords:
+                    enricher.apply_bold_post_processing(output_path, keywords)
         else:
-            # Desjardins: Standard TMC CV with logo
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as output_tmp:
-                output_path = output_tmp.name
-            
-            template_file = "tmc_cv_template.docx"
-            if not Path(template_file).exists():
-                st.error(f"❌ Template not found: {template_file}")
-                st.stop()
+            # Standard TMC CV (CAE / Desjardins)
+            # Determine template based on client
+            if client_config["anonymize"]:
+                template_file = f"TMC_NA_template_{st.session_state.selected_language[:2].upper()}_Anonymise.docx"
+            else:
+                template_file = f"TMC_NA_template_{st.session_state.selected_language[:2].upper()}.docx"
             
             enricher.generate_tmc_docx(
                 tmc_context,
@@ -1310,7 +1477,7 @@ def generate_cv(data):
             parsed_cv = data.get('parsed_cv', {})
             nom_complet = parsed_cv.get('nom_complet', 'Candidate')
             
-            # ✅ Use ENRICHED title (in correct language) instead of original
+            # ✅ FIX: Use ENRICHED title (in correct language) instead of original
             titre = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Profile'))
             
             # Format name as "Prenom NOM" (last name in uppercase)
@@ -1344,15 +1511,41 @@ def generate_cv(data):
                 # Fallback to old format
                 filename = f"TMC - {nom_formatted} - {titre_clean}.docx"
             
-            # ✅ Download button - Utiliser directement sans wrapper pour être full-width
+            # Download button with GREEN gradient (like app_working.py)
+            # CRITICAL: Define CSS BEFORE opening wrapper div!
+            st.markdown("""
+            <style>
+            #download-btn-wrapper button {
+                background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 12px !important;
+                padding: 0.9rem 2rem !important;
+                font-weight: 700 !important;
+                font-size: 1.1rem !important;
+                box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+                transition: all 0.3s ease !important;
+                width: 100% !important;
+            }
+            #download-btn-wrapper button:hover {
+                box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45) !important;
+                transform: translateY(-2px) !important;
+            }
+            #download-btn-wrapper button:active {
+                transform: translateY(0) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            st.markdown('<div id="download-btn-wrapper">', unsafe_allow_html=True)
             st.download_button(
                 label="📥 Download Optimized CV",
                 data=cv_bytes,
                 file_name=filename,
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                use_container_width=True,
-                key="download_cv_button"
+                use_container_width=True
             )
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # Log to Airtable
             log_to_airtable(
@@ -1377,24 +1570,46 @@ def generate_cv(data):
 # 🛠️ HELPER FUNCTIONS
 # ==========================================
 
-def create_download_link(file_bytes, filename):
-    """Create a download link for file"""
-    b64 = base64.b64encode(file_bytes).decode()
-    return f'<a href="data:application/octet-stream;base64,{b64}" download="{filename}" class="download-link">📥 Download {filename}</a>'
+def save_uploaded(file, suffix=None) -> Path:
+    """Save uploaded file to temp directory"""
+    suffix = suffix or Path(file.name).suffix
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    file.seek(0)  # Reset file pointer
+    tmp.write(file.read())
+    tmp.flush()
+    tmp.close()
+    return Path(tmp.name)
+
+# ==========================================
+# 🔚 FOOTER
+# ==========================================
+
+def show_footer():
+    """Display footer"""
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    st.markdown(
+        f"""
+        <div class='tmc-footer'>
+            <strong>TMC CV Optimizer V1.3.4 FIXED</strong> — Designed for TMC Business Managers & Recruiters<br>
+            Made by <strong>Kevin Abecassis</strong> | Powered by Streamlit & Claude AI
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ==========================================
 # 🚀 MAIN ENTRY POINT
 # ==========================================
 
 if __name__ == "__main__":
-    # Try to restore session from cookies
+    # Check if we need to restore session from cookies
     if not st.session_state.authenticated:
-        load_session_from_cookies()
+        restore_session_from_cookies()
     
-    # Check session validity
-    if not check_session():
-        show_login_screen()
-    else:
-        # Update last activity
-        st.session_state.last_activity = datetime.now()
+    # Show appropriate screen
+    if st.session_state.authenticated:
         main_app()
+        show_footer()
+    else:
+        show_login_screen()
