@@ -544,56 +544,24 @@ Pose-toi ces questions pour CHAQUE domaine où tu as donné ≥60 points:
 Si la réponse n'est pas un OUI catégorique avec preuves multiples → BAISSE le score.
 
 ═══════════════════════════════════════════════════
-📝 ÉTAPE 4 - SYNTHÈSE QUALITATIVE DÉTAILLÉE
+📝 ÉTAPE 4 - SYNTHÈSE QUALITATIVE CONCISE
 ═══════════════════════════════════════════════════
 
-Rédige une synthèse professionnelle COMPLÈTE en 4-6 PARAGRAPHES DÉTAILLÉS (250-350 mots minimum) qui:
+⚠️ CRITICAL: Write a SHORT, CONCISE synthesis in 1-2 paragraphs ONLY (80-120 words MAXIMUM).
+DO NOT write multiple sections like [Overall Assessment], [Top Strengths], [Gaps], etc.
+Write ONE single paragraph of 80-120 words that includes:
 
-PARAGRAPH 1 - OVERALL ASSESSMENT (3-4 sentences):
-- Lead with the match score and overall alignment level (Strong fit / Good fit / Moderate fit / Poor fit)
-- State years of experience and professional seniority level
-- Provide immediate hiring recommendation with confidence level
-- Mention key industry or domain expertise relevant to role
+CONTENT REQUIREMENTS (in ONE paragraph):
+- Lead with match score and alignment level (Strong/Good/Moderate/Weak match with X/100)
+- State years of experience and 1-2 key expertise areas
+- Mention 2-3 main strengths that align with job requirements
+- End with clear hiring recommendation (Strongly recommend / Recommend / Consider with reservations / Pass)
 
-PARAGRAPH 2 - TOP STRENGTHS (4-5 sentences):
-- Detail 3-4 strongest technical/professional competencies with SPECIFIC EVIDENCE from CV
-- For EACH strength, cite CONCRETE achievements or project experience
-- Use metrics/numbers where available (years, team size, project scope, budget, impact %)
-- Explain WHY these strengths matter for THIS specific role and how they align with JD requirements
-
-PARAGRAPH 3 - PARTIAL MATCHES & TRANSFERABLE SKILLS (3-4 sentences):
-- Identify 2-3 areas where candidate has related but not exact experience
-- Explain how these adjacent skills could transfer or compensate for gaps
-- Assess learning curve and adaptation potential (Quick / Moderate / Slow)
-- Note any certifications, training, or side projects that could help bridge gaps
-
-PARAGRAPH 4 - GAPS & DEVELOPMENT AREAS (3-4 sentences):
-- List 2-3 critical requirements from JD that are weak or missing in the CV
-- Assess impact of each gap: Critical blocker vs. Can learn on job vs. Not essential
-- Suggest mitigation strategies (training plan, mentorship, phased onboarding, partner with senior)
-- For strong candidates (>75), reframe as 'growth opportunities' rather than weaknesses
-
-PARAGRAPH 5 - FINAL RECOMMENDATION (3-4 sentences):
-- Clear hiring decision: Strongly recommend / Recommend / Consider with reservations / Pass
-- Justify decision based on role criticality, urgency, and candidate alignment
-- Next steps suggestion: Immediate interview / Phone screen first / Technical assessment / Reference check priority
-- One-line summary of candidate's unique value proposition or main concern
-
-(OPTIONAL) PARAGRAPH 6 - MARKET CONTEXT & SALARY (2-3 sentences, if relevant):
-- How this candidate compares to typical market (above/at/below average for this profile)
-- Salary expectations based on experience level and market standards
-- Hiring urgency recommendation (Move fast vs. Keep looking)
-
-TONE & STYLE REQUIREMENTS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Professional but conversational (like speaking to a hiring manager colleague)
-- Evidence-based and analytical, NEVER vague or generic
-- Balanced: acknowledge both strengths and weaknesses honestly (no sugar-coating)
-- Forward-looking: focus on potential and fit, not just past experience
-- CLIENT/RECRUITER PERSPECTIVE: "This candidate would/wouldn't be strong because..."
-- Use specific examples and metrics from the CV to support every claim
-- Be HONEST about gaps and concerns - hiring managers value transparency
-- NO marketing language, NO over-selling - just facts and professional assessment
+STYLE:
+- Professional and concise (busy recruiter reading quickly)
+- Evidence-based, mention 1-2 concrete facts from CV
+- MAXIMUM 120 words - be brief!
+- NO section headers like [Overall Assessment] - just write flowing text
 
 ═══════════════════════════════════════════════════
 📄 FORMAT DE SORTIE JSON
@@ -623,22 +591,7 @@ Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
             "commentaire": "Justification FACTUELLE ultra-détaillée basée sur des éléments PRÉCIS du CV avec années d'expérience, projets, réalisations, metrics. Minimum 2-3 phrases complètes."
         }}
     ],
-    "synthese_matching": "COMPREHENSIVE PROFESSIONAL ANALYSIS (4-6 DETAILED PARAGRAPHS, 250-350 WORDS):
-
-[Paragraph 1 - Overall Assessment]
-[Detailed assessment text...]
-
-[Paragraph 2 - Top Strengths]
-[Detailed strengths text...]
-
-[Paragraph 3 - Partial Matches]
-[Detailed partial matches text...]
-
-[Paragraph 4 - Gaps]
-[Detailed gaps text...]
-
-[Paragraph 5 - Final Recommendation]
-[Detailed recommendation text...]"
+    "synthese_matching": "Strong 68/100 match for Senior Full-Stack Developer role. Candidate brings 8 years of Python backend expertise with Django and FastAPI, plus proven cloud architecture experience with AWS, Docker, and Kubernetes. Led team of 4 developers through successful cloud migration achieving 60% deployment time reduction. Strong alignment on all critical technical requirements including microservices, CI/CD, and database optimization. Recommend proceeding to technical interview with high confidence in their senior-level capabilities and leadership experience."
 }}
 
 ⚠️ RÈGLES JSON CRITIQUES:
@@ -648,7 +601,13 @@ Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
 - La somme des poids doit faire exactement 100
 - Le score_matching doit être la somme exacte des scores de tous les domaines
 - Commentaire: minimum 2-3 phrases complètes avec détails factuels précis du CV
-- Synthèse: minimum 250 mots, 4-6 paragraphes distincts, détaillés et factuels
+- Synthèse: MAXIMUM 120 mots, 1 seul paragraphe fluide sans headers [Overall Assessment], [Strengths], etc.
+
+⚠️ CRITICAL FOR SYNTHESIS:
+- DO NOT write section headers like [Overall Assessment], [Top Strengths], [Gaps], [Recommendation]
+- DO NOT write multiple paragraphs with titles
+- WRITE ONE SINGLE FLOWING PARAGRAPH of 80-120 words maximum
+- Example: "Strong 68/100 match for Senior Full-Stack Developer role. Candidate brings 8 years..."
 
 ⚠️ LANGUE: ALL output must be in ENGLISH.
 - Domain names in English (e.g., "Python Backend Development", not "Développement Backend Python")
