@@ -361,10 +361,32 @@ def local_css():
             transform: translateY(0) !important;
         }}
         
-        /* Fallback: Target download button by data-testid if wrapper fails */
-        [data-testid="stDownloadButton"] button {{
+        /* ✨ V9 FIX: Force Download button to full width with green gradient */
+        [data-testid="stDownloadButton"] {{
+            width: 100% !important;
+        }}
+        
+        [data-testid="stDownloadButton"] > button {{
             background: linear-gradient(90deg, #22c55e 0%, #047857 100%) !important;
             color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.9rem 2rem !important;
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+            min-height: 60px !important;
+        }}
+        
+        [data-testid="stDownloadButton"] > button:hover {{
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.45) !important;
+            transform: translateY(-2px) !important;
+        }}
+        
+        [data-testid="stDownloadButton"] > button:active {{
+            transform: translateY(0) !important;
         }}
     </style>
     """, unsafe_allow_html=True)
@@ -713,7 +735,7 @@ def show_login_screen():
                     </linearGradient>
                 </defs>
                 <text x="50%" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="url(#titleGradient)" text-anchor="middle">
-                    🚀 CV Optimizer
+                    CV Optimizer
                 </text>
             </svg>
         </div>
@@ -741,26 +763,41 @@ def show_login_screen():
             key="location_select"
         )
         
+        # ✅ V9 FIX: Add password field
+        password = st.text_input(
+            "Password",
+            type="password",
+            key="password_input"
+        )
+        
         if st.button("🚀 Access CV Optimizer", use_container_width=True):
-            st.session_state.authenticated = True
-            st.session_state.user_name = name
-            st.session_state.user_location = location
-            st.session_state.login_time = datetime.now()
-            st.session_state.last_activity = datetime.now()
+            # Check password
+            correct_password = os.getenv('APP_PASSWORD') or st.secrets.get("APP_PASSWORD", "")
             
-            # Save to cookies
-            save_session_to_cookies()
-            
-            # Log to Airtable
-            log_to_airtable(name, "login", {"location": location})
-            
-            st.rerun()
+            if not correct_password:
+                st.error("❌ Password not configured on server. Contact administrator.")
+            elif password != correct_password:
+                st.error("❌ Incorrect password. Please try again.")
+            else:
+                st.session_state.authenticated = True
+                st.session_state.user_name = name
+                st.session_state.user_location = location
+                st.session_state.login_time = datetime.now()
+                st.session_state.last_activity = datetime.now()
+                
+                # Save to cookies
+                save_session_to_cookies()
+                
+                # Log to Airtable
+                log_to_airtable(name, "login", {"location": location})
+                
+                st.rerun()
     
     # Signature Ekinext at bottom of login page
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.markdown("""
     <div style="text-align: center; margin-top: 3rem; font-size: 0.85rem; color: #6B7280;">
-        Made by <strong>Ekinext</strong>
+        Made by <strong>Kevin Abecassis | Ekinext</strong> © 2025
     </div>
     """, unsafe_allow_html=True)
 
@@ -1268,37 +1305,40 @@ def display_matching_results(data):
             score_level = "Weak match"
         
         # Build summary text
-        summary_parts = []
-        summary_parts.append(f"{score_level} with {score}/100 score.")
+        # ✨ V9 FIX: Use Claude's comprehensive synthesis instead of auto-generated one
+        # Claude provides 4-6 paragraph detailed analysis (250-350 words)
+        generated_summary = results.get('synthese_matching', '')
         
-        if total_years > 0:
-            summary_parts.append(f"Candidate has {total_years} years of experience.")
-        
-        if strong_domains:
-            if len(strong_domains) > 3:
-                domains_text = ", ".join(strong_domains[:3]) + f", and {len(strong_domains)-3} other domains"
-            else:
-                domains_text = ", ".join(strong_domains)
-            summary_parts.append(f"Exceeds requirements in: {domains_text}.")
-        
-        if partial_domains:
-            if len(partial_domains) > 2:
-                summary_parts.append(f"Partial match in {len(partial_domains)} domains.")
-            else:
-                domains_text = ", ".join(partial_domains)
-                summary_parts.append(f"Partial match in: {domains_text}.")
-        
-        if missing_domains:
-            if len(missing_domains) > 2:
-                summary_parts.append(f"Gaps identified in {len(missing_domains)} areas.")
-            else:
-                domains_text = ", ".join(missing_domains)
-                summary_parts.append(f"Gap in: {domains_text}.")
-        
-        # Recommendation based on score - REMOVED per user request
-        # Users typically show this summary when presenting to clients, not for interview stage
-        
-        generated_summary = " ".join(summary_parts)
+        # Fallback: If synthesis is missing, generate short summary
+        if not generated_summary or len(generated_summary.strip()) < 50:
+            summary_parts = []
+            summary_parts.append(f"{score_level} with {score}/100 score.")
+            
+            if total_years > 0:
+                summary_parts.append(f"Candidate has {total_years} years of experience.")
+            
+            if strong_domains:
+                if len(strong_domains) > 3:
+                    domains_text = ", ".join(strong_domains[:3]) + f", and {len(strong_domains)-3} other domains"
+                else:
+                    domains_text = ", ".join(strong_domains)
+                summary_parts.append(f"Exceeds requirements in: {domains_text}.")
+            
+            if partial_domains:
+                if len(partial_domains) > 2:
+                    summary_parts.append(f"Partial match in {len(partial_domains)} domains.")
+                else:
+                    domains_text = ", ".join(partial_domains)
+                    summary_parts.append(f"Partial match in: {domains_text}.")
+            
+            if missing_domains:
+                if len(missing_domains) > 2:
+                    summary_parts.append(f"Gaps identified in {len(missing_domains)} areas.")
+                else:
+                    domains_text = ", ".join(missing_domains)
+                    summary_parts.append(f"Gap in: {domains_text}.")
+            
+            generated_summary = " ".join(summary_parts)
         
         st.markdown(f"""
         <div style="
@@ -1312,7 +1352,7 @@ def display_matching_results(data):
                 <div style="font-size: 1.8rem; margin-right: 14px;">📊</div>
                 <div>
                     <div style="font-weight: 700; color: #1e40af; font-size: 1.25rem; margin-bottom: 10px;">Analysis Summary</div>
-                    <div style="color: #1e3a8a; line-height: 1.7; font-size: 1.05rem;">{generated_summary}</div>
+                    <div style="color: #1e3a8a; line-height: 1.7; font-size: 1.05rem; white-space: pre-line;">{generated_summary}</div>
                 </div>
             </div>
         </div>
@@ -1600,7 +1640,7 @@ def show_footer():
         f"""
         <div class='tmc-footer'>
             <strong>TMC CV Optimizer V1.3.9</strong> — Designed for TMC Business Managers & Recruiters<br>
-            Made by <strong>Ekinext</strong> | Powered by Streamlit & Claude AI
+            Made by <strong>Kevin Abecassis | Ekinext</strong> © 2025
         </div>
         """,
         unsafe_allow_html=True,
