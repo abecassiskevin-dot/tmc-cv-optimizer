@@ -755,6 +755,14 @@ def show_login_screen():
             log_to_airtable(name, "login", {"location": location})
             
             st.rerun()
+    
+    # Signature Ekinext at bottom of login page
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align: center; margin-top: 3rem; font-size: 0.85rem; color: #6B7280;">
+        Made by <strong>Ekinext</strong>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # 🏠 MAIN APPLICATION
