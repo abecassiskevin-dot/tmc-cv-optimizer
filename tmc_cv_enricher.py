@@ -1469,7 +1469,7 @@ Return the corrected JSON directly:"""
                     fix_response = client.messages.create(
                         model="claude-sonnet-4-5-20250929",
                         max_tokens=8000,
-                        timeout=60.0,
+                        timeout=300.0,  # Same as main enrichment call
                         messages=[{"role": "user", "content": fix_prompt}]
                     )
                     
