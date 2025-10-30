@@ -687,13 +687,20 @@ def clear_session():
 # ==========================================
 
 def log_to_airtable(user_name, event_type, metadata=None):
-    """Log events to Airtable"""
+    """Log events to Airtable - maps to all available fields"""
+    print(f"🔍 AIRTABLE LOG CALLED: {event_type} by {user_name}", flush=True)
+    
     try:
         AIRTABLE_TOKEN = os.getenv('AIRTABLE_TOKEN') or st.secrets.get("AIRTABLE_TOKEN")
         AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID') or st.secrets.get("AIRTABLE_BASE_ID")
         AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME') or st.secrets.get("AIRTABLE_TABLE_NAME")
         
+        print(f"   Token present: {bool(AIRTABLE_TOKEN)}", flush=True)
+        print(f"   Base ID: {AIRTABLE_BASE_ID}", flush=True)
+        print(f"   Table: {AIRTABLE_TABLE_NAME}", flush=True)
+        
         if not all([AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME]):
+            print(f"❌ AIRTABLE: Missing config - Token:{bool(AIRTABLE_TOKEN)} BaseID:{bool(AIRTABLE_BASE_ID)} Table:{bool(AIRTABLE_TABLE_NAME)}", flush=True)
             return
         
         url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
@@ -702,19 +709,65 @@ def log_to_airtable(user_name, event_type, metadata=None):
             "Content-Type": "application/json"
         }
         
+        # Parse user_name into First Name and Last Name
+        name_parts = user_name.strip().split(maxsplit=1)
+        first_name = name_parts[0] if len(name_parts) > 0 else user_name
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        
+        # Base fields (always present)
         fields = {
             "User": user_name,
+            "First Name": first_name,
+            "Last Name": last_name,
             "Event_Type": event_type,
-            "Timestamp": datetime.now().isoformat(),
+            "Timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),  # Format sans microsecondes
         }
         
+        # Add metadata as JSON string
         if metadata:
             fields["Metadata"] = json.dumps(metadata)
+            
+            # Map metadata fields to dedicated Airtable columns
+            if "location" in metadata:
+                fields["User Location"] = metadata["location"]
+            
+            if "candidate_name" in metadata:
+                fields["Candidate Name"] = metadata["candidate_name"]
+            
+            if "score" in metadata:
+                fields["Matching Score"] = metadata["score"]
+            
+            if "language" in metadata:
+                # Map to single select options (French or English)
+                lang = metadata["language"]
+                if lang in ["French", "English"]:
+                    fields["Language"] = lang
+            
+            if "processing_time" in metadata:
+                fields["Processing Time"] = metadata["processing_time"]
+            
+            if "total_tokens" in metadata:
+                fields["Total Tokens"] = metadata["total_tokens"]
+            
+            if "estimated_cost" in metadata:
+                fields["Estimated Cost ($)"] = metadata["estimated_cost"]
         
         data = {"fields": fields}
-        requests.post(url, headers=headers, json=data)
-    except:
-        pass
+        
+        print(f"📤 AIRTABLE: Sending {len(fields)} fields...", flush=True)
+        response = requests.post(url, headers=headers, json=data, timeout=5)
+        
+        print(f"📥 AIRTABLE: Response {response.status_code}", flush=True)
+        
+        if response.status_code == 200:
+            print(f"✅ AIRTABLE: Log sent successfully!", flush=True)
+        else:
+            print(f"❌ AIRTABLE: Error {response.status_code} - {response.text[:200]}", flush=True)
+            
+    except Exception as e:
+        print(f"❌ AIRTABLE EXCEPTION: {repr(e)}", flush=True)
+        import traceback
+        print(traceback.format_exc(), flush=True)
 
 # ==========================================
 # 🔓 LOGIN SCREEN
