@@ -198,7 +198,7 @@ def local_css():
             transition: all 0.3s ease !important;
             box-shadow: 0 4px 14px rgba(25, 62, 146, 0.25) !important;
             width: 100% !important;
-            min-height: 60px !important;  /* ✨ NEW: Match Download button height */
+            min-height: 60px !important;  /* ✨ MATCHED: Same as Download button */
         }}
         
         .stButton>button:hover {{
@@ -343,13 +343,13 @@ def local_css():
             color: white !important;
             border: none !important;
             border-radius: 12px !important;
-            padding: 0.9rem 2rem !important;  /* ✨ MATCHED with Generate button */
+            padding: 0.9rem 2rem !important;  /* ✨ MATCHED: Same as Generate button */
             font-weight: 700 !important;
             font-size: 1.1rem !important;
             box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
             transition: all 0.3s ease !important;
             width: 100% !important;
-            min-height: 60px !important;  /* ✨ Same height as Generate */
+            min-height: 60px !important;  /* ✨ MATCHED: Same height as Generate */
         }}
         
         #download-btn-wrapper button:hover {{
@@ -896,11 +896,12 @@ def main_app():
                     </linearGradient>
                 </defs>
                 <text x="50%" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="url(#titleGradient)" text-anchor="middle">
-                    &#x1F680;&#xFE0E; CV Optimizer
+                    CV Optimizer
                 </text>
             </svg>
         </div>
-        <p class="tmc-subtitle">Generate a professional TMC CV perfectly aligned with your Job Description — Designed for Business Managers and Recruiters</p>
+        <p class="tmc-subtitle">Generate a professional TMC CV perfectly aligned with your Job Description</p>
+        <p class="tmc-subtitle" style="margin-top: 0.2rem; font-size: 0.95rem;">Designed for Business Managers and Recruiters</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -947,9 +948,12 @@ def main_app():
             key="language_selector"
         )
         st.session_state.selected_language = language.split()[1]
+        # ✅ DEBUG: Confirm language stored
+        print(f"🌐 CAE Language selected and stored: {st.session_state.selected_language}", flush=True)
     else:
         # Set language based on client
         st.session_state.selected_language = CLIENT_DATA[st.session_state.selected_client]["language"]
+        print(f"🌐 {st.session_state.selected_client} Language auto-set: {st.session_state.selected_language}", flush=True)
     
     # Analyze button (only show if Generate button is not active)
     if not st.session_state.show_generate_button:
@@ -1390,6 +1394,10 @@ def generate_cv(data):
         # Step 1: Enrichment
         timeline_placeholder.markdown(horizontal_progress_timeline(1, 3, generation_steps), unsafe_allow_html=True)
         
+        # ✅ DEBUG: Log selected language
+        print(f"🌐 LANGUAGE SELECTED: {st.session_state.selected_language}", flush=True)
+        print(f"📋 CLIENT: {st.session_state.selected_client}", flush=True)
+        
         enriched_cv = enricher.enrich_cv_with_prompt(
             data['parsed_cv'],
             data['jd_text'],
@@ -1468,7 +1476,9 @@ def generate_cv(data):
             # Generate filename with correct format per client
             parsed_cv = data.get('parsed_cv', {})
             nom_complet = parsed_cv.get('nom_complet', 'Candidate')
-            titre = parsed_cv.get('titre_professionnel', 'Profile')
+            
+            # ✅ FIX: Use ENRICHED title (in correct language) instead of original
+            titre = enriched_cv.get('titre_professionnel_enrichi', parsed_cv.get('titre_professionnel', 'Profile'))
             
             # Format name as "Prenom NOM" (last name in uppercase)
             import re
@@ -1581,8 +1591,8 @@ def show_footer():
     st.markdown(
         f"""
         <div class='tmc-footer'>
-            <strong>CV Optimizer</strong> — Designed for TMC Business Managers & Recruiters<br>
-            Made by <strong>Kevin Abecassis</strong> | Ekinext ©
+            <strong>TMC CV Optimizer V1.3.4 FIXED</strong> — Designed for TMC Business Managers & Recruiters<br>
+            Made by <strong>Kevin Abecassis</strong> | Powered by Streamlit & Claude AI
         </div>
         """,
         unsafe_allow_html=True,
