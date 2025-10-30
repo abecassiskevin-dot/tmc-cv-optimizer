@@ -502,7 +502,7 @@ Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
             "commentaire": "Justification factuelle basée sur des éléments du CV"
         }}
     ],
-    "synthese_matching": "Synthèse qualitative en 2-3 phrases"
+    "synthese_matching": "COMPREHENSIVE ANALYSIS in 4-6 detailed paragraphs covering: Overall Assessment (match level + score + seniority), Key Strengths (3-4 specific skills with examples), Partial Matches (2-3 transferable areas), Critical Gaps (2-3 missing requirements), and Final Recommendation (clear hiring decision with reasons). 200-300 words, professional analytical tone. ALWAYS IN ENGLISH."
 }}
 
 ⚠️ RÈGLES JSON:
@@ -952,7 +952,15 @@ RÉSULTAT:
     }}
   ],
   "score_matching": 45,
-  "synthese_matching": "Profil Java senior inadapté pour poste .NET. Gap critique sur stack principale (0/40). Compétences transférables en cloud et SQL, mais nécessite reconversion majeure."
+  "synthese_matching": "PARTIAL MATCH (45/100) - This Java senior profile presents significant challenges for a .NET-focused role, though some transferable competencies exist.
+
+KEY STRENGTHS: The candidate brings 8+ years of enterprise software development experience with proven expertise in cloud platforms (AWS/Azure) and database technologies (PostgreSQL, MySQL). Their experience leading technical teams and architecting scalable solutions demonstrates strong senior-level capabilities. The containerization skills (Docker, Kubernetes) mentioned in their current role are highly relevant.
+
+PARTIAL MATCHES: While the candidate's SQL database experience is strong and transferable to SQL Server, their cloud platform knowledge (AWS/Azure fundamentals) provides a foundation that could accelerate learning of Azure-specific services required for this role. Their experience with agile methodologies and team leadership aligns well with the position's requirements.
+
+CRITICAL GAPS: The most significant concern is the complete absence of .NET stack experience (C#, ASP.NET, Entity Framework), which represents 40% of the role's core requirements (0/40 points). The candidate would require substantial retraining on the entire Microsoft technology stack. Additionally, there's no evidence of Azure-specific service experience (Azure Functions, Service Bus, etc.) beyond basic cloud concepts.
+
+RECOMMENDATION: This profile requires major reconversion and is NOT recommended for immediate placement. Consider only if: (1) the client accepts a 3-6 month ramp-up period, (2) candidate demonstrates strong motivation to transition to .NET, and (3) budget allows for extensive training investment. For urgent needs, seek candidates with existing .NET experience."
 }}
 
 Fais :
@@ -982,7 +990,19 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
     }}
   ],
   "score_matching": 45,
-  "synthese_matching": "Résumé 2-3 phrases du matching global avec points forts et gaps critiques",
+  "synthese_matching": "COMPREHENSIVE ANALYSIS (4-6 paragraphs, 200-300 words):
+  
+  Paragraph 1 - Overall Assessment: Start with the match level (Excellent/Strong/Partial/Weak) and score. Provide 2-3 sentences explaining the overall fit and candidate's seniority level.
+  
+  Paragraph 2 - Key Strengths: Detail the candidate's strongest areas (3-4 specific technical skills or experiences) that align perfectly with the job. Be specific with technologies and years of experience. Use examples from their CV.
+  
+  Paragraph 3 - Partial Matches: Explain areas where the candidate has transferable skills or relevant but not perfect experience (2-3 areas). Describe how these could still add value to the role.
+  
+  Paragraph 4 - Critical Gaps: Identify any significant missing requirements (2-3 areas max). Explain the impact of these gaps on the candidate's ability to succeed in the role.
+  
+  Paragraph 5 - Recommendation: Provide a clear hiring recommendation with 2-3 specific reasons. For partial matches, suggest what additional training or support might be needed.
+  
+  Write in professional, analytical tone. Use concrete examples. Be honest about weaknesses while highlighting potential. ALWAYS WRITE IN ENGLISH.",
   
   "titre_professionnel_enrichi": "TITRE COURT en {language} (3-5 mots max)",
   
