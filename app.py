@@ -688,19 +688,39 @@ def clear_session():
 
 def log_to_airtable(user_name, event_type, metadata=None):
     """Log events to Airtable"""
-    print(f"🔍 AIRTABLE LOG CALLED: {event_type} by {user_name}", flush=True)
-    
     try:
-        AIRTABLE_TOKEN = os.getenv('AIRTABLE_TOKEN') or st.secrets.get("AIRTABLE_TOKEN")
-        AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID') or st.secrets.get("AIRTABLE_BASE_ID")
-        AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME') or st.secrets.get("AIRTABLE_TABLE_NAME")
+        print(f"🔍 AIRTABLE LOG CALLED: {event_type} by {user_name}", flush=True)
         
-        print(f"   Token present: {bool(AIRTABLE_TOKEN)}", flush=True)
-        print(f"   Base ID: {AIRTABLE_BASE_ID}", flush=True)
-        print(f"   Table: {AIRTABLE_TABLE_NAME}", flush=True)
+        # Get config from env vars first, fallback to secrets only if needed
+        AIRTABLE_TOKEN = os.getenv('AIRTABLE_TOKEN')
+        AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID')
+        AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME')
+        
+        # Only try secrets if env vars are None
+        if not AIRTABLE_TOKEN:
+            try:
+                AIRTABLE_TOKEN = st.secrets.get("AIRTABLE_TOKEN")
+            except:
+                pass
+        
+        if not AIRTABLE_BASE_ID:
+            try:
+                AIRTABLE_BASE_ID = st.secrets.get("AIRTABLE_BASE_ID")
+            except:
+                pass
+                
+        if not AIRTABLE_TABLE_NAME:
+            try:
+                AIRTABLE_TABLE_NAME = st.secrets.get("AIRTABLE_TABLE_NAME")
+            except:
+                pass
+        
+        print(f"  Token present: {bool(AIRTABLE_TOKEN)}", flush=True)
+        print(f"  Base ID: {AIRTABLE_BASE_ID}", flush=True)
+        print(f"  Table: {AIRTABLE_TABLE_NAME}", flush=True)
         
         if not all([AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME]):
-            print(f"❌ AIRTABLE: Missing config - Token:{bool(AIRTABLE_TOKEN)} BaseID:{bool(AIRTABLE_BASE_ID)} Table:{bool(AIRTABLE_TABLE_NAME)}", flush=True)
+            print("⚠️ Missing Airtable config - skipping log", flush=True)
             return
         
         url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
@@ -720,15 +740,14 @@ def log_to_airtable(user_name, event_type, metadata=None):
         
         data = {"fields": fields}
         
-        print(f"📤 AIRTABLE: Sending POST to {url[:50]}...", flush=True)
+        print(f"📤 Sending to Airtable...", flush=True)
         response = requests.post(url, headers=headers, json=data, timeout=5)
         
-        print(f"📥 AIRTABLE: Response {response.status_code}", flush=True)
-        
-        if response.status_code == 200:
-            print(f"✅ AIRTABLE: Log sent successfully!", flush=True)
+        print(f"📥 Airtable response: {response.status_code}", flush=True)
+        if response.status_code != 200:
+            print(f"❌ Error: {response.text}", flush=True)
         else:
-            print(f"❌ AIRTABLE: Error {response.status_code} - {response.text[:200]}", flush=True)
+            print(f"✅ Log sent successfully", flush=True)
             
     except Exception as e:
         print(f"❌ AIRTABLE EXCEPTION: {repr(e)}", flush=True)
@@ -1324,34 +1343,12 @@ def display_matching_results(data):
             score_level = "Weak match"
         
         # Build summary text
-        # ✨ V1.3.10: Extract only the first paragraph (Overall Assessment) from Claude's synthesis
-        full_synthesis = results.get('synthese_matching', '')
+        # ✨ V9 FIX: Use Claude's comprehensive synthesis instead of auto-generated one
+        # Claude provides 4-6 paragraph detailed analysis (250-350 words)
+        generated_summary = results.get('synthese_matching', '')
         
-        # Extract first paragraph only
-        if full_synthesis and len(full_synthesis.strip()) >= 50:
-            # Split by double newlines or look for [Top Strengths] marker
-            paragraphs = full_synthesis.split('\n\n')
-            
-            # Get first paragraph (skip header if present)
-            first_para = paragraphs[0].strip()
-            if first_para.startswith('[Overall Assessment]'):
-                first_para = first_para.replace('[Overall Assessment]', '').strip()
-            elif first_para.startswith('COMPREHENSIVE PROFESSIONAL ANALYSIS:'):
-                # Skip the header line and get next paragraph
-                first_para = paragraphs[1].strip() if len(paragraphs) > 1 else first_para
-                if first_para.startswith('[Overall Assessment]'):
-                    first_para = first_para.replace('[Overall Assessment]', '').strip()
-            
-            # Stop at next section marker
-            if '[Top Strengths]' in first_para:
-                first_para = first_para.split('[Top Strengths]')[0].strip()
-            elif '[Paragraph 2' in first_para:
-                first_para = first_para.split('[Paragraph 2')[0].strip()
-            
-            generated_summary = first_para
-        
-        # Fallback: If synthesis is missing or extraction failed, generate short summary
-        elif not full_synthesis or len(full_synthesis.strip()) < 50:
+        # Fallback: If synthesis is missing, generate short summary
+        if not generated_summary or len(generated_summary.strip()) < 50:
             summary_parts = []
             summary_parts.append(f"{score_level} with {score}/100 score.")
             
