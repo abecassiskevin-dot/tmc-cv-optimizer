@@ -1591,8 +1591,8 @@ def show_footer():
     st.markdown(
         f"""
         <div class='tmc-footer'>
-            <strong>TMC CV Optimizer V1.3.4 FIXED</strong> — Designed for TMC Business Managers & Recruiters<br>
-            Made by <strong>Kevin Abecassis</strong> | Powered by Streamlit & Claude AI
+            <strong>TMC CV Optimizer V1.3.9</strong> — Designed for TMC Business Managers & Recruiters<br>
+            Made by <strong>Ekinext</strong> | Powered by Streamlit & Claude AI
         </div>
         """,
         unsafe_allow_html=True,
