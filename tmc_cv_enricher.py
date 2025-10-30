@@ -659,12 +659,46 @@ Génère l'analyse maintenant:"""
             
             print(f">>> Calling Claude API for matching analysis...", flush=True)
             
-            response = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=4000,
-                timeout=60.0,
-                messages=[{"role": "user", "content": prompt}]
-            )
+            # ✅ RETRY LOGIC FOR TIMEOUTS
+            max_retries = 2
+            response = None
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    response = client.messages.create(
+                        model="claude-sonnet-4-5-20250929",
+                        max_tokens=4000,
+                        timeout=900.0,  # 15 minutes
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    break  # Success - exit retry loop
+                    
+                except Exception as e:
+                    last_error = e
+                    error_name = type(e).__name__
+                    
+                    # Check if it's a timeout error
+                    if 'timeout' in error_name.lower() or 'timeout' in str(e).lower():
+                        if attempt < max_retries - 1:
+                            print(f"⏱️ Timeout attempt {attempt+1}/{max_retries}, retrying...", flush=True)
+                            continue
+                        else:
+                            # Final timeout - return error result
+                            print(f"❌ Final timeout after {max_retries} attempts", flush=True)
+                            return {
+                                'error': 'timeout',
+                                'score_matching': 0,
+                                'domaines_analyses': [],
+                                'synthese_matching': "⏱️ L'analyse a pris trop de temps (timeout après plusieurs tentatives). Veuillez réessayer avec un CV plus court ou contactez le support."
+                            }
+                    else:
+                        # Other error - re-raise
+                        raise
+            
+            if response is None:
+                # Should not happen, but safety check
+                raise last_error
             
             # Extraire tokens
             usage = response.usage
@@ -694,15 +728,6 @@ Génère l'analyse maintenant:"""
                 # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence
                 # Somme des scores de tous les domaines
                 if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
-                    # ✅ V1.3.10 FIX: Cap individual scores at their score_max
-                    for domaine in matching_result['domaines_analyses']:
-                        score = domaine.get('score', 0)
-                        score_max = domaine.get('score_max', 0)
-                        
-                        if score > score_max:
-                            print(f"⚠️ Score cap: {domaine.get('domaine', 'Unknown')} had {score}/{score_max} → capped to {score_max}/{score_max}")
-                            domaine['score'] = score_max
-                    
                     calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
                     original_score = matching_result.get('score_matching', 0)
                     
@@ -731,12 +756,40 @@ Génère l'analyse maintenant:"""
 
 Return the corrected JSON directly:"""
                 
-                fix_response = client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=4000,
-                    timeout=60.0,
-                    messages=[{"role": "user", "content": fix_prompt}]
-                )
+                # ✅ RETRY LOGIC FOR JSON FIX
+                fix_response = None
+                for fix_attempt in range(2):
+                    try:
+                        fix_response = client.messages.create(
+                            model="claude-sonnet-4-5-20250929",
+                            max_tokens=4000,
+                            timeout=300.0,  # 5 minutes for fix
+                            messages=[{"role": "user", "content": fix_prompt}]
+                        )
+                        break
+                    except Exception as fix_error:
+                        if 'timeout' in type(fix_error).__name__.lower() or 'timeout' in str(fix_error).lower():
+                            if fix_attempt < 1:
+                                print(f"⏱️ JSON fix timeout, retrying...", flush=True)
+                                continue
+                            else:
+                                # Can't fix JSON - return error
+                                return {
+                                    'error': 'json_parse_timeout',
+                                    'score_matching': 0,
+                                    'domaines_analyses': [],
+                                    'synthese_matching': "❌ Erreur de parsing JSON et timeout lors de la correction. Veuillez réessayer."
+                                }
+                        else:
+                            raise
+                
+                if fix_response is None:
+                    return {
+                        'error': 'json_fix_failed',
+                        'score_matching': 0,
+                        'domaines_analyses': [],
+                        'synthese_matching': "❌ Impossible de corriger le JSON malformé."
+                    }
                 
                 fixed_text = fix_response.content[0].text.strip()
                 if fixed_text.startswith('```json'):
