@@ -16,13 +16,51 @@ import re
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 
-# === NOUVEAUX IMPORTS POUR OCR ===
-from pdf2image import convert_from_path
-import pytesseract
-from PIL import Image
-import tempfile
-
 print(">>> tmc_universal_enricher module loading", flush=True)
+
+
+def fix_table_width_to_auto(doc):
+    """
+    Change table width from fixed to auto to prevent horizontal shift after merge.
+    
+    This fixes the issue where Skills Matrix tables with fixed width (e.g., 8.1 inches)
+    get shifted right after merging because they don't fit within the page margins.
+    
+    Args:
+        doc: Document object to fix
+    
+    Returns:
+        int: Number of tables fixed
+    """
+    w = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+    tables_fixed = 0
+    
+    for table in doc.tables:
+        tbl = table._element
+        tblPr = tbl.find(f'.//{w}tblPr')
+        
+        if tblPr is not None:
+            # Find and fix tblW (table width)
+            tblW = tblPr.find(f'.//{w}tblW')
+            if tblW is not None:
+                old_type = tblW.get(f'{w}type', 'unknown')
+                old_w = tblW.get(f'{w}w', 'unknown')
+                
+                # Change to auto width
+                tblW.set(f'{w}type', 'auto')
+                tblW.set(f'{w}w', '0')
+                
+                print(f"   🔧 Table width changed: {old_type}={old_w} → auto=0")
+                tables_fixed += 1
+            
+            # Remove fixed layout if present
+            tblLayout = tblPr.find(f'.//{w}tblLayout')
+            if tblLayout is not None:
+                old_layout = tblLayout.get(f'{w}type', 'unknown')
+                tblPr.remove(tblLayout)
+                print(f"   🔧 Removed tblLayout: {old_layout}")
+    
+    return tables_fixed
 
 
 class TMCUniversalEnricher:
@@ -71,100 +109,18 @@ class TMCUniversalEnricher:
             return 'unknown'
     
     def extract_from_pdf(self, file_path: str) -> str:
-        """
-        Extraire texte d'un PDF avec fallback OCR automatique
-        1. Essaye PyPDF2 pour texte sélectionnable
-        2. Si échec/texte vide → Utilise OCR sur images
-        """
-        print(f"📄 Extracting PDF: {file_path}", flush=True)
-        
+        """Extraire texte d'un PDF"""
         try:
-            # ===== ÉTAPE 1: Tentative extraction PyPDF2 =====
             text = []
             with open(file_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
-                num_pages = len(pdf_reader.pages)
-                print(f"📊 PDF has {num_pages} pages", flush=True)
-                
-                for page_num, page in enumerate(pdf_reader.pages, 1):
+                for page in pdf_reader.pages:
                     page_text = page.extract_text()
                     if page_text:
                         text.append(page_text)
-                    print(f"  Page {page_num}: {len(page_text) if page_text else 0} chars", flush=True)
-            
-            extracted_text = "\n".join(text).strip()
-            
-            # ===== VÉRIFIER SI L'EXTRACTION A FONCTIONNÉ =====
-            # Seuil: Si moins de 100 caractères ou trop peu de mots → C'est scanné
-            word_count = len(extracted_text.split())
-            char_count = len(extracted_text)
-            
-            print(f"📈 PyPDF2 extraction: {char_count} chars, {word_count} words", flush=True)
-            
-            # Si extraction suffisante → Retourner
-            if char_count > 100 and word_count > 20:
-                print("✅ PDF text extraction successful (text-based PDF)", flush=True)
-                return extracted_text
-            
-            # ===== ÉTAPE 2: PDF scanné détecté → OCR =====
-            print("⚠️ PDF appears to be scanned (image-based). Switching to OCR...", flush=True)
-            return self._extract_from_pdf_ocr(file_path)
-            
+            return "\n".join(text)
         except Exception as e:
-            print(f"❌ Error in PDF extraction: {e}", flush=True)
-            # En cas d'erreur PyPDF2, essayer quand même OCR
-            try:
-                print("🔄 Trying OCR as fallback...", flush=True)
-                return self._extract_from_pdf_ocr(file_path)
-            except Exception as e2:
-                print(f"❌ OCR fallback also failed: {e2}", flush=True)
-                return ""
-    
-    def _extract_from_pdf_ocr(self, file_path: str) -> str:
-        """
-        Extraire texte d'un PDF scanné via OCR
-        Utilise pdf2image + pytesseract
-        """
-        print("🔍 Starting OCR extraction...", flush=True)
-        
-        try:
-            # Convertir PDF en images (une par page)
-            # poppler_path peut être nécessaire sur Windows, mais pas sur Linux/Render
-            images = convert_from_path(
-                file_path,
-                dpi=300,  # Haute résolution pour meilleur OCR
-                fmt='jpeg',
-                thread_count=2  # Parallélisation
-            )
-            
-            print(f"📷 Converted {len(images)} pages to images", flush=True)
-            
-            # Extraire texte de chaque image
-            all_text = []
-            for i, image in enumerate(images, 1):
-                print(f"  🔎 OCR processing page {i}/{len(images)}...", flush=True)
-                
-                # Appliquer OCR avec config optimisée
-                # lang='eng+fra' pour anglais ET français
-                page_text = pytesseract.image_to_string(
-                    image,
-                    lang='eng+fra',  # Anglais + Français
-                    config='--psm 1 --oem 3'  # PSM 1 = automatic page segmentation with OSD
-                )
-                
-                if page_text.strip():
-                    all_text.append(f"--- Page {i} ---\n{page_text}")
-                    print(f"  ✓ Page {i}: {len(page_text)} chars extracted", flush=True)
-            
-            extracted_text = "\n\n".join(all_text)
-            print(f"✅ OCR extraction complete: {len(extracted_text)} chars total", flush=True)
-            
-            return extracted_text
-            
-        except Exception as e:
-            print(f"❌ OCR extraction failed: {e}", flush=True)
-            import traceback
-            print(traceback.format_exc(), flush=True)
+            print(f"⚠️ Erreur extraction PDF: {e}")
             return ""
     
      
@@ -428,92 +384,190 @@ EXPÉRIENCES:
             for form in parsed_cv.get('formation', []):
                 cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
         
-            # PROMPT FOCALISÉ SUR L'ANALYSE DE MATCHING UNIQUEMENT
-            prompt = f"""Tu es un système d'évaluation automatisé qui analyse le matching entre CV et Job Description.
+            # PROMPT FOCALISÉ SUR L'ANALYSE DE MATCHING UNIQUEMENT - VERSION ULTRA-STRICTE V1.3.9
+            prompt = f"""Tu es un système d'évaluation automatisé ULTRA-STRICT qui analyse le matching entre CV et Job Description.
 
-🎯 ANALYSE DE MATCHING PONDÉRÉE (ULTRA-CRITIQUE - COHÉRENCE ABSOLUE REQUISE):
+🎯 ANALYSE DE MATCHING PONDÉRÉE (VERSION ULTRA-STRICTE V1.3.9):
 
-⚠️ PRINCIPE FONDAMENTAL DE COHÉRENCE - MÉTHODOLOGIE STRICTE:
-- Tu es un SYSTÈME D'ÉVALUATION AUTOMATISÉ, pas un humain
-- Pour le MÊME CV et la MÊME JD → EXACTEMENT le même score à chaque fois
-- Utilise une grille d'évaluation MATHÉMATIQUE et REPRODUCTIBLE
-- Agis comme un ALGORITHME, pas comme un recruteur subjectif
-- Chaque critère suit des règles BINAIRES strictes (oui/non, présent/absent)
-- Tu DOIS pouvoir justifier CHAQUE point attribué avec des FAITS du CV
-- Si tu hésites entre 2 scores → prends le PLUS BAS (principe de strictness)
+⚠️ PRINCIPE FONDAMENTAL - ÉVALUATION ULTRA-RIGOUREUSE:
+- Tu es un RECRUTEUR SENIOR EXTRÊMEMENT EXIGEANT avec 15+ ans d'expérience
+- Tu recrutes pour des postes CRITIQUES où l'excellence est la norme
+- CHAQUE point doit être MÉRITÉ avec des PREUVES CONCRÈTES du CV
+- Si tu hésites entre 2 scores → TOUJOURS prends le PLUS BAS
+- Agis comme si tu recrutais pour ton propre argent (zéro tolérance pour l'approximation)
+- Pour le MÊME CV et la MÊME JD → EXACTEMENT le même score à chaque fois (cohérence algorithmique)
 
 🔴 RÈGLE D'OR - SCORE GLOBAL = SOMME DOMAINES:
 - Le score_matching FINAL = somme EXACTE de tous les scores de domaines
 - VÉRIFIE 3 FOIS avant de répondre: somme des scores = score_matching
-- Si tu calcules 37/100 en sommant les domaines → score_matching DOIT être 37
+- Si tu calcules 58/100 en sommant les domaines → score_matching DOIT être 58
 - NE JAMAIS inventer un score global différent de la somme calculée
 
-ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES (MÉTHODE ALGORITHIMQUE):
+═══════════════════════════════════════════════════
+📋 ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES
+═══════════════════════════════════════════════════
 
-📋 PROCESSUS AUTOMATIQUE D'IDENTIFICATION:
-1. Scan complet de la JD - repérer TOUS les mots techniques
-2. Compter la fréquence EXACTE de chaque technologie/compétence
-3. Créer une liste de domaines par ordre d'importance
-4. Appliquer la formule de pondération ci-dessous
+PROCESSUS AUTOMATIQUE D'IDENTIFICATION:
+1. Scan complet de la JD - repérer TOUS les mots techniques/compétences
+2. Compter la fréquence EXACTE de chaque technologie/compétence/méthodologie
+3. Identifier les must-haves vs nice-to-haves
+4. Créer une liste de domaines par ordre d'importance
+5. Appliquer la formule de pondération ci-dessous
 
 📊 FORMULE DE PONDÉRATION MATHÉMATIQUE:
 Pour chaque domaine, calcule son poids avec:
-- Poids = (Mentions_JD × 10) + (Niveau_requis × 5) + Bonus_contexte
-  * Mentions_JD: Nombre de fois mentionné dans la JD (1-3+)
-  * Niveau_requis: Must-have=3, Important=2, Nice-to-have=1
-  * Bonus_contexte: +5 si dans le titre du poste, +3 si dans requirements clés
+Poids = (Mentions_JD × 10) + (Niveau_requis × 5) + Bonus_contexte
+
+Où:
+- Mentions_JD: Nombre de fois mentionné dans JD (1=once, 2=2-3 times, 3=4+ times)
+- Niveau_requis: Must-have/Required=3, Important=2, Nice-to-have=1
+- Bonus_contexte: +5 si dans le titre du poste, +3 si dans top requirements
 
 💡 EXEMPLES DE DOMAINES TYPES:
-- Technologies (ex: "SharePoint", "Power BI", "Python")
-- Méthodologies (ex: "Agile", "ITIL", "DevOps")
-- Compétences métier (ex: "Data Analysis", "Project Management")
-- Certifications (ex: "PMP", "AWS Certified")
-- Langues (ex: "Bilingual French/English")
+- Technologies spécifiques (ex: "Python Django", "AWS Lambda", "React Native")
+- Méthodologies (ex: "Agile/Scrum", "ITIL v4", "DevOps CI/CD")
+- Compétences métier (ex: "Financial Modeling", "Clinical Trials Management")
+- Certifications (ex: "PMP", "AWS Solutions Architect", "CPA")
+- Langues avec niveau (ex: "Bilingual French/English C1+", "Spanish Business Level")
+- Soft skills MESURABLES (ex: "Team Leadership 10+ people", "Stakeholder Management C-Suite")
 
 ⚠️ INTERDICTIONS ABSOLUES:
-- NE JAMAIS créer de domaine vague type "Fit Général" ou "Soft Skills"
+- NE JAMAIS créer de domaine vague type "General Fit", "Soft Skills", "Cultural Fit"
 - NE JAMAIS créer de domaine "bonus" pour ajuster artificiellement le score
-- TOUS les domaines doivent être EXPLICITES dans la JD
+- TOUS les domaines doivent être EXPLICITEMENT mentionnés dans la JD
+- Pas de domaines "catch-all" ou génériques
 
-ÉTAPE 2 - CALCULER LE SCORE DE CHAQUE DOMAINE (RÈGLES BINAIRES):
+═══════════════════════════════════════════════════
+🎯 ÉTAPE 2 - GRILLE D'ÉVALUATION ULTRA-STRICTE
+═══════════════════════════════════════════════════
 
-Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE STRICTE:
+Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE ULTRA-SÉVÈRE (0-100 points par domaine):
 
-🎯 GRILLE D'ÉVALUATION (0-100 points par domaine):
-- 0 point: Aucune mention/compétence absente du CV
-- 25 points: Mention superficielle OU expérience <1 an OU formation théorique seulement
-- 50 points: Expérience 1-3 ans OU plusieurs projets pertinents OU certification sans pratique
-- 75 points: Expérience 3-5 ans OU expertise démontrée par réalisations concrètes
-- 100 points: Expérience 5+ ans OU leadership/formation d'équipes OU expertise reconnue
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 NIVEAU 0-15 POINTS: QUASI-AUCUNE COMPÉTENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+0 points: Compétence TOTALEMENT absente du CV (aucune mention directe ou indirecte)
+10 points: Mention très vague OU compétence tangentielle (ex: "exposure to", "familiar with")
+15 points: Mention superficielle OU formation théorique seulement SANS pratique OU <3 mois d'expérience
 
-⚙️ RÈGLES DE CALCUL:
+🟠 NIVEAU 20-35 POINTS: DÉBUTANT/JUNIOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20 points: 3-6 mois d'expérience pratique OU 1 projet simple réalisé sous supervision
+25 points: 6-9 mois d'expérience OU 2 projets avec support d'équipe
+30 points: 9-12 mois d'expérience avec autonomie partielle OU certification récente + pratique limitée
+35 points: 1 an d'expérience solide avec quelques réalisations concrètes (mais sans metrics)
+
+🟡 NIVEAU 40-55 POINTS: INTERMÉDIAIRE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+40 points: 1-1.5 ans d'expérience + 2-3 projets pertinents documentés
+45 points: 1.5-2 ans d'expérience + contribution mesurable (ex: "improved X by Y%")
+50 points: 2-2.5 ans d'expérience solide + réalisations quantifiées (metrics, budget, scope)
+55 points: 2.5-3 ans + rôle de contributeur principal sur projets moyens
+
+🟢 NIVEAU 60-75 POINTS: CONFIRMÉ/SENIOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+60 points: 3-4 ans d'expérience confirmée + ownership de projets + résultats mesurables
+65 points: 4-5 ans + expertise démontrée par réalisations significatives (ex: led team of 5, managed $500K budget)
+70 points: 5-6 ans + rôle de lead/expert technique + mentorship + process improvements
+75 points: 6-7 ans + expertise reconnue EN INTERNE (promotions, leadership technique, formations données en interne)
+
+🔵 NIVEAU 80-90 POINTS: EXPERT EXCEPTIONNEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+80 points: 7-8 ans d'expérience TRÈS solide + leadership prouvé + expertise reconnue PAR L'INDUSTRIE (speaking engagements, certifications avancées, articles techniques)
+85 points: 8-10 ans + contribution MAJEURE à l'industrie (architecture de solutions complexes multi-millions, thought leadership, certifications rares)
+90 points: 10-12 ans + expertise de NIVEAU MONDIAL dans ce domaine spécifique (publications académiques/industrie, conférences internationales, mentor d'experts, awards/recognition)
+
+🏆 NIVEAU 95-100 POINTS: QUASI-IMPOSSIBLE - TOP 0.1% MONDIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+95 points: 12-15 ans + reconnaissance INTERNATIONALE + contributions MAJEURES à l'évolution du domaine (patents, standards, books, keynote speaker top conferences)
+100 points: RÉSERVÉ AUX LÉGENDES VIVANTES - 15+ ans + autorité MONDIALE incontestée dans le domaine + impact transformationnel sur l'industrie (ex: créateur de framework utilisé par millions, membre de comités internationaux, consultant pour Fortune 10)
+
+⚠️ RÈGLES ULTRA-STRICTES D'ATTRIBUTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. JAMAIS de score ≥60 sans PREUVES QUANTIFIÉES concrètes dans le CV
+2. JAMAIS de score ≥75 sans leadership/mentorship/expertise reconnue PROUVÉE
+3. JAMAIS de score ≥85 sans contributions MAJEURES à l'industrie (publications, speaking, thought leadership)
+4. JAMAIS de score ≥95 sans reconnaissance INTERNATIONALE vérifiable
+5. Si le CV mentionne l'expérience en années SEULEMENT sans détails de réalisations → score MAX = 55
+6. Si aucun metric/chiffre fourni pour un domaine → score MAX = 50
+7. Si le candidat change de domaine/technologie fréquemment (job hopping) → pénalité de -10 points
+8. Certifications SANS expérience pratique associée → score MAX = 30
+9. Expérience dans environnement non-professionnel (side projects, freelance) compte pour 50% seulement
+10. Si tu hésites entre 2 scores → TOUJOURS choisir le PLUS BAS
+
+⚙️ RÈGLES DE CALCUL FINAL:
 1. Score brut du domaine = évaluation selon grille ci-dessus (0-100)
 2. Score pondéré = (score_brut × poids) / 100
-3. Score_max du domaine = poids (car 100 × poids / 100 = poids)
+3. Score_max du domaine = poids
+
+Exemple détaillé:
+- Domaine: "Python Backend Development" | Poids: 25%
+- Candidat: 4.5 ans d'expérience Python, 3 projets documentés, led team of 3, aucune publication
+- Évaluation: Entre 60 et 65 points → choisir 60 (règle du plus bas)
+- Score pondéré: (60 × 25) / 100 = 15 points
+- Score_max: 25 points
+- Notation: 15/25
+
+═══════════════════════════════════════════════════
+📊 ÉTAPE 3 - CALCULER LE SCORE TOTAL
+═══════════════════════════════════════════════════
+
+Score_matching = SOMME de tous les scores pondérés (arrondi à l'entier)
 
 Exemple:
-- Domaine: "SharePoint" | Poids: 25%
-- Évaluation: Candidat a 4 ans d'expérience + certifications → 75 points
-- Score: (75 × 25) / 100 = 18.75 points
-- Score_max: 25 points
-- Notation: 18.75/25
+15 (Python) + 10 (AWS) + 8 (Agile) + 12 (API Design) + 9 (PostgreSQL) + 7 (Docker) = 61/100
 
-ÉTAPE 3 - CALCULER LE SCORE TOTAL:
-- Score_matching = SOMME de tous les scores pondérés
-- Exemple: 18.75 + 12 + 8.5 + 15 + 10 = 64.25 → arrondi à 64/100
+⚠️ VÉRIFICATIONS FINALES OBLIGATOIRES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Somme des poids = EXACTEMENT 100%
+2. Score_matching = somme EXACTE des scores pondérés
+3. Si score > 80 → TRIPLE-CHECK: y a-t-il vraiment des preuves d'expertise exceptionnelle?
+4. Si score > 90 → QUADRUPLE-CHECK: est-ce vraiment un candidat top 1% mondial? (la réponse devrait presque toujours être NON)
+5. Refaire le calcul 2 fois pour confirmer
 
-⚠️ VÉRIFICATION FINALE OBLIGATOIRE:
-- Refaire le calcul 2 fois pour confirmer
-- Vérifier: somme des poids = 100%
-- Vérifier: score_matching = somme des scores pondérés
-- Si incohérence détectée → REFAIRE TOUS LES CALCULS
+🎯 PHILOSOPHIE DE NOTATION ATTENDUE (distribution réaliste):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Score 95-100: <1% des candidats (quasi-impossible, réservé aux légendes)
+- Score 85-94: ~5% (top performers exceptionnels)
+- Score 75-84: ~15% (très bons candidats confirmés)
+- Score 65-74: ~25% (bons candidats solides)
+- Score 50-64: ~30% (candidats acceptables avec gaps)
+- Score <50: ~24% (candidats insuffisants)
 
-ÉTAPE 4 - SYNTHÈSE QUALITATIVE:
-Rédige une synthèse en 2-3 phrases qui:
-- Mentionne les 2-3 forces principales du candidat
-- Mentionne les 1-2 gaps critiques (s'il y en a)
-- Donne une recommandation factuelle (fort/moyen/faible match)
+⚠️ DERNIÈRE VÉRIFICATION AVANT RÉPONSE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pose-toi ces questions pour CHAQUE domaine où tu as donné ≥60 points:
+- Ai-je des PREUVES CONCRÈTES d'expérience quantifiable dans le CV?
+- Ai-je des RÉALISATIONS MESURABLES (metrics, budget, team size, impact)?
+- Le candidat a-t-il eu un rôle de LEADERSHIP/OWNERSHIP démontré?
+- Pour les scores ≥85: y a-t-il des contributions à l'INDUSTRIE (publications, speaking, thought leadership)?
+Si la réponse n'est pas un OUI catégorique avec preuves multiples → BAISSE le score.
 
+═══════════════════════════════════════════════════
+📝 ÉTAPE 4 - SYNTHÈSE EXECUTIVE (4-5 LIGNES MAX)
+═══════════════════════════════════════════════════
+
+Rédige une synthèse ULTRA-CONCISE en 4-5 LIGNES (80-100 mots maximum) qui:
+
+STRUCTURE OBLIGATOIRE (1 paragraphe fluide):
+1. Lead with match level + score (e.g., "GOOD match (73/100) for [Role]")
+2. Highlight 2-3 TOP strengths with brief evidence (years, key achievement, metric)
+3. Mention 1-2 minor gaps or "nice-to-haves" missing
+4. End with clear recommendation: "Interview - [reason]" or "Pass - [reason]"
+
+EXEMPLE FORMAT:
+"GOOD match (73/100) for Senior Full-Stack Developer. Strong Python backend (8 years) with proven cloud migration leadership (60% deployment time reduction). Full-stack capability confirmed with React + modern DevOps. Minor gaps: Kubernetes nice-to-have, limited Montreal-specific experience. Recommendation: Interview - solid technical fit with measurable impact."
+
+RÈGLES CRITIQUES:
+- MAX 4-5 lignes (80-100 mots)
+- NO paragraphs, NO bullet points - juste 1 bloc de texte fluide
+- Include score + match level (EXCELLENT 85+, GOOD 70-84, MODERATE 55-69, WEAK <55)
+- Be specific with numbers/metrics when available
+- Professional but direct tone
+- Clear go/no-go recommendation at the end
+
+═══════════════════════════════════════════════════
+📄 FORMAT DE SORTIE JSON
 ═══════════════════════════════════════════════════
 
 📄 JOB DESCRIPTION:
@@ -524,46 +578,98 @@ Rédige une synthèse en 2-3 phrases qui:
 
 ═══════════════════════════════════════════════════
 
-🎯 ANALYSE REQUISE - FORMAT JSON STRICT:
+🎯 GÉNÈRE MAINTENANT TON ANALYSE - FORMAT JSON STRICT:
 
 Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
 
 {{
-    "score_matching": 67,
+    "score_matching": 58,
     "domaines_analyses": [
         {{
-            "domaine": "Nom du domaine technique/compétence",
-            "poids": 25,
-            "score": 18,
-            "score_max": 25,
+            "domaine": "Nom du domaine technique/compétence exact",
+            "poids": 20,
+            "score": 10,
+            "score_max": 20,
             "match": "bon",
-            "commentaire": "Justification factuelle basée sur des éléments du CV"
+            "commentaire": "Justification FACTUELLE ultra-détaillée basée sur des éléments PRÉCIS du CV avec années d'expérience, projets, réalisations, metrics. Minimum 2-3 phrases complètes."
         }}
     ],
-    "synthese_matching": "Synthèse qualitative en 2-3 phrases"
+    "synthese_matching": "COMPREHENSIVE PROFESSIONAL ANALYSIS (4-6 DETAILED PARAGRAPHS, 250-350 WORDS):
+
+[Paragraph 1 - Overall Assessment]
+[Detailed assessment text...]
+
+[Paragraph 2 - Top Strengths]
+[Detailed strengths text...]
+
+[Paragraph 3 - Partial Matches]
+[Detailed partial matches text...]
+
+[Paragraph 4 - Gaps]
+[Detailed gaps text...]
+
+[Paragraph 5 - Final Recommendation]
+[Detailed recommendation text...]"
 }}
 
-⚠️ RÈGLES JSON:
-- "match" peut être: "excellent", "bon", "partiel", "incompatible"
+⚠️ RÈGLES JSON CRITIQUES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- "match" peut être: "excellent" (≥85/100), "bon" (65-84), "partiel" (40-64), "incompatible" (<40)
 - Tous les scores doivent être des NOMBRES (pas de strings)
 - La somme des poids doit faire exactement 100
 - Le score_matching doit être la somme exacte des scores de tous les domaines
+- Commentaire: minimum 2-3 phrases complètes avec détails factuels précis du CV
+- Synthèse: MAXIMUM 4-5 lignes (80-100 mots), format executive summary
 
-⚠️ CRITICAL INSTRUCTION: ALL output must be in ENGLISH.
-- Domain names must be in English (e.g., "Central Database (DB2, IMS)", not "Bases de données centrales")
-- Comments must be in English
-- Synthesis must be in English
+⚠️ LANGUE: ALL output must be in ENGLISH.
+- Domain names in English (e.g., "Python Backend Development", not "Développement Backend Python")
+- All comments in English
+- Synthesis in English (4-5 lines max)
 
 Génère l'analyse maintenant:"""
             
             print(f">>> Calling Claude API for matching analysis...", flush=True)
             
-            response = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=4000,
-                timeout=60.0,
-                messages=[{"role": "user", "content": prompt}]
-            )
+            # ✅ RETRY LOGIC FOR TIMEOUTS
+            max_retries = 2
+            response = None
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    response = client.messages.create(
+                        model="claude-sonnet-4-5-20250929",
+                        max_tokens=4000,
+                        timeout=900.0,  # 15 minutes
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    break  # Success - exit retry loop
+                    
+                except Exception as e:
+                    last_error = e
+                    error_name = type(e).__name__
+                    
+                    # Check if it's a timeout error
+                    if 'timeout' in error_name.lower() or 'timeout' in str(e).lower():
+                        if attempt < max_retries - 1:
+                            print(f"⏱️ Timeout attempt {attempt+1}/{max_retries}, retrying...", flush=True)
+                            continue
+                        else:
+                            # Final timeout - return error result
+                            print(f"❌ Final timeout after {max_retries} attempts", flush=True)
+                            return {
+                                'error': 'timeout',
+                                'score_matching': 0,
+                                'domaines_analyses': [],
+                                'synthese_matching': "⏱️ L'analyse a pris trop de temps (timeout après plusieurs tentatives). Veuillez réessayer avec un CV plus court ou contactez le support."
+                            }
+                    else:
+                        # Other error - re-raise
+                        raise
+            
+            if response is None:
+                # Should not happen, but safety check
+                raise last_error
             
             # Extraire tokens
             usage = response.usage
@@ -589,6 +695,27 @@ Génère l'analyse maintenant:"""
             try:
                 matching_result = json.loads(response_text)
                 print(f">>> JSON parsed successfully!", flush=True)
+                
+                # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence
+                # Somme des scores de tous les domaines
+                if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
+                    calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
+                    original_score = matching_result.get('score_matching', 0)
+                    
+                    # Si différence > 2 points, utiliser le score calculé
+                    if abs(calculated_score - original_score) > 2:
+                        print(f"⚠️ Score mismatch detected: Claude={original_score}, Calculated={calculated_score}")
+                        print(f"   Using calculated score for consistency: {calculated_score}/100")
+                        matching_result['score_matching'] = round(calculated_score)
+                    else:
+                        # Petite différence acceptable (arrondis)
+                        matching_result['score_matching'] = round(calculated_score)
+                    
+                    # ✅ V1.3.4.2 FIX: CAP SCORE AT 100 MAXIMUM
+                    if matching_result['score_matching'] > 100:
+                        print(f"⚠️ Score exceeded 100: {matching_result['score_matching']} → Capping at 100")
+                        matching_result['score_matching'] = 100
+                        
             except json.JSONDecodeError as e:
                 print(f"⚠️ JSON Error: {e}", flush=True)
                 print(f">>> Attempting to fix JSON...", flush=True)
@@ -600,12 +727,40 @@ Génère l'analyse maintenant:"""
 
 Return the corrected JSON directly:"""
                 
-                fix_response = client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=4000,
-                    timeout=60.0,
-                    messages=[{"role": "user", "content": fix_prompt}]
-                )
+                # ✅ RETRY LOGIC FOR JSON FIX
+                fix_response = None
+                for fix_attempt in range(2):
+                    try:
+                        fix_response = client.messages.create(
+                            model="claude-sonnet-4-5-20250929",
+                            max_tokens=4000,
+                            timeout=300.0,  # 5 minutes for fix
+                            messages=[{"role": "user", "content": fix_prompt}]
+                        )
+                        break
+                    except Exception as fix_error:
+                        if 'timeout' in type(fix_error).__name__.lower() or 'timeout' in str(fix_error).lower():
+                            if fix_attempt < 1:
+                                print(f"⏱️ JSON fix timeout, retrying...", flush=True)
+                                continue
+                            else:
+                                # Can't fix JSON - return error
+                                return {
+                                    'error': 'json_parse_timeout',
+                                    'score_matching': 0,
+                                    'domaines_analyses': [],
+                                    'synthese_matching': "❌ Erreur de parsing JSON et timeout lors de la correction. Veuillez réessayer."
+                                }
+                        else:
+                            raise
+                
+                if fix_response is None:
+                    return {
+                        'error': 'json_fix_failed',
+                        'score_matching': 0,
+                        'domaines_analyses': [],
+                        'synthese_matching': "❌ Impossible de corriger le JSON malformé."
+                    }
                 
                 fixed_text = fix_response.content[0].text.strip()
                 if fixed_text.startswith('```json'):
@@ -710,21 +865,52 @@ EXPÉRIENCES:
         
             # PROMPT ULTRA-RENFORCÉ POUR COHÉRENCE ABSOLUE
             language_instruction = f"""
-⚠️ RÈGLE ABSOLUE - LANGUE {language.upper()}:
-- Tu DOIS générer 100% du contenu en {language}
-- Le TITRE PROFESSIONNEL doit être en {language}
-- TOUTES les descriptions doivent être en {language}
-- TOUS les mots-clés doivent être en {language}
-- Respecte les conventions professionnelles de la langue {language}
-- Si {language} = French: utilise "Analyste", "Gestion", "Configuration", etc.
-- Si {language} = English: utilise "Analyst", "Management", "Configuration", etc.
+🚨 RÈGLE ABSOLUE - LANGUE {language.upper()} 🚨
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IMPORTANT TITRE:
-- Adapte le titre professionnel à la Job Description
+⚠️ INSTRUCTION CRITIQUE - LANGUE OBLIGATOIRE: {language.upper()}
+
+Tu DOIS générer 100% du contenu en {language} - AUCUNE EXCEPTION:
+✓ Le TITRE PROFESSIONNEL en {language}
+✓ Le PROFIL ENRICHI en {language}
+✓ TOUTES les COMPÉTENCES en {language}
+✓ TOUTES les EXPÉRIENCES en {language}
+✓ TOUS les noms de catégories en {language}
+✓ TOUTES les descriptions en {language}
+✓ TOUS les mots-clés en {language}
+
+🔴 SI {language} = "French":
+- Utilise: "Analyste", "Gestion", "Configuration", "Développement", "Senior"
+- PAS: "Analyst", "Management", "Development"
+- Exemple titre: "Analyste QA Senior" ✓ (PAS "Senior QA Analyst" ✗)
+- Exemple description: "Configuration de SharePoint incluant gestion..."
+- Style: Français professionnel standard
+
+🔴 SI {language} = "English":
+- Utilise: "Analyst", "Management", "Configuration", "Development", "Senior"
+- PAS: "Analyste", "Gestion", "Développement"
+- Exemple titre: "Senior QA Analyst" ✓ (PAS "Analyste QA Senior" ✗)
+- Exemple description: "SharePoint configuration including management..."
+- Style: Professional English standard
+
+IMPORTANT TITRE PROFESSIONNEL:
+- Adapte le titre à la Job Description
 - Le titre doit être COURT (3-5 mots maximum)
-- Le titre doit être en {language}
-- Exemple en français: "Analyste QA Senior" ou "Analyste Configuration SharePoint"
-- Exemple en anglais: "Senior QA Analyst" or "SharePoint Configuration Analyst"
+- Le titre doit être en {language} - VÉRIFIE 2 FOIS
+- Si langue = French: ordre français (ex: "Analyste Configuration SharePoint")
+- Si langue = English: ordre anglais (ex: "SharePoint Configuration Analyst")
+
+VÉRIFICATION FINALE OBLIGATOIRE:
+Avant de répondre, relis TOUT ton JSON et confirme que:
+1. Le titre_professionnel_enrichi est en {language} ✓
+2. Le profil_enrichi est en {language} ✓
+3. Toutes les catégories de compétences sont en {language} ✓
+4. Toutes les descriptions sont en {language} ✓
+5. Les responsabilités des expériences sont en {language} ✓
+
+Si UNE SEULE phrase n'est pas en {language} → RECOMMENCE TOUT.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🎯 RÔLE CRITIQUE - TU ES UN RECRUTEUR SENIOR PROFESSIONNEL:
 - Tu as 15+ ans d'expérience en recrutement technique
@@ -969,7 +1155,15 @@ RÉSULTAT:
     }}
   ],
   "score_matching": 45,
-  "synthese_matching": "Profil Java senior inadapté pour poste .NET. Gap critique sur stack principale (0/40). Compétences transférables en cloud et SQL, mais nécessite reconversion majeure."
+  "synthese_matching": "PARTIAL MATCH (45/100) - This Java senior profile presents significant challenges for a .NET-focused role, though some transferable competencies exist.
+
+KEY STRENGTHS: The candidate brings 8+ years of enterprise software development experience with proven expertise in cloud platforms (AWS/Azure) and database technologies (PostgreSQL, MySQL). Their experience leading technical teams and architecting scalable solutions demonstrates strong senior-level capabilities. The containerization skills (Docker, Kubernetes) mentioned in their current role are highly relevant.
+
+PARTIAL MATCHES: While the candidate's SQL database experience is strong and transferable to SQL Server, their cloud platform knowledge (AWS/Azure fundamentals) provides a foundation that could accelerate learning of Azure-specific services required for this role. Their experience with agile methodologies and team leadership aligns well with the position's requirements.
+
+CRITICAL GAPS: The most significant concern is the complete absence of .NET stack experience (C#, ASP.NET, Entity Framework), which represents 40% of the role's core requirements (0/40 points). The candidate would require substantial retraining on the entire Microsoft technology stack. Additionally, there's no evidence of Azure-specific service experience (Azure Functions, Service Bus, etc.) beyond basic cloud concepts.
+
+RECOMMENDATION: This profile requires major reconversion and is NOT recommended for immediate placement. Consider only if: (1) the client accepts a 3-6 month ramp-up period, (2) candidate demonstrates strong motivation to transition to .NET, and (3) budget allows for extensive training investment. For urgent needs, seek candidates with existing .NET experience."
 }}
 
 Fais :
@@ -999,7 +1193,17 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
     }}
   ],
   "score_matching": 45,
-  "synthese_matching": "Résumé 2-3 phrases du matching global avec points forts et gaps critiques",
+  "synthese_matching": "CONCISE PROFESSIONAL SUMMARY (1 paragraph, 80-120 words):
+  
+  Write a single comprehensive paragraph that includes:
+  - Match level (Excellent/Strong/Good/Partial/Weak) with the score (X/100)
+  - Candidate's years of experience and seniority level
+  - Top 2-3 strongest domains that align perfectly with requirements
+  - 1-2 areas that are partial matches or transferable skills
+  - 1-2 critical gaps if any
+  - Brief recommendation (Recommend/Conditional/Not Recommend)
+  
+  Keep it analytical and professional. Use concrete examples from the CV. Be honest about both strengths and weaknesses. Make it scannable for busy recruiters. ALWAYS WRITE IN ENGLISH.",
   
   "titre_professionnel_enrichi": "TITRE COURT en {language} (3-5 mots max)",
   
@@ -1601,6 +1805,171 @@ Return the corrected JSON directly:"""
         doc.save(output_path)
         print(f"✅ CV TMC généré avec succès!")
 
+    def generate_ms_cv_3parts(self, tmc_context, skills_matrix_path, output_path, 
+                              cover_template="TMC_NA_template_EN_Anonymise_CoverPage.docx",
+                              content_template="TMC_NA_template_EN_Anonymise_Content.docx"):
+        """
+        Génère un CV Morgan Stanley en 3 parties:
+        1. Cover page (photo + nom + titre + location + langues)
+        2. Skills Matrix (uploadée par le recruteur)
+        3. Contenu détaillé (profile + skills + experiences + education)
+        
+        Args:
+            tmc_context: Contexte enrichi du candidat
+            skills_matrix_path: Path vers le fichier Skills Matrix uploadé
+            output_path: Path pour le fichier final
+            cover_template: Template pour la cover page
+            content_template: Template pour le contenu détaillé
+        
+        Returns:
+            tuple: (success: bool, output_path: str)
+        """
+        try:
+            from pathlib import Path
+            from docxcompose.composer import Composer
+            from docx import Document
+            import shutil
+            
+            # Dossier temporaire
+            temp_dir = Path("/tmp/cv_optimizer_ms")
+            temp_dir.mkdir(exist_ok=True)
+            
+            # ÉTAPE 1: Générer cover page
+            print("🎨 Generating cover page...")
+            cover_path = temp_dir / "cover.docx"
+            
+            # ✅ FIX: Passer seulement le nom du template, find_template_file va le chercher
+            print(f"   📄 Using cover template: {cover_template}")
+            
+            self.generate_tmc_docx(
+                tmc_context, 
+                str(cover_path), 
+                template_path=cover_template  # Juste le nom, pas le chemin complet
+            )
+            print(f"   ✅ Cover page generated: {cover_path.name}")
+            
+            # ÉTAPE 2: Merger cover + Skills Matrix
+            print("🔗 Merging cover with Skills Matrix...")
+            cover_with_skills = temp_dir / "cover_and_skills.docx"
+            
+            # Charger les deux documents
+            cover_doc = Document(str(cover_path))
+            skills_doc = Document(skills_matrix_path)
+            
+            # ✅ V1.3.4.2 FIX: Change table width from fixed to auto to prevent horizontal shift
+            print("🔧 Fixing Skills Matrix table width...")
+            tables_fixed = fix_table_width_to_auto(skills_doc)
+            print(f"   ✅ Fixed {tables_fixed} table(s) to auto width")
+            
+            # V1.3.4 FIX: Ajuster les marges de la Skills Matrix pour correspondre au template
+            # Copier les marges du cover vers skills avant merge
+            cover_sections = cover_doc.sections
+            skills_sections = skills_doc.sections
+            
+            if cover_sections and skills_sections:
+                # Utiliser les marges du template pour la Skills Matrix
+                for section in skills_sections:
+                    section.top_margin = cover_sections[0].top_margin
+                    section.bottom_margin = cover_sections[0].bottom_margin
+                    section.left_margin = cover_sections[0].left_margin
+                    section.right_margin = cover_sections[0].right_margin
+            
+            # V1.3.4.1 FIX: Supprimer les espacements au début de la Skills Matrix
+            # Ceci assure que le contenu commence exactement en haut de la page
+            from docx.shared import Pt
+            from docx.oxml import parse_xml
+            
+            # Supprimer TOUS les paragraphes vides au début du body XML
+            # Travailler directement sur body._element pour avoir l'ordre exact
+            body = skills_doc.element.body
+            elements_to_remove = []
+            
+            # Parcourir les éléments dans l'ordre et marquer les paragraphes vides au début
+            for elem in body:
+                tag = elem.tag.split('}')[-1] if '}' in elem.tag else elem.tag
+                
+                if tag == 'p':  # C'est un paragraphe
+                    # Vérifier s'il est vide (pas de texte)
+                    ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                    text_elems = elem.findall('.//w:t', ns)
+                    text_content = ''.join([t.text for t in text_elems if t.text])
+                    
+                    if not text_content.strip():
+                        # Paragraphe vide au début → marquer pour suppression
+                        elements_to_remove.append(elem)
+                    else:
+                        # Premier paragraphe avec texte → arrêter
+                        break
+                elif tag == 'tbl':
+                    # On a atteint une table → arrêter
+                    break
+            
+            # Supprimer les éléments marqués
+            for elem in elements_to_remove:
+                body.remove(elem)
+            
+            print(f"   🧹 Removed {len(elements_to_remove)} empty paragraphs from Skills Matrix")
+            
+            # Réinitialiser le spacing du premier élément restant (si paragraphe)
+            if skills_doc.paragraphs:
+                first_para = skills_doc.paragraphs[0]
+                first_para.paragraph_format.space_before = Pt(0)
+                first_para.paragraph_format.space_after = Pt(0)
+            
+            # Ajouter page break après cover
+            cover_doc.add_page_break()
+            
+            # Merger avec docxcompose
+            composer = Composer(cover_doc)
+            composer.append(skills_doc)
+            
+            # Sauvegarder
+            composer.save(str(cover_with_skills))
+            print(f"   ✅ Cover + Skills Matrix merged")
+            
+            # ÉTAPE 3: Générer contenu détaillé
+            print("📝 Generating detailed content...")
+            content_path = temp_dir / "content.docx"
+            
+            # ✅ FIX: Passer seulement le nom du template
+            print(f"   📄 Using content template: {content_template}")
+            
+            self.generate_tmc_docx(
+                tmc_context,
+                str(content_path),
+                template_path=content_template  # Juste le nom, pas le chemin complet
+            )
+            print(f"   ✅ Content generated: {content_path.name}")
+            
+            # ÉTAPE 4: Merger tout ensemble
+            print("🔗 Merging everything...")
+            
+            # Charger cover+skills
+            final_doc = Document(str(cover_with_skills))
+            
+            # Ajouter page break avant content
+            final_doc.add_page_break()
+            
+            # Merger avec content
+            final_composer = Composer(final_doc)
+            content_doc = Document(str(content_path))
+            final_composer.append(content_doc)
+            
+            # Sauvegarder le document final
+            final_composer.save(str(output_path))
+            print(f"✅ Final CV saved: {output_path}")
+            
+            # Nettoyer les fichiers temporaires
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            
+            return True, str(output_path)
+            
+        except Exception as e:
+            error_msg = f"Error generating MS CV: {str(e)}"
+            print(f"❌ {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return False, error_msg
     def apply_bold_post_processing(self, docx_path: str, keywords: list):
         """Post-traiter le document pour mettre en gras les technologies dans les tableaux"""
         print(f"🎨 Application du gras sur les technologies...")
