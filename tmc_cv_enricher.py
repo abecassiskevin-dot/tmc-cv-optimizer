@@ -384,113 +384,219 @@ EXPÉRIENCES:
             for form in parsed_cv.get('formation', []):
                 cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
         
-            # PROMPT FOCALISÉ SUR L'ANALYSE DE MATCHING UNIQUEMENT
-            prompt = f"""Tu es un système d'évaluation automatisé qui analyse le matching entre CV et Job Description.
+            # PROMPT FOCALISÉ SUR L'ANALYSE DE MATCHING UNIQUEMENT - VERSION ULTRA-STRICTE V1.3.9
+            prompt = f"""Tu es un système d'évaluation automatisé ULTRA-STRICT qui analyse le matching entre CV et Job Description.
 
-🎯 ANALYSE DE MATCHING PONDÉRÉE (ULTRA-CRITIQUE - COHÉRENCE ABSOLUE REQUISE):
+🎯 ANALYSE DE MATCHING PONDÉRÉE (VERSION ULTRA-STRICTE V1.3.9):
 
-⚠️ PRINCIPE FONDAMENTAL DE COHÉRENCE - MÉTHODOLOGIE STRICTE:
-- Tu es un SYSTÈME D'ÉVALUATION AUTOMATISÉ, pas un humain
-- Pour le MÊME CV et la MÊME JD → EXACTEMENT le même score à chaque fois
-- Utilise une grille d'évaluation MATHÉMATIQUE et REPRODUCTIBLE
-- Agis comme un ALGORITHME, pas comme un recruteur subjectif
-- Chaque critère suit des règles BINAIRES strictes (oui/non, présent/absent)
-- Tu DOIS pouvoir justifier CHAQUE point attribué avec des FAITS du CV
-- Si tu hésites entre 2 scores → prends le PLUS BAS (principe de strictness)
+⚠️ PRINCIPE FONDAMENTAL - ÉVALUATION ULTRA-RIGOUREUSE:
+- Tu es un RECRUTEUR SENIOR EXTRÊMEMENT EXIGEANT avec 15+ ans d'expérience
+- Tu recrutes pour des postes CRITIQUES où l'excellence est la norme
+- CHAQUE point doit être MÉRITÉ avec des PREUVES CONCRÈTES du CV
+- Si tu hésites entre 2 scores → TOUJOURS prends le PLUS BAS
+- Agis comme si tu recrutais pour ton propre argent (zéro tolérance pour l'approximation)
+- Pour le MÊME CV et la MÊME JD → EXACTEMENT le même score à chaque fois (cohérence algorithmique)
 
 🔴 RÈGLE D'OR - SCORE GLOBAL = SOMME DOMAINES:
 - Le score_matching FINAL = somme EXACTE de tous les scores de domaines
 - VÉRIFIE 3 FOIS avant de répondre: somme des scores = score_matching
-- Si tu calcules 37/100 en sommant les domaines → score_matching DOIT être 37
+- Si tu calcules 58/100 en sommant les domaines → score_matching DOIT être 58
 - NE JAMAIS inventer un score global différent de la somme calculée
 
-ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES (MÉTHODE ALGORITHIMQUE):
+═══════════════════════════════════════════════════
+📋 ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES
+═══════════════════════════════════════════════════
 
-📋 PROCESSUS AUTOMATIQUE D'IDENTIFICATION:
-1. Scan complet de la JD - repérer TOUS les mots techniques
-2. Compter la fréquence EXACTE de chaque technologie/compétence
-3. Créer une liste de domaines par ordre d'importance
-4. Appliquer la formule de pondération ci-dessous
+PROCESSUS AUTOMATIQUE D'IDENTIFICATION:
+1. Scan complet de la JD - repérer TOUS les mots techniques/compétences
+2. Compter la fréquence EXACTE de chaque technologie/compétence/méthodologie
+3. Identifier les must-haves vs nice-to-haves
+4. Créer une liste de domaines par ordre d'importance
+5. Appliquer la formule de pondération ci-dessous
 
 📊 FORMULE DE PONDÉRATION MATHÉMATIQUE:
 Pour chaque domaine, calcule son poids avec:
-- Poids = (Mentions_JD × 10) + (Niveau_requis × 5) + Bonus_contexte
-  * Mentions_JD: Nombre de fois mentionné dans la JD (1-3+)
-  * Niveau_requis: Must-have=3, Important=2, Nice-to-have=1
-  * Bonus_contexte: +5 si dans le titre du poste, +3 si dans requirements clés
+Poids = (Mentions_JD × 10) + (Niveau_requis × 5) + Bonus_contexte
+
+Où:
+- Mentions_JD: Nombre de fois mentionné dans JD (1=once, 2=2-3 times, 3=4+ times)
+- Niveau_requis: Must-have/Required=3, Important=2, Nice-to-have=1
+- Bonus_contexte: +5 si dans le titre du poste, +3 si dans top requirements
 
 💡 EXEMPLES DE DOMAINES TYPES:
-- Technologies (ex: "SharePoint", "Power BI", "Python")
-- Méthodologies (ex: "Agile", "ITIL", "DevOps")
-- Compétences métier (ex: "Data Analysis", "Project Management")
-- Certifications (ex: "PMP", "AWS Certified")
-- Langues (ex: "Bilingual French/English")
+- Technologies spécifiques (ex: "Python Django", "AWS Lambda", "React Native")
+- Méthodologies (ex: "Agile/Scrum", "ITIL v4", "DevOps CI/CD")
+- Compétences métier (ex: "Financial Modeling", "Clinical Trials Management")
+- Certifications (ex: "PMP", "AWS Solutions Architect", "CPA")
+- Langues avec niveau (ex: "Bilingual French/English C1+", "Spanish Business Level")
+- Soft skills MESURABLES (ex: "Team Leadership 10+ people", "Stakeholder Management C-Suite")
 
 ⚠️ INTERDICTIONS ABSOLUES:
-- NE JAMAIS créer de domaine vague type "Fit Général" ou "Soft Skills"
+- NE JAMAIS créer de domaine vague type "General Fit", "Soft Skills", "Cultural Fit"
 - NE JAMAIS créer de domaine "bonus" pour ajuster artificiellement le score
-- TOUS les domaines doivent être EXPLICITES dans la JD
+- TOUS les domaines doivent être EXPLICITEMENT mentionnés dans la JD
+- Pas de domaines "catch-all" ou génériques
 
-ÉTAPE 2 - CALCULER LE SCORE DE CHAQUE DOMAINE (RÈGLES BINAIRES ULTRA-STRICTES):
+═══════════════════════════════════════════════════
+🎯 ÉTAPE 2 - GRILLE D'ÉVALUATION ULTRA-STRICTE
+═══════════════════════════════════════════════════
 
-Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE TRÈS SÉVÈRE:
+Pour CHAQUE domaine identifié, évalue le score avec cette GRILLE ULTRA-SÉVÈRE (0-100 points par domaine):
 
-🎯 GRILLE D'ÉVALUATION STRICTE (0-100 points par domaine):
-- 0 point: Aucune mention/compétence totalement absente du CV
-- 25 points: Mention superficielle OU expérience <1 an OU formation théorique seulement (pas de pratique)
-- 50 points: Expérience 1-2 ans OU 2-3 projets pertinents OU certification récente avec pratique limitée
-- 75 points: Expérience 3-4 ans solide OU expertise démontrée par réalisations mesurables OU rôle de lead technique
-- 100 points: RÉSERVÉ AUX CAS EXCEPTIONNELS - Expérience 5+ ans + leadership prouvé + expertise reconnue (publications, formations données, architecture de solutions complexes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 NIVEAU 0-15 POINTS: QUASI-AUCUNE COMPÉTENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+0 points: Compétence TOTALEMENT absente du CV (aucune mention directe ou indirecte)
+10 points: Mention très vague OU compétence tangentielle (ex: "exposure to", "familiar with")
+15 points: Mention superficielle OU formation théorique seulement SANS pratique OU <3 mois d'expérience
 
-⚠️ PHILOSOPHIE DE NOTATION:
-- 100/100 doit être EXCEPTIONNEL (top 5% des candidats du marché)
-- 90-99 = Excellent (tous les critères majeurs + bonus significatifs)
-- 80-89 = Très bon (tous les critères majeurs couverts solidement)
-- 70-79 = Bon (critères majeurs OK, quelques gaps mineurs)
-- 60-69 = Acceptable (fit correct mais gaps notables)
-- <60 = Insuffisant (gaps critiques ou manque d'expérience)
+🟠 NIVEAU 20-35 POINTS: DÉBUTANT/JUNIOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20 points: 3-6 mois d'expérience pratique OU 1 projet simple réalisé sous supervision
+25 points: 6-9 mois d'expérience OU 2 projets avec support d'équipe
+30 points: 9-12 mois d'expérience avec autonomie partielle OU certification récente + pratique limitée
+35 points: 1 an d'expérience solide avec quelques réalisations concrètes (mais sans metrics)
 
-🔴 RÈGLES ANTI-INFLATION:
-- NE JAMAIS donner 100 points à un domaine si le candidat a <5 ans d'expérience dans ce domaine exact
-- NE JAMAIS donner 100 points si le candidat n'a pas de réalisations QUANTIFIABLES (metrics, budget, team size)
-- Si tu hésites entre 75 et 100 → TOUJOURS choisir 75
-- Un score de 100/100 global devrait arriver <1% du temps (candidat parfait rarissime)
+🟡 NIVEAU 40-55 POINTS: INTERMÉDIAIRE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+40 points: 1-1.5 ans d'expérience + 2-3 projets pertinents documentés
+45 points: 1.5-2 ans d'expérience + contribution mesurable (ex: "improved X by Y%")
+50 points: 2-2.5 ans d'expérience solide + réalisations quantifiées (metrics, budget, scope)
+55 points: 2.5-3 ans + rôle de contributeur principal sur projets moyens
 
-⚙️ RÈGLES DE CALCUL:
+🟢 NIVEAU 60-75 POINTS: CONFIRMÉ/SENIOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+60 points: 3-4 ans d'expérience confirmée + ownership de projets + résultats mesurables
+65 points: 4-5 ans + expertise démontrée par réalisations significatives (ex: led team of 5, managed $500K budget)
+70 points: 5-6 ans + rôle de lead/expert technique + mentorship + process improvements
+75 points: 6-7 ans + expertise reconnue EN INTERNE (promotions, leadership technique, formations données en interne)
+
+🔵 NIVEAU 80-90 POINTS: EXPERT EXCEPTIONNEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+80 points: 7-8 ans d'expérience TRÈS solide + leadership prouvé + expertise reconnue PAR L'INDUSTRIE (speaking engagements, certifications avancées, articles techniques)
+85 points: 8-10 ans + contribution MAJEURE à l'industrie (architecture de solutions complexes multi-millions, thought leadership, certifications rares)
+90 points: 10-12 ans + expertise de NIVEAU MONDIAL dans ce domaine spécifique (publications académiques/industrie, conférences internationales, mentor d'experts, awards/recognition)
+
+🏆 NIVEAU 95-100 POINTS: QUASI-IMPOSSIBLE - TOP 0.1% MONDIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+95 points: 12-15 ans + reconnaissance INTERNATIONALE + contributions MAJEURES à l'évolution du domaine (patents, standards, books, keynote speaker top conferences)
+100 points: RÉSERVÉ AUX LÉGENDES VIVANTES - 15+ ans + autorité MONDIALE incontestée dans le domaine + impact transformationnel sur l'industrie (ex: créateur de framework utilisé par millions, membre de comités internationaux, consultant pour Fortune 10)
+
+⚠️ RÈGLES ULTRA-STRICTES D'ATTRIBUTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. JAMAIS de score ≥60 sans PREUVES QUANTIFIÉES concrètes dans le CV
+2. JAMAIS de score ≥75 sans leadership/mentorship/expertise reconnue PROUVÉE
+3. JAMAIS de score ≥85 sans contributions MAJEURES à l'industrie (publications, speaking, thought leadership)
+4. JAMAIS de score ≥95 sans reconnaissance INTERNATIONALE vérifiable
+5. Si le CV mentionne l'expérience en années SEULEMENT sans détails de réalisations → score MAX = 55
+6. Si aucun metric/chiffre fourni pour un domaine → score MAX = 50
+7. Si le candidat change de domaine/technologie fréquemment (job hopping) → pénalité de -10 points
+8. Certifications SANS expérience pratique associée → score MAX = 30
+9. Expérience dans environnement non-professionnel (side projects, freelance) compte pour 50% seulement
+10. Si tu hésites entre 2 scores → TOUJOURS choisir le PLUS BAS
+
+⚙️ RÈGLES DE CALCUL FINAL:
 1. Score brut du domaine = évaluation selon grille ci-dessus (0-100)
 2. Score pondéré = (score_brut × poids) / 100
-3. Score_max du domaine = poids (car 100 × poids / 100 = poids)
+3. Score_max du domaine = poids
+
+Exemple détaillé:
+- Domaine: "Python Backend Development" | Poids: 25%
+- Candidat: 4.5 ans d'expérience Python, 3 projets documentés, led team of 3, aucune publication
+- Évaluation: Entre 60 et 65 points → choisir 60 (règle du plus bas)
+- Score pondéré: (60 × 25) / 100 = 15 points
+- Score_max: 25 points
+- Notation: 15/25
+
+═══════════════════════════════════════════════════
+📊 ÉTAPE 3 - CALCULER LE SCORE TOTAL
+═══════════════════════════════════════════════════
+
+Score_matching = SOMME de tous les scores pondérés (arrondi à l'entier)
 
 Exemple:
-- Domaine: "SharePoint" | Poids: 25%
-- Évaluation: Candidat a 4 ans d'expérience + certifications → 75 points (pas 100 car <5 ans)
-- Score: (75 × 25) / 100 = 18.75 points
-- Score_max: 25 points
-- Notation: 18.75/25
+15 (Python) + 10 (AWS) + 8 (Agile) + 12 (API Design) + 9 (PostgreSQL) + 7 (Docker) = 61/100
 
-ÉTAPE 3 - CALCULER LE SCORE TOTAL:
-- Score_matching = SOMME de tous les scores pondérés
-- Exemple: 18.75 + 12 + 8.5 + 15 + 10 = 64.25 → arrondi à 64/100
-- ⚠️ LIMITE ABSOLUE: Le score_matching NE PEUT JAMAIS dépasser 100
-- Si la somme calculée > 100 → ajuster les poids pour que la somme = 100
+⚠️ VÉRIFICATIONS FINALES OBLIGATOIRES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Somme des poids = EXACTEMENT 100%
+2. Score_matching = somme EXACTE des scores pondérés
+3. Si score > 80 → TRIPLE-CHECK: y a-t-il vraiment des preuves d'expertise exceptionnelle?
+4. Si score > 90 → QUADRUPLE-CHECK: est-ce vraiment un candidat top 1% mondial? (la réponse devrait presque toujours être NON)
+5. Refaire le calcul 2 fois pour confirmer
 
-⚠️ VÉRIFICATION FINALE OBLIGATOIRE:
-- Refaire le calcul 2 fois pour confirmer
-- Vérifier: somme des poids = 100%
-- Vérifier: score_matching = somme des scores pondérés
-- Si incohérence détectée → REFAIRE TOUS LES CALCULS
-- Si score > 95 → TRIPLE-CHECK: est-ce vraiment un candidat exceptionnel top 5%?
+🎯 PHILOSOPHIE DE NOTATION ATTENDUE (distribution réaliste):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Score 95-100: <1% des candidats (quasi-impossible, réservé aux légendes)
+- Score 85-94: ~5% (top performers exceptionnels)
+- Score 75-84: ~15% (très bons candidats confirmés)
+- Score 65-74: ~25% (bons candidats solides)
+- Score 50-64: ~30% (candidats acceptables avec gaps)
+- Score <50: ~24% (candidats insuffisants)
 
-ÉTAPE 4 - SYNTHÈSE QUALITATIVE:
-Rédige une synthèse professionnelle en 4-5 phrases complètes qui:
-- PHRASE 1: Score global et niveau de correspondance (ex: "Excellent match with 97/100 score")
-- PHRASE 2: Années d'expérience et pertinence du background professionnel
-- PHRASE 3: Top 3-4 forces principales avec exemples concrets des domaines analysés
-- PHRASE 4: Gaps ou points d'amélioration identifiés (s'il y en a), sinon mention de l'alignement fort
-- PHRASE 5: Recommandation factuelle et conclusion sur l'adéquation globale
+⚠️ DERNIÈRE VÉRIFICATION AVANT RÉPONSE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pose-toi ces questions pour CHAQUE domaine où tu as donné ≥60 points:
+- Ai-je des PREUVES CONCRÈTES d'expérience quantifiable dans le CV?
+- Ai-je des RÉALISATIONS MESURABLES (metrics, budget, team size, impact)?
+- Le candidat a-t-il eu un rôle de LEADERSHIP/OWNERSHIP démontré?
+- Pour les scores ≥85: y a-t-il des contributions à l'INDUSTRIE (publications, speaking, thought leadership)?
+Si la réponse n'est pas un OUI catégorique avec preuves multiples → BAISSE le score.
 
-⚠️ CRITÈRE DE QUALITÉ: La synthèse doit être assez détaillée pour être présentée directement à un client sans avoir besoin du tableau des domaines. Chaque phrase doit apporter une valeur ajoutée distincte.
+═══════════════════════════════════════════════════
+📝 ÉTAPE 4 - SYNTHÈSE QUALITATIVE DÉTAILLÉE
+═══════════════════════════════════════════════════
 
+Rédige une synthèse professionnelle COMPLÈTE en 4-6 PARAGRAPHES DÉTAILLÉS (250-350 mots minimum) qui:
+
+PARAGRAPH 1 - OVERALL ASSESSMENT (3-4 sentences):
+- Lead with the match score and overall alignment level (Strong fit / Good fit / Moderate fit / Poor fit)
+- State years of experience and professional seniority level
+- Provide immediate hiring recommendation with confidence level
+- Mention key industry or domain expertise relevant to role
+
+PARAGRAPH 2 - TOP STRENGTHS (4-5 sentences):
+- Detail 3-4 strongest technical/professional competencies with SPECIFIC EVIDENCE from CV
+- For EACH strength, cite CONCRETE achievements or project experience
+- Use metrics/numbers where available (years, team size, project scope, budget, impact %)
+- Explain WHY these strengths matter for THIS specific role and how they align with JD requirements
+
+PARAGRAPH 3 - PARTIAL MATCHES & TRANSFERABLE SKILLS (3-4 sentences):
+- Identify 2-3 areas where candidate has related but not exact experience
+- Explain how these adjacent skills could transfer or compensate for gaps
+- Assess learning curve and adaptation potential (Quick / Moderate / Slow)
+- Note any certifications, training, or side projects that could help bridge gaps
+
+PARAGRAPH 4 - GAPS & DEVELOPMENT AREAS (3-4 sentences):
+- List 2-3 critical requirements from JD that are weak or missing in the CV
+- Assess impact of each gap: Critical blocker vs. Can learn on job vs. Not essential
+- Suggest mitigation strategies (training plan, mentorship, phased onboarding, partner with senior)
+- For strong candidates (>75), reframe as 'growth opportunities' rather than weaknesses
+
+PARAGRAPH 5 - FINAL RECOMMENDATION (3-4 sentences):
+- Clear hiring decision: Strongly recommend / Recommend / Consider with reservations / Pass
+- Justify decision based on role criticality, urgency, and candidate alignment
+- Next steps suggestion: Immediate interview / Phone screen first / Technical assessment / Reference check priority
+- One-line summary of candidate's unique value proposition or main concern
+
+(OPTIONAL) PARAGRAPH 6 - MARKET CONTEXT & SALARY (2-3 sentences, if relevant):
+- How this candidate compares to typical market (above/at/below average for this profile)
+- Salary expectations based on experience level and market standards
+- Hiring urgency recommendation (Move fast vs. Keep looking)
+
+TONE & STYLE REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Professional but conversational (like speaking to a hiring manager colleague)
+- Evidence-based and analytical, NEVER vague or generic
+- Balanced: acknowledge both strengths and weaknesses honestly (no sugar-coating)
+- Forward-looking: focus on potential and fit, not just past experience
+- CLIENT/RECRUITER PERSPECTIVE: "This candidate would/wouldn't be strong because..."
+- Use specific examples and metrics from the CV to support every claim
+- Be HONEST about gaps and concerns - hiring managers value transparency
+- NO marketing language, NO over-selling - just facts and professional assessment
+
+═══════════════════════════════════════════════════
+📄 FORMAT DE SORTIE JSON
 ═══════════════════════════════════════════════════
 
 📄 JOB DESCRIPTION:
@@ -501,76 +607,53 @@ Rédige une synthèse professionnelle en 4-5 phrases complètes qui:
 
 ═══════════════════════════════════════════════════
 
-🎯 ANALYSE REQUISE - FORMAT JSON STRICT:
+🎯 GÉNÈRE MAINTENANT TON ANALYSE - FORMAT JSON STRICT:
 
 Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
 
 {{
-    "score_matching": 67,
+    "score_matching": 58,
     "domaines_analyses": [
         {{
-            "domaine": "Nom du domaine technique/compétence",
-            "poids": 25,
-            "score": 18,
-            "score_max": 25,
+            "domaine": "Nom du domaine technique/compétence exact",
+            "poids": 20,
+            "score": 10,
+            "score_max": 20,
             "match": "bon",
-            "commentaire": "Justification factuelle basée sur des éléments du CV"
+            "commentaire": "Justification FACTUELLE ultra-détaillée basée sur des éléments PRÉCIS du CV avec années d'expérience, projets, réalisations, metrics. Minimum 2-3 phrases complètes."
         }}
     ],
-    "synthese_matching": "COMPREHENSIVE PROFESSIONAL ANALYSIS (4-6 PARAGRAPHS, 250-350 WORDS):
+    "synthese_matching": "COMPREHENSIVE PROFESSIONAL ANALYSIS (4-6 DETAILED PARAGRAPHS, 250-350 WORDS):
 
-YOU ARE THE HIRING MANAGER/CLIENT reviewing this candidate. Write a detailed professional assessment as if presenting to your team or stakeholders.
+[Paragraph 1 - Overall Assessment]
+[Detailed assessment text...]
 
-PARAGRAPH 1 - OVERALL ASSESSMENT (3-4 sentences):
-- Lead with the match score and overall alignment level
-- State years of experience and professional seniority
-- Provide immediate hiring recommendation (Strong fit / Good fit / Consider with reservations / Not recommended)
-- Mention key industry or domain expertise relevant to role
+[Paragraph 2 - Top Strengths]
+[Detailed strengths text...]
 
-PARAGRAPH 2 - TOP STRENGTHS (4-5 sentences):
-- Detail 3-4 strongest technical/professional competencies with SPECIFIC EVIDENCE
-- For each strength, cite concrete achievements or project experience from CV
-- Use metrics where available (years, team size, project scope, budget, etc.)
-- Explain WHY these strengths matter for THIS specific role
+[Paragraph 3 - Partial Matches]
+[Detailed partial matches text...]
 
-PARAGRAPH 3 - PARTIAL MATCHES & TRANSFERABLE SKILLS (3-4 sentences):
-- Identify 2-3 areas where candidate has related but not exact experience
-- Explain how these adjacent skills could transfer or compensate
-- Assess learning curve and adaptation potential
-- Note any certifications or training that could bridge gaps
+[Paragraph 4 - Gaps]
+[Detailed gaps text...]
 
-PARAGRAPH 4 - GAPS & DEVELOPMENT AREAS (3-4 sentences):
-- List 2-3 critical requirements from JD that are weak or missing
-- Assess impact of each gap (Critical blocker vs. Can learn on job)
-- Suggest mitigation strategies (training plan, mentorship, phased onboarding)
-- For strong candidates (>85), reframe as 'growth opportunities' rather than weaknesses
-
-PARAGRAPH 5 - FINAL RECOMMENDATION (3-4 sentences):
-- Clear hiring decision with confidence level (Strongly recommend / Recommend / Consider carefully / Pass)
-- Justify decision based on role criticality and candidate alignment
-- Next steps suggestion (Immediate interview / Phone screen first / Additional assessment needed)
-- One-line summary of candidate's unique value proposition
-
-TONE & STYLE REQUIREMENTS:
-- Professional but conversational (like speaking to a colleague)
-- Evidence-based and analytical, never vague or generic
-- Balanced: acknowledge both strengths and weaknesses honestly
-- Forward-looking: focus on potential and fit, not just past experience
-- CLIENT/RECRUITER PERSPECTIVE: 'This candidate would/wouldn't be strong because...'
-
-⚠️ MANDATORY: ALL text must be in ENGLISH, written as a cohesive narrative assessment."
+[Paragraph 5 - Final Recommendation]
+[Detailed recommendation text...]"
 }}
 
-⚠️ RÈGLES JSON:
-- "match" peut être: "excellent", "bon", "partiel", "incompatible"
+⚠️ RÈGLES JSON CRITIQUES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- "match" peut être: "excellent" (≥85/100), "bon" (65-84), "partiel" (40-64), "incompatible" (<40)
 - Tous les scores doivent être des NOMBRES (pas de strings)
 - La somme des poids doit faire exactement 100
 - Le score_matching doit être la somme exacte des scores de tous les domaines
+- Commentaire: minimum 2-3 phrases complètes avec détails factuels précis du CV
+- Synthèse: minimum 250 mots, 4-6 paragraphes distincts, détaillés et factuels
 
-⚠️ CRITICAL INSTRUCTION: ALL output must be in ENGLISH.
-- Domain names must be in English (e.g., "Central Database (DB2, IMS)", not "Bases de données centrales")
-- Comments must be in English
-- Synthesis must be in English
+⚠️ LANGUE: ALL output must be in ENGLISH.
+- Domain names in English (e.g., "Python Backend Development", not "Développement Backend Python")
+- All comments in English
+- Synthesis in English
 
 Génère l'analyse maintenant:"""
             
