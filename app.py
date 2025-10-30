@@ -738,7 +738,8 @@ def log_to_airtable(user_name, event_type, metadata=None):
         if metadata:
             fields["Metadata"] = json.dumps(metadata)
         
-        data = {"fields": fields}
+        # ✅ FIX: Airtable API requires "records" array
+        data = {"records": [{"fields": fields}]}
         
         print(f"📤 Sending to Airtable...", flush=True)
         response = requests.post(url, headers=headers, json=data, timeout=5)
