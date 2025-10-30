@@ -694,6 +694,15 @@ Génère l'analyse maintenant:"""
                 # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence
                 # Somme des scores de tous les domaines
                 if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
+                    # ✅ V1.3.10 FIX: Cap individual scores at their score_max
+                    for domaine in matching_result['domaines_analyses']:
+                        score = domaine.get('score', 0)
+                        score_max = domaine.get('score_max', 0)
+                        
+                        if score > score_max:
+                            print(f"⚠️ Score cap: {domaine.get('domaine', 'Unknown')} had {score}/{score_max} → capped to {score_max}/{score_max}")
+                            domaine['score'] = score_max
+                    
                     calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
                     original_score = matching_result.get('score_matching', 0)
                     
