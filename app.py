@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-TMC CV Optimizer — VERSION 1.3.4 OPTIMIZED (PERFORMANCE FIXES)
+TMC CV Optimizer — VERSION 1.3.4-AIRTABLE-FIX
 Interface Streamlit premium avec design moderne et backend complet
+
+✅ AIRTABLE FIX (Current):
+- ✅ Fixed field names: "Event_Type" (underscore), "User Location" (full name)
+- ✅ Added missing fields: Client, Anonymized, Skills Matrix Used
+- ✅ Full compatibility with CV Logs table structure
 
 ✨ PERFORMANCE OPTIMIZATIONS (30-35% faster):
 - ✅ Fix #1: Matching analysis reuse (saves 15-20s per generation)
@@ -692,19 +697,27 @@ def clear_session():
 # ==========================================
 
 def log_to_airtable(user_name, event_type, metadata=None):
-    """Log events to Airtable"""
+    """
+    Log usage events to Airtable for tracking
+    
+    Args:
+        user_name: Full name of user
+        event_type: Type of event (login, logout, analysis_completed, cv_generated)
+        metadata: Optional dict with additional data
+    """
     try:
-        print(f"🔍 AIRTABLE LOG CALLED: {event_type} by {user_name}", flush=True)
+        import requests
+        import json
         
-        # Get config from env vars first, fallback to secrets only if needed
-        AIRTABLE_TOKEN = os.getenv('AIRTABLE_TOKEN')
+        # Try environment variables first (support both old and new naming)
+        AIRTABLE_TOKEN = os.getenv('AIRTABLE_API_KEY') or os.getenv('AIRTABLE_TOKEN')
         AIRTABLE_BASE_ID = os.getenv('AIRTABLE_BASE_ID')
-        AIRTABLE_TABLE_NAME = os.getenv('AIRTABLE_TABLE_NAME')
+        AIRTABLE_TABLE_ID = os.getenv('AIRTABLE_TABLE_ID') or os.getenv('AIRTABLE_TABLE_NAME')
         
-        # Only try secrets if env vars are None
+        # Fallback to secrets if env vars not found
         if not AIRTABLE_TOKEN:
             try:
-                AIRTABLE_TOKEN = st.secrets.get("AIRTABLE_TOKEN")
+                AIRTABLE_TOKEN = st.secrets.get("AIRTABLE_API_KEY") or st.secrets.get("AIRTABLE_TOKEN")
             except:
                 pass
         
@@ -713,52 +726,95 @@ def log_to_airtable(user_name, event_type, metadata=None):
                 AIRTABLE_BASE_ID = st.secrets.get("AIRTABLE_BASE_ID")
             except:
                 pass
-                
-        if not AIRTABLE_TABLE_NAME:
+        
+        if not AIRTABLE_TABLE_ID:
             try:
-                AIRTABLE_TABLE_NAME = st.secrets.get("AIRTABLE_TABLE_NAME")
+                AIRTABLE_TABLE_ID = st.secrets.get("AIRTABLE_TABLE_ID") or st.secrets.get("AIRTABLE_TABLE_NAME")
             except:
                 pass
         
-        print(f"  Token present: {bool(AIRTABLE_TOKEN)}", flush=True)
-        print(f"  Base ID: {AIRTABLE_BASE_ID}", flush=True)
-        print(f"  Table: {AIRTABLE_TABLE_NAME}", flush=True)
-        
-        if not all([AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME]):
-            print("⚠️ Missing Airtable config - skipping log", flush=True)
+        # Check if all required config is present
+        if not all([AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID]):
+            # Only print warning once per session
+            if 'airtable_warning_shown' not in st.session_state:
+                print("⚠️ Missing Airtable config - usage tracking disabled", flush=True)
+                print(f"   Token: {bool(AIRTABLE_TOKEN)}, Base: {bool(AIRTABLE_BASE_ID)}, Table: {bool(AIRTABLE_TABLE_ID)}", flush=True)
+                st.session_state.airtable_warning_shown = True
             return
         
-        url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
-        headers = {
-            "Authorization": f"Bearer {AIRTABLE_TOKEN}",
-            "Content-Type": "application/json"
-        }
+        # Prepare timestamp
+        timestamp_iso = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         
+        # Parse user name
+        name_parts = user_name.split(' ', 1) if user_name else ['Unknown', '']
+        first_name = name_parts[0] if len(name_parts) > 0 else 'Unknown'
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Get user location if available
+        user_location = st.session_state.get('user_location', 'Unknown')
+        
+        # Build fields based on event type
         fields = {
-            "User": user_name,
-            "Event_Type": event_type,
-            "Timestamp": datetime.now().isoformat(),
+            "Timestamp": timestamp_iso,
+            "Event_Type": event_type,  # Fixed: underscore instead of space
+            "First Name": first_name,
+            "Last Name": last_name,
+            "User Location": user_location  # Fixed: "User Location" instead of "Location"
         }
         
+        # Add metadata fields if present
         if metadata:
-            fields["Metadata"] = json.dumps(metadata)
+            if event_type == "cv_generated":
+                # CV generation specific fields
+                fields["Client"] = metadata.get("client", "")
+                fields["Language"] = metadata.get("language", "")
+                fields["Anonymized"] = metadata.get("anonymized", False)
+                fields["Skills Matrix Used"] = metadata.get("skills_matrix_used", False)
+                if "candidate_name" in metadata:
+                    fields["Candidate Name"] = metadata["candidate_name"][:100]  # Truncate to 100 chars
+                if "score" in metadata:
+                    fields["Matching Score"] = int(metadata["score"])
+                if "processing_time" in metadata:
+                    fields["Processing Time"] = round(metadata["processing_time"], 2)
+                if "total_tokens" in metadata:
+                    fields["Total Tokens"] = int(metadata["total_tokens"])
+                if "estimated_cost" in metadata:
+                    fields["Estimated Cost ($)"] = round(metadata["estimated_cost"], 4)
+            
+            elif event_type == "analysis_completed":
+                # Analysis specific fields
+                if "client" in metadata:
+                    fields["Client"] = metadata["client"]
+                if "score" in metadata:
+                    fields["Matching Score"] = int(metadata["score"])
+            
+            elif event_type == "login":
+                # Login specific fields
+                if "location" in metadata:
+                    fields["User Location"] = metadata["location"]  # Fixed: "User Location" instead of "Location"
         
-        # ✅ FIX: Airtable API requires "records" array
-        data = {"records": [{"fields": fields}]}
+        # Build request
+        url = f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_ID}'
+        headers = {
+            'Authorization': f'Bearer {AIRTABLE_TOKEN}',
+            'Content-Type': 'application/json'
+        }
         
-        print(f"📤 Sending to Airtable...", flush=True)
-        response = requests.post(url, headers=headers, json=data, timeout=5)
+        record_data = {
+            "fields": fields
+        }
         
-        print(f"📥 Airtable response: {response.status_code}", flush=True)
-        if response.status_code != 200:
-            print(f"❌ Error: {response.text}", flush=True)
+        # Send to Airtable
+        response = requests.post(url, headers=headers, data=json.dumps(record_data), timeout=5)
+        
+        if response.status_code == 200:
+            print(f"✅ Airtable tracking success: {event_type} for {user_name}", flush=True)
         else:
-            print(f"✅ Log sent successfully", flush=True)
+            print(f"⚠️ Airtable error: {response.status_code} - {response.text}", flush=True)
             
     except Exception as e:
-        print(f"❌ AIRTABLE EXCEPTION: {repr(e)}", flush=True)
-        import traceback
-        print(traceback.format_exc(), flush=True)
+        print(f"⚠️ Airtable tracking failed: {str(e)}", flush=True)
+
 
 # ==========================================
 # 🔓 LOGIN SCREEN
@@ -1637,7 +1693,8 @@ def generate_cv(data):
             )
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Log to Airtable
+            # Log to Airtable with comprehensive data
+            metadata_info = enriched_cv.get('_metadata', {})
             log_to_airtable(
                 st.session_state.user_name,
                 "cv_generated",
@@ -1645,7 +1702,12 @@ def generate_cv(data):
                     "client": st.session_state.selected_client,
                     "language": st.session_state.selected_language,
                     "anonymized": client_config["anonymize"],
-                    "skills_matrix_used": bool(st.session_state.skills_matrix_file and client_config["use_skizmatrix"])
+                    "skills_matrix_used": bool(st.session_state.skills_matrix_file and client_config["use_skizmatrix"]),
+                    "candidate_name": nom_complet,
+                    "score": enriched_cv.get('score_matching', 0),
+                    "processing_time": metadata_info.get('processing_time_seconds', 0),
+                    "total_tokens": metadata_info.get('total_tokens', 0),
+                    "estimated_cost": metadata_info.get('estimated_cost_usd', 0)
                 }
             )
         else:
