@@ -803,6 +803,33 @@ Génère l'analyse maintenant:"""
                     if matching_result['score_matching'] > 100:
                         print(f"⚠️ Score exceeded 100: {matching_result['score_matching']} → Capping at 100")
                         matching_result['score_matching'] = 100
+                    
+                    # ✅ V1.3.4.3 FIX: Update synthese_matching with correct score
+                    # If score was recalculated, update any score mentions in the synthesis
+                    if abs(calculated_score - original_score) > 2 and 'synthese_matching' in matching_result:
+                        synthese = matching_result['synthese_matching']
+                        # Replace score mentions in common formats
+                        import re
+                        # Format: "score of XX" or "XX/100" or "XX out of 100"
+                        synthese = re.sub(
+                            rf'\b{original_score}/100\b',
+                            f'{matching_result["score_matching"]}/100',
+                            synthese
+                        )
+                        synthese = re.sub(
+                            rf'\bscore of {original_score}\b',
+                            f'score of {matching_result["score_matching"]}',
+                            synthese,
+                            flags=re.IGNORECASE
+                        )
+                        synthese = re.sub(
+                            rf'\b{original_score} out of 100\b',
+                            f'{matching_result["score_matching"]} out of 100',
+                            synthese,
+                            flags=re.IGNORECASE
+                        )
+                        matching_result['synthese_matching'] = synthese
+                        print(f"   ✅ Updated synthese_matching to reflect corrected score: {matching_result['score_matching']}/100")
                         
             except json.JSONDecodeError as e:
                 print(f"⚠️ JSON Error: {e}", flush=True)
