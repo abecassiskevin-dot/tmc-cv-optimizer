@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """
-TMC Universal CV Enricher
+TMC Universal CV Enricher - VERSION 1.3.5-FEEDBACK-FIX
 Lit n'importe quel CV → Enrichit avec IA → Génère CV TMC professionnel
+
+🐛 V1.3.5 FIXES:
+- ✅ Fixed &amp bug: Custom safe_escape() replaces & with "and"
+- ✅ PDF Skills Matrix support: Auto-converts PDF to DOCX using pdf2docx
+- ✅ Handles Skills Matrix: .docx OR .pdf formats
+
+📦 New dependency: pdf2docx==0.5.8
 """
 
 import os
@@ -16,7 +23,13 @@ import re
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 
-print(">>> tmc_universal_enricher module loading", flush=True)
+# === NOUVEAUX IMPORTS POUR OCR ===
+from pdf2image import convert_from_path
+import pytesseract
+from PIL import Image
+import tempfile
+
+print(">>> tmc_universal_enricher module loading (V1.3.5)", flush=True)
 
 
 def fix_table_width_to_auto(doc):
@@ -109,18 +122,100 @@ class TMCUniversalEnricher:
             return 'unknown'
     
     def extract_from_pdf(self, file_path: str) -> str:
-        """Extraire texte d'un PDF"""
+        """
+        Extraire texte d'un PDF avec fallback OCR automatique
+        1. Essaye PyPDF2 pour texte sélectionnable
+        2. Si échec/texte vide → Utilise OCR sur images
+        """
+        print(f"📄 Extracting PDF: {file_path}", flush=True)
+        
         try:
+            # ===== ÉTAPE 1: Tentative extraction PyPDF2 =====
             text = []
             with open(file_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
-                for page in pdf_reader.pages:
+                num_pages = len(pdf_reader.pages)
+                print(f"📊 PDF has {num_pages} pages", flush=True)
+                
+                for page_num, page in enumerate(pdf_reader.pages, 1):
                     page_text = page.extract_text()
                     if page_text:
                         text.append(page_text)
-            return "\n".join(text)
+                    print(f"  Page {page_num}: {len(page_text) if page_text else 0} chars", flush=True)
+            
+            extracted_text = "\n".join(text).strip()
+            
+            # ===== VÉRIFIER SI L'EXTRACTION A FONCTIONNÉ =====
+            # Seuil: Si moins de 100 caractères ou trop peu de mots → C'est scanné
+            word_count = len(extracted_text.split())
+            char_count = len(extracted_text)
+            
+            print(f"📈 PyPDF2 extraction: {char_count} chars, {word_count} words", flush=True)
+            
+            # Si extraction suffisante → Retourner
+            if char_count > 100 and word_count > 20:
+                print("✅ PDF text extraction successful (text-based PDF)", flush=True)
+                return extracted_text
+            
+            # ===== ÉTAPE 2: PDF scanné détecté → OCR =====
+            print("⚠️ PDF appears to be scanned (image-based). Switching to OCR...", flush=True)
+            return self._extract_from_pdf_ocr(file_path)
+            
         except Exception as e:
-            print(f"⚠️ Erreur extraction PDF: {e}")
+            print(f"❌ Error in PDF extraction: {e}", flush=True)
+            # En cas d'erreur PyPDF2, essayer quand même OCR
+            try:
+                print("🔄 Trying OCR as fallback...", flush=True)
+                return self._extract_from_pdf_ocr(file_path)
+            except Exception as e2:
+                print(f"❌ OCR fallback also failed: {e2}", flush=True)
+                return ""
+    
+    def _extract_from_pdf_ocr(self, file_path: str) -> str:
+        """
+        Extraire texte d'un PDF scanné via OCR
+        Utilise pdf2image + pytesseract
+        """
+        print("🔍 Starting OCR extraction...", flush=True)
+        
+        try:
+            # Convertir PDF en images (une par page)
+            # poppler_path peut être nécessaire sur Windows, mais pas sur Linux/Render
+            images = convert_from_path(
+                file_path,
+                dpi=300,  # Haute résolution pour meilleur OCR
+                fmt='jpeg',
+                thread_count=2  # Parallélisation
+            )
+            
+            print(f"📷 Converted {len(images)} pages to images", flush=True)
+            
+            # Extraire texte de chaque image
+            all_text = []
+            for i, image in enumerate(images, 1):
+                print(f"  🔎 OCR processing page {i}/{len(images)}...", flush=True)
+                
+                # Appliquer OCR avec config optimisée
+                # lang='eng+fra' pour anglais ET français
+                page_text = pytesseract.image_to_string(
+                    image,
+                    lang='eng+fra',  # Anglais + Français
+                    config='--psm 1 --oem 3'  # PSM 1 = automatic page segmentation with OSD
+                )
+                
+                if page_text.strip():
+                    all_text.append(f"--- Page {i} ---\n{page_text}")
+                    print(f"  ✓ Page {i}: {len(page_text)} chars extracted", flush=True)
+            
+            extracted_text = "\n\n".join(all_text)
+            print(f"✅ OCR extraction complete: {len(extracted_text)} chars total", flush=True)
+            
+            return extracted_text
+            
+        except Exception as e:
+            print(f"❌ OCR extraction failed: {e}", flush=True)
+            import traceback
+            print(traceback.format_exc(), flush=True)
             return ""
     
      
@@ -715,6 +810,33 @@ Génère l'analyse maintenant:"""
                     if matching_result['score_matching'] > 100:
                         print(f"⚠️ Score exceeded 100: {matching_result['score_matching']} → Capping at 100")
                         matching_result['score_matching'] = 100
+                    
+                    # ✅ V1.3.4.3 FIX: Update synthese_matching with correct score
+                    # If score was recalculated, update any score mentions in the synthesis
+                    if abs(calculated_score - original_score) > 2 and 'synthese_matching' in matching_result:
+                        synthese = matching_result['synthese_matching']
+                        # Replace score mentions in common formats
+                        import re
+                        # Format: "score of XX" or "XX/100" or "XX out of 100"
+                        synthese = re.sub(
+                            rf'\b{original_score}/100\b',
+                            f'{matching_result["score_matching"]}/100',
+                            synthese
+                        )
+                        synthese = re.sub(
+                            rf'\bscore of {original_score}\b',
+                            f'score of {matching_result["score_matching"]}',
+                            synthese,
+                            flags=re.IGNORECASE
+                        )
+                        synthese = re.sub(
+                            rf'\b{original_score} out of 100\b',
+                            f'{matching_result["score_matching"]} out of 100',
+                            synthese,
+                            flags=re.IGNORECASE
+                        )
+                        matching_result['synthese_matching'] = synthese
+                        print(f"   ✅ Updated synthese_matching to reflect corrected score: {matching_result['score_matching']}/100")
                         
             except json.JSONDecodeError as e:
                 print(f"⚠️ JSON Error: {e}", flush=True)
@@ -1381,7 +1503,7 @@ Return the corrected JSON directly:"""
                     fix_response = client.messages.create(
                         model="claude-sonnet-4-5-20250929",
                         max_tokens=8000,
-                        timeout=60.0,
+                        timeout=300.0,  # Same as main enrichment call
                         messages=[{"role": "user", "content": fix_prompt}]
                     )
                     
@@ -1749,26 +1871,36 @@ Return the corrected JSON directly:"""
         # 🔥 Ajouter la fonction r pour RichText dans le contexte
         context['r'] = lambda x: x
         
-        # ⚠️ CORRECTION XML : Échapper les caractères spéciaux (®, &, <, >, etc.)
-        from html import escape as html_escape
-        print(f"   🔧 Échappement des caractères XML spéciaux...")
+        # ⚠️ CORRECTION XML : Échapper les caractères spéciaux (®, <, >, etc.) - FIX &amp bug
+        def safe_escape(text):
+            """Échappe les caractères XML SAUF & qui est remplacé par 'and'"""
+            if not isinstance(text, str):
+                return text
+            # Remplacer & par 'and' (sans espaces supplémentaires)
+            text = text.replace('&', 'and')
+            # Échapper < et >
+            text = text.replace('<', '&lt;')
+            text = text.replace('>', '&gt;')
+            return text
+        
+        print(f"   🔧 Échappement des caractères XML spéciaux (& → and)...")
         
         # Échapper les champs texte simples
         for key in ['first_name', 'last_name', 'title', 'FIRST_NAME', 'LAST_NAME', 
                    'TITLE', 'residency', 'RESIDENCY', 'languages', 'LANGUAGES']:
             if key in context and isinstance(context[key], str):
-                context[key] = html_escape(context[key])
+                context[key] = safe_escape(context[key])
         
         # Échapper les expériences
         if 'work_experience' in context:
             for exp in context['work_experience']:
                 for key in ['period', 'company', 'position']:
                     if key in exp and isinstance(exp[key], str):
-                        exp[key] = html_escape(exp[key])
+                        exp[key] = safe_escape(exp[key])
                 
                 if 'general_responsibilities' in exp and isinstance(exp['general_responsibilities'], list):
                     exp['general_responsibilities'] = [
-                        html_escape(r) if isinstance(r, str) else r
+                        safe_escape(r) if isinstance(r, str) else r
                         for r in exp['general_responsibilities']
                     ]
         
@@ -1777,14 +1909,14 @@ Return the corrected JSON directly:"""
             for edu in context['education']:
                 for key in ['institution', 'degree', 'graduation_year', 'country', 'level', 'title']:
                     if key in edu and isinstance(edu[key], str):
-                        edu[key] = html_escape(edu[key])
+                        edu[key] = safe_escape(edu[key])
         
         # Échapper certifications
         if 'certifications' in context:
             for cert in context['certifications']:
                 for key in ['name', 'institution', 'year', 'country']:
                     if key in cert and isinstance(cert[key], str):
-                        cert[key] = html_escape(cert[key])
+                        cert[key] = safe_escape(cert[key])
         
         # Échapper projets
         if 'projects' in context:
@@ -1816,7 +1948,7 @@ Return the corrected JSON directly:"""
         
         Args:
             tmc_context: Contexte enrichi du candidat
-            skills_matrix_path: Path vers le fichier Skills Matrix uploadé
+            skills_matrix_path: Path vers le fichier Skills Matrix uploadé (.docx ou .pdf)
             output_path: Path pour le fichier final
             cover_template: Template pour la cover page
             content_template: Template pour le contenu détaillé
@@ -1833,6 +1965,27 @@ Return the corrected JSON directly:"""
             # Dossier temporaire
             temp_dir = Path("/tmp/cv_optimizer_ms")
             temp_dir.mkdir(exist_ok=True)
+            
+            # 🔥 NEW: Convert PDF Skills Matrix to DOCX if needed
+            if skills_matrix_path and skills_matrix_path.lower().endswith('.pdf'):
+                print("📄 Converting PDF Skills Matrix to DOCX...")
+                try:
+                    from pdf2docx import Converter
+                    
+                    # Create converted file path
+                    converted_path = temp_dir / "skills_matrix_converted.docx"
+                    
+                    # Convert PDF to DOCX
+                    cv = Converter(skills_matrix_path)
+                    cv.convert(str(converted_path))
+                    cv.close()
+                    
+                    print(f"   ✅ PDF converted successfully: {converted_path.name}")
+                    skills_matrix_path = str(converted_path)
+                    
+                except Exception as conv_error:
+                    print(f"   ⚠️ PDF conversion failed: {conv_error}")
+                    print(f"   ⚠️ Will try to use original file anyway...")
             
             # ÉTAPE 1: Générer cover page
             print("🎨 Generating cover page...")
