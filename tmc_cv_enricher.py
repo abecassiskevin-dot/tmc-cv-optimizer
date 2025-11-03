@@ -1972,28 +1972,37 @@ Return the corrected JSON directly:"""
                 try:
                     import subprocess
                     from pathlib import Path
+                    import shutil
+                    
+                    # Copy PDF to temp_dir with fixed name (so we know output name)
+                    pdf_copy = temp_dir / "skills_matrix_input.pdf"
+                    shutil.copy2(skills_matrix_path, pdf_copy)
+                    print(f"   📋 PDF copied to: {pdf_copy.name}")
                     
                     # Convert PDF to DOCX using LibreOffice headless
+                    print(f"   🔄 Running LibreOffice conversion...")
                     result = subprocess.run([
                         'soffice',
                         '--headless',
                         '--convert-to', 'docx',
                         '--outdir', str(temp_dir),
-                        skills_matrix_path
+                        str(pdf_copy)
                     ], capture_output=True, text=True, timeout=60)
+                    
+                    print(f"   📊 LibreOffice return code: {result.returncode}")
+                    if result.stdout:
+                        print(f"   📝 LibreOffice stdout: {result.stdout}")
+                    if result.stderr:
+                        print(f"   ⚠️ LibreOffice stderr: {result.stderr}")
                     
                     # Check if conversion succeeded
                     if result.returncode == 0:
-                        # LibreOffice creates file with same name but .docx extension
-                        # Get the original PDF filename (not the path)
-                        pdf_filename = Path(skills_matrix_path).name  # e.g., "skills_matrix_20251103.pdf"
-                        pdf_stem = Path(pdf_filename).stem  # e.g., "skills_matrix_20251103"
-                        converted_path = temp_dir / f"{pdf_stem}.docx"
+                        # Output will be skills_matrix_input.docx
+                        converted_path = temp_dir / "skills_matrix_input.docx"
                         
-                        # Debug: List files in temp_dir to see what was created
-                        if not converted_path.exists():
-                            print(f"   🔍 Debug: Looking for {converted_path}")
-                            print(f"   🔍 Files in {temp_dir}: {list(temp_dir.glob('*'))}")
+                        # List all files to debug
+                        all_files = list(temp_dir.glob("*"))
+                        print(f"   🔍 Files in temp_dir: {[f.name for f in all_files]}")
                         
                         if converted_path.exists():
                             print(f"   ✅ PDF converted successfully: {converted_path.name}")
@@ -2001,7 +2010,7 @@ Return the corrected JSON directly:"""
                         else:
                             raise Exception(f"Conversion succeeded but output file not found: {converted_path}")
                     else:
-                        raise Exception(f"LibreOffice conversion failed: {result.stderr}")
+                        raise Exception(f"LibreOffice conversion failed with code {result.returncode}")
                     
                 except Exception as conv_error:
                     print(f"   ⚠️ PDF conversion failed: {conv_error}")
