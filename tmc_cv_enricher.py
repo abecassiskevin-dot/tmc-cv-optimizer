@@ -1989,11 +1989,17 @@ Return the corrected JSON directly:"""
                     
                     # FALLBACK: Generate CV without Skills Matrix (Cover + Content only)
                     print("   🔄 Generating 2-part CV instead...")
-                    return self.generate_tmc_docx(
-                        tmc_context,
-                        output_path,
-                        template_path="TMC_NA_template_EN_Anonymise.docx"
-                    )
+                    try:
+                        self.generate_tmc_docx(
+                            tmc_context,
+                            output_path,
+                            template_path="TMC_NA_template_EN_Anonymise.docx"
+                        )
+                        return True, str(output_path)
+                    except Exception as fallback_error:
+                        error_msg = f"Fallback CV generation failed: {str(fallback_error)}"
+                        print(f"❌ {error_msg}")
+                        return False, error_msg
             
             # ÉTAPE 1: Générer cover page
             print("🎨 Generating cover page...")
