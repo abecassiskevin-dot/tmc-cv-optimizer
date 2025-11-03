@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-fra \
+    libreoffice \
     poppler-utils \
     curl \
     && rm -rf /var/lib/apt/lists/*
