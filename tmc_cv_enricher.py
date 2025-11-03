@@ -1923,7 +1923,7 @@ Return the corrected JSON directly:"""
             for proj in context['projects']:
                 for key in ['nom', 'description']:
                     if key in proj and isinstance(proj[key], str):
-                        proj[key] = html_escape(proj[key])
+                        proj[key] = safe_escape(proj[key])
         
         print(f"   ✅ Caractères XML échappés (®, &, <, >, etc.)")
         
