@@ -1985,7 +1985,15 @@ Return the corrected JSON directly:"""
                     
                 except Exception as conv_error:
                     print(f"   ⚠️ PDF conversion failed: {conv_error}")
-                    print(f"   ⚠️ Will try to use original file anyway...")
+                    print(f"   ❌ Cannot use PDF directly - Falling back to 2-part CV (no Skills Matrix)")
+                    
+                    # FALLBACK: Generate CV without Skills Matrix (Cover + Content only)
+                    print("   🔄 Generating 2-part CV instead...")
+                    return self.generate_tmc_docx(
+                        tmc_context,
+                        output_path,
+                        template_path="TMC_NA_template_EN_Anonymise.docx"
+                    )
             
             # ÉTAPE 1: Générer cover page
             print("🎨 Generating cover page...")
