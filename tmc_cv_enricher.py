@@ -1985,14 +1985,21 @@ Return the corrected JSON directly:"""
                     # Check if conversion succeeded
                     if result.returncode == 0:
                         # LibreOffice creates file with same name but .docx extension
-                        pdf_name = Path(skills_matrix_path).stem
-                        converted_path = temp_dir / f"{pdf_name}.docx"
+                        # Get the original PDF filename (not the path)
+                        pdf_filename = Path(skills_matrix_path).name  # e.g., "skills_matrix_20251103.pdf"
+                        pdf_stem = Path(pdf_filename).stem  # e.g., "skills_matrix_20251103"
+                        converted_path = temp_dir / f"{pdf_stem}.docx"
+                        
+                        # Debug: List files in temp_dir to see what was created
+                        if not converted_path.exists():
+                            print(f"   🔍 Debug: Looking for {converted_path}")
+                            print(f"   🔍 Files in {temp_dir}: {list(temp_dir.glob('*'))}")
                         
                         if converted_path.exists():
                             print(f"   ✅ PDF converted successfully: {converted_path.name}")
                             skills_matrix_path = str(converted_path)
                         else:
-                            raise Exception("Conversion succeeded but output file not found")
+                            raise Exception(f"Conversion succeeded but output file not found: {converted_path}")
                     else:
                         raise Exception(f"LibreOffice conversion failed: {result.stderr}")
                     
