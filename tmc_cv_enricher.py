@@ -1966,22 +1966,35 @@ Return the corrected JSON directly:"""
             temp_dir = Path("/tmp/cv_optimizer_ms")
             temp_dir.mkdir(exist_ok=True)
             
-            # 🔥 NEW: Convert PDF Skills Matrix to DOCX if needed
+            # 🔥 V1.3.5: Convert PDF Skills Matrix to DOCX using LibreOffice
             if skills_matrix_path and skills_matrix_path.lower().endswith('.pdf'):
-                print("📄 Converting PDF Skills Matrix to DOCX...")
+                print("📄 Converting PDF Skills Matrix to DOCX using LibreOffice...")
                 try:
-                    from pdf2docx import Converter
+                    import subprocess
+                    from pathlib import Path
                     
-                    # Create converted file path
-                    converted_path = temp_dir / "skills_matrix_converted.docx"
+                    # Convert PDF to DOCX using LibreOffice headless
+                    result = subprocess.run([
+                        'soffice',
+                        '--headless',
+                        '--convert-to', 'docx',
+                        '--outdir', str(temp_dir),
+                        skills_matrix_path
+                    ], capture_output=True, text=True, timeout=60)
                     
-                    # Convert PDF to DOCX
-                    cv = Converter(skills_matrix_path)
-                    cv.convert(str(converted_path))
-                    cv.close()
-                    
-                    print(f"   ✅ PDF converted successfully: {converted_path.name}")
-                    skills_matrix_path = str(converted_path)
+                    # Check if conversion succeeded
+                    if result.returncode == 0:
+                        # LibreOffice creates file with same name but .docx extension
+                        pdf_name = Path(skills_matrix_path).stem
+                        converted_path = temp_dir / f"{pdf_name}.docx"
+                        
+                        if converted_path.exists():
+                            print(f"   ✅ PDF converted successfully: {converted_path.name}")
+                            skills_matrix_path = str(converted_path)
+                        else:
+                            raise Exception("Conversion succeeded but output file not found")
+                    else:
+                        raise Exception(f"LibreOffice conversion failed: {result.stderr}")
                     
                 except Exception as conv_error:
                     print(f"   ⚠️ PDF conversion failed: {conv_error}")
