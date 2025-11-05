@@ -492,15 +492,48 @@ EXPÉRIENCES:
 - NE JAMAIS inventer un score global différent de la somme calculée
 
 ═══════════════════════════════════════════════════
-📋 ÉTAPE 1 - IDENTIFIER 5-8 DOMAINES CRITIQUES
+📋 ÉTAPE 1 - IDENTIFIER LES DOMAINES CRITIQUES (ADAPTATIF)
 ═══════════════════════════════════════════════════
 
+🎯 NOMBRE DE DOMAINES ADAPTATIF SELON COMPLEXITÉ JD:
+
+AVANT de commencer, compte les mots de la Job Description et adapte :
+
+📏 JD COURTE (<500 mots):
+   → 5-6 domaines
+   → Poids typiques: 15-25% par domaine
+   → Exemple: Startup tech simple (Python, AWS, Docker, Agile, Communication)
+
+📏 JD MOYENNE (500-1000 mots):
+   → 6-8 domaines
+   → Poids typiques: 12-20% par domaine
+   → Exemple: Poste corporate standard avec tech + soft skills
+
+📏 JD LONGUE (1000-1500 mots):
+   → 8-10 domaines
+   → Poids typiques: 10-15% par domaine
+   → Exemple: Rôle senior avec multiples stacks, certifications, industries
+
+📏 JD TRÈS LONGUE (>1500 mots):
+   → 10-12 domaines
+   → Poids typiques: 8-12% par domaine
+   → Exemple: Poste complexe multi-disciplinaire avec nombreux requis
+
+🎯 OBJECTIF: Capturer TOUS les critères importants sans en oublier
+⚠️ RAPPEL CRITIQUE: Somme des poids = TOUJOURS 100% (ajuste les % en conséquence)
+
+💡 RÈGLE D'OR: Plus de domaines = poids plus petits par domaine
+   - 5 domaines → ~20% chacun
+   - 8 domaines → ~12-13% chacun
+   - 12 domaines → ~8-9% chacun
+
 PROCESSUS AUTOMATIQUE D'IDENTIFICATION:
-1. Scan complet de la JD - repérer TOUS les mots techniques/compétences
-2. Compter la fréquence EXACTE de chaque technologie/compétence/méthodologie
-3. Identifier les must-haves vs nice-to-haves
-4. Créer une liste de domaines par ordre d'importance
-5. Appliquer la formule de pondération ci-dessous
+1. Compter les mots de la JD pour déterminer le nombre de domaines
+2. Scan complet de la JD - repérer TOUS les mots techniques/compétences
+3. Compter la fréquence EXACTE de chaque technologie/compétence/méthodologie
+4. Identifier les must-haves vs nice-to-haves
+5. Créer une liste de domaines par ordre d'importance
+6. Appliquer la formule de pondération ci-dessous
 
 📊 FORMULE DE PONDÉRATION MATHÉMATIQUE:
 Pour chaque domaine, calcule son poids avec:
@@ -1097,6 +1130,22 @@ Fais :
    ❌ Détails spécifiques NON vérifiables (ex: "Gas turbines" si absent)
    ❌ Certifications NON listées
    ❌ Responsabilités NON décrites originalement
+   ❌ Procédures/standards de l'industrie NON mentionnés explicitement
+   
+🚨 EXEMPLES CRITIQUES - ZÉRO INFÉRENCE MÊME SI "LOGIQUE" :
+   ❌ CV: "EHS Specialist 15 ans" + JD: "LOTO" → N'AJOUTE PAS "LOTO" si absent du CV
+   ❌ CV: "Safety Manager" + JD: "Confined Space" → N'AJOUTE PAS si absent du CV
+   ❌ CV: "Industrial Safety" + JD: "PPE programs" → N'AJOUTE PAS si absent du CV
+   ❌ CV: "React developer" + JD: "JavaScript" → N'AJOUTE PAS "JavaScript" si absent
+   
+   RÈGLE D'OR: MÊME SI c'est un "standard de l'industrie" évident
+               → SI PAS EXPLICITEMENT DANS LE CV = NE L'AJOUTE PAS
+   
+   ✅ SEULE EXCEPTION - Synonymes exacts/acronymes UNIQUEMENT :
+      - CV: "JavaScript" → "JS" ✅ (acronyme direct)
+      - CV: "AWS" → "Amazon Web Services" ✅ (expansion d'acronyme)
+      - CV: "LOTO" → "Lock-Out-Tag-Out" ✅ (expansion d'acronyme)
+      - MAIS CV: "Safety Manager" → "LOTO" ❌ (inférence interdite)
    
 6. CONSERVATION OBLIGATOIRE - TU DOIS inclure :
    ✅ TOUTES les dates d'emploi (début-fin) EXACTES du CV
@@ -1386,6 +1435,22 @@ Fais :
    ❌ Détails spécifiques NON vérifiables (ex: "Gas turbines" si absent)
    ❌ Certifications NON listées
    ❌ Responsabilités NON décrites originalement
+   ❌ Procédures/standards de l'industrie NON mentionnés explicitement
+   
+🚨 EXEMPLES CRITIQUES - ZÉRO INFÉRENCE MÊME SI "LOGIQUE" :
+   ❌ CV: "EHS Specialist 15 ans" + JD: "LOTO" → N'AJOUTE PAS "LOTO" si absent du CV
+   ❌ CV: "Safety Manager" + JD: "Confined Space" → N'AJOUTE PAS si absent du CV
+   ❌ CV: "Industrial Safety" + JD: "PPE programs" → N'AJOUTE PAS si absent du CV
+   ❌ CV: "React developer" + JD: "JavaScript" → N'AJOUTE PAS "JavaScript" si absent
+   
+   RÈGLE D'OR: MÊME SI c'est un "standard de l'industrie" évident
+               → SI PAS EXPLICITEMENT DANS LE CV = NE L'AJOUTE PAS
+   
+   ✅ SEULE EXCEPTION - Synonymes exacts/acronymes UNIQUEMENT :
+      - CV: "JavaScript" → "JS" ✅ (acronyme direct)
+      - CV: "AWS" → "Amazon Web Services" ✅ (expansion d'acronyme)
+      - CV: "LOTO" → "Lock-Out-Tag-Out" ✅ (expansion d'acronyme)
+      - MAIS CV: "Safety Manager" → "LOTO" ❌ (inférence interdite)
    
 6. CONSERVATION OBLIGATOIRE - TU DOIS inclure :
    ✅ TOUTES les dates d'emploi (début-fin) EXACTES du CV
@@ -1532,6 +1597,15 @@ CRITICAL SCORING RULES:
 🔴🔴🔴 VÉRIFICATION FINALE AVANT RÉPONSE (NON-NÉGOCIABLE) 🔴🔴🔴
 
 AVANT de générer ta réponse JSON, tu DOIS:
+
+0️⃣ VÉRIFIER LE NOMBRE DE DOMAINES (ADAPTATIF):
+   - Compte les mots de la JD
+   - JD <500 mots → 5-6 domaines ✅
+   - JD 500-1000 mots → 6-8 domaines ✅
+   - JD 1000-1500 mots → 8-10 domaines ✅
+   - JD >1500 mots → 10-12 domaines ✅
+   - Si tu as trop peu de domaines pour une JD longue → AJOUTE des domaines
+   - Si tu as trop de domaines pour une JD courte → REGROUPE des domaines
 
 1️⃣ CALCULER LA SOMME:
    Somme = domaine1.score + domaine2.score + domaine3.score + ... + domaineN.score
