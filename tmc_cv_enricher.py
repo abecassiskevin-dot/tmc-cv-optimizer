@@ -1171,6 +1171,25 @@ Fais :
    - Conserver les années EXACTES
    - Conserver les institutions EXACTES
    
+   🚨 RÈGLE CRITIQUE CERTIFICATIONS - AUCUNE SUPPRESSION :
+   Tu DOIS inclure TOUTES les certifications sans exception, incluant :
+   ✅ TWIC (Transportation Worker ID Credential)
+   ✅ CHST, CSP, CIH (certifications sécurité)
+   ✅ OSHA 10/30/502 (toutes variantes)
+   ✅ NFPA 70E, Arc Flash
+   ✅ MSHA (toutes variantes)
+   ✅ First Aid, CPR, AED
+   ✅ Scaffold, Rigging, Signaling
+   ✅ PMP, Six Sigma, Lean
+   ✅ Certifications techniques (AWS, Azure, etc.)
+   ✅ TOUTE autre certification mentionnée
+   
+   MÊME si une certification semble "secondaire" ou "moins importante"
+   → TU DOIS L'INCLURE quand même
+   
+   NE FILTRE PAS, NE TRIE PAS, NE SUPPRIME PAS
+   Si c'est dans le CV original → C'est dans certifications_enrichies
+   
 10. RÈGLE D'OR - EN CAS DE DOUTE :
    - Si une info n'est PAS EXPLICITE dans le CV → NE L'AJOUTE PAS
    - Si tu hésites sur un chiffre → NE L'AJOUTE PAS
@@ -1475,6 +1494,25 @@ Fais :
    - Inclure TOUTES les certifications du CV
    - Conserver les années EXACTES
    - Conserver les institutions EXACTES
+   
+   🚨 RÈGLE CRITIQUE CERTIFICATIONS - AUCUNE SUPPRESSION :
+   Tu DOIS inclure TOUTES les certifications sans exception, incluant :
+   ✅ TWIC (Transportation Worker ID Credential)
+   ✅ CHST, CSP, CIH (certifications sécurité)
+   ✅ OSHA 10/30/502 (toutes variantes)
+   ✅ NFPA 70E, Arc Flash
+   ✅ MSHA (toutes variantes)
+   ✅ First Aid, CPR, AED
+   ✅ Scaffold, Rigging, Signaling
+   ✅ PMP, Six Sigma, Lean
+   ✅ Certifications techniques (AWS, Azure, etc.)
+   ✅ TOUTE autre certification mentionnée
+   
+   MÊME si une certification semble "secondaire" ou "moins importante"
+   → TU DOIS L'INCLURE quand même
+   
+   NE FILTRE PAS, NE TRIE PAS, NE SUPPRIME PAS
+   Si c'est dans le CV original → C'est dans certifications_enrichies
    
 10. RÈGLE D'OR - EN CAS DE DOUTE :
    - Si une info n'est PAS EXPLICITE dans le CV → NE L'AJOUTE PAS
