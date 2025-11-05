@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-TMC Universal CV Enricher
+TMC Universal CV Enricher v1.3.5
 Lit n'importe quel CV → Enrichit avec IA → Génère CV TMC professionnel
+
+VERSION 1.3.5 - ANTI-HALLUCINATION VALIDATOR INTÉGRÉ
+- Détection automatique des hallucinations (LOTO, Confined Space, etc.)
+- Validation post-génération avec correction automatique
+- Conservation garantie de TOUTES les certifications (dont TWIC)
 """
 
 import os
@@ -10,11 +15,12 @@ import json
 from docxtpl import DocxTemplate, RichText
 from docx import Document
 import jinja2
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 import PyPDF2
 import re
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
+from difflib import SequenceMatcher
 
 # === NOUVEAUX IMPORTS POUR OCR ===
 from pdf2image import convert_from_path
@@ -22,21 +28,306 @@ import pytesseract
 from PIL import Image
 import tempfile
 
-print(">>> tmc_universal_enricher module loading", flush=True)
+print(">>> tmc_cv_enricher v1.3.5 (with anti-hallucination validator) loading", flush=True)
+
+
+# ========================================
+# VALIDATEUR ANTI-HALLUCINATION
+# ========================================
+
+class CVHallucinationValidator:
+    """
+    Validateur qui détecte et corrige les hallucinations dans les CVs enrichis
+    
+    VERSION 1.3.5 - Intégration dans le workflow principal
+    """
+    
+    # Mots-clés suspects qui sont souvent ajoutés par inférence
+    SUSPICIOUS_KEYWORDS = [
+        'LOTO', 'Lock-Out-Tag-Out', 'Lockout Tagout', 'Lock Out Tag Out',
+        'Lockout', 'Lock-out', 'Lock out',
+        'Confined Space', 'Confined-Space', 'confined space entry',
+        'Gas Turbines', 'Gas turbine',
+        'Steam Turbines', 'Steam turbine',
+        'Human Performance', 'HuP program', 'Human Factors',
+        'Root Cause Analysis methodology', 'RCA methodology',
+        '75% travel', '75%+ travel', 'exceeding 75%',
+        '$500M', '$500 million',
+        '7x12', '7 x 12', '7×12',
+        'Outage support', 'Outage schedule', 'outage/maintenance'
+    ]
+    
+    def __init__(self):
+        self.warnings = []
+        self.errors = []
+        self.fixes_applied = []
+    
+    def validate_certifications(
+        self, 
+        original_certs: List[Dict[str, Any]], 
+        enriched_certs: List[Dict[str, Any]]
+    ) -> Tuple[bool, List[str]]:
+        """
+        Valider que toutes les certifications originales sont présentes
+        et qu'aucune nouvelle n'a été ajoutée
+        """
+        issues = []
+        
+        # Extraire les noms (normaliser pour comparaison)
+        def normalize_cert_name(cert):
+            name = cert.get('nom', cert.get('name', '')).strip().upper()
+            # Nettoyer les variations
+            name = re.sub(r'\s+', ' ', name)
+            return name
+        
+        original_names = set([normalize_cert_name(cert) for cert in original_certs if normalize_cert_name(cert)])
+        enriched_names = set([normalize_cert_name(cert) for cert in enriched_certs if normalize_cert_name(cert)])
+        
+        # Vérifier suppressions
+        missing = original_names - enriched_names
+        if missing:
+            issues.append(f"❌ Certifications supprimées: {missing}")
+            self.errors.append(f"Missing certifications: {missing}")
+        
+        # Vérifier ajouts suspects
+        added = enriched_names - original_names
+        if added:
+            issues.append(f"⚠️ Certifications potentiellement ajoutées: {added}")
+            self.warnings.append(f"Added certifications: {added}")
+        
+        # Vérifier le compte
+        if len(enriched_certs) < len(original_certs):
+            issues.append(f"❌ Nombre de certifications: {len(enriched_certs)}/{len(original_certs)}")
+            self.errors.append(f"Certification count: {len(enriched_certs)} vs {len(original_certs)} expected")
+        
+        return len(self.errors) == 0, issues
+    
+    def detect_hallucinations(
+        self,
+        original_text: str,
+        enriched_text: str
+    ) -> List[str]:
+        """
+        Détecter les mots-clés suspects ajoutés dans l'enrichissement
+        """
+        hallucinations = []
+        
+        for keyword in self.SUSPICIOUS_KEYWORDS:
+            # Pattern case-insensitive
+            keyword_pattern = re.compile(re.escape(keyword), re.IGNORECASE)
+            
+            in_original = bool(keyword_pattern.search(original_text))
+            in_enriched = bool(keyword_pattern.search(enriched_text))
+            
+            if in_enriched and not in_original:
+                hallucinations.append(keyword)
+                self.warnings.append(f"Hallucination detected: '{keyword}'")
+        
+        return hallucinations
+    
+    def remove_hallucinations_from_text(
+        self,
+        text: str,
+        hallucinations: List[str]
+    ) -> str:
+        """
+        Retirer les hallucinations d'un texte
+        """
+        if not text or not isinstance(text, str):
+            return text
+        
+        cleaned_text = text
+        
+        for hallucination in hallucinations:
+            # Patterns pour capturer le mot ET son contexte
+            patterns = [
+                # "LOTO, confined space, and PPE" → "confined space and PPE"
+                rf'\b{re.escape(hallucination)}\s*,\s*',
+                # "PPE, LOTO, and scaffolding" → "PPE and scaffolding"  
+                rf',\s*{re.escape(hallucination)}\s*,\s*',
+                # "PPE and LOTO" → "PPE"
+                rf'\s+and\s+{re.escape(hallucination)}\b',
+                # "LOTO and PPE" → "PPE"
+                rf'\b{re.escape(hallucination)}\s+and\s+',
+                # "(LOTO)" → ""
+                rf'\(\s*{re.escape(hallucination)}\s*\)',
+                # "including LOTO" → "including"
+                rf'including\s+{re.escape(hallucination)}\b',
+                # "enforced LOTO procedures" → "enforced safety procedures"
+                rf'{re.escape(hallucination)}\s+procedures',
+                # Fallback: just the word
+                rf'\b{re.escape(hallucination)}\b',
+            ]
+            
+            for pattern in patterns:
+                cleaned_text = re.sub(pattern, '', cleaned_text, flags=re.IGNORECASE)
+            
+            self.fixes_applied.append(f"Removed hallucination: '{hallucination}'")
+        
+        # Nettoyer les artifacts
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text)  # Espaces doubles
+        cleaned_text = re.sub(r',\s*,', ',', cleaned_text)  # Virgules doubles
+        cleaned_text = re.sub(r'\(\s*\)', '', cleaned_text)  # Parenthèses vides
+        cleaned_text = re.sub(r',\s*and\s+', ' and ', cleaned_text)  # ", and" → " and"
+        cleaned_text = re.sub(r'\s+\.', '.', cleaned_text)  # Espace avant point
+        
+        return cleaned_text.strip()
+    
+    def validate_and_fix(
+        self,
+        parsed_cv: Dict[str, Any],
+        enriched_cv: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Valider et corriger un CV enrichi
+        
+        Returns:
+            (fixed_enriched_cv, validation_report)
+        """
+        print("🔍 Validation anti-hallucination (v1.3.5)...", flush=True)
+        
+        self.warnings = []
+        self.errors = []
+        self.fixes_applied = []
+        
+        fixed_cv = enriched_cv.copy()
+        
+        # 1. VALIDER CERTIFICATIONS
+        original_certs = parsed_cv.get('certifications', [])
+        enriched_certs = enriched_cv.get('certifications_enrichies', [])
+        
+        if enriched_certs:
+            is_valid, issues = self.validate_certifications(original_certs, enriched_certs)
+            
+            if not is_valid:
+                print(f"   ⚠️ Problèmes détectés dans les certifications:", flush=True)
+                for issue in issues:
+                    print(f"      {issue}", flush=True)
+                
+                # FIX: Restaurer les certifications originales
+                fixed_cv['certifications_enrichies'] = original_certs
+                self.fixes_applied.append("Restored original certifications")
+                print(f"   ✅ Certifications restaurées depuis l'original ({len(original_certs)} certs)", flush=True)
+        
+        # 2. DÉTECTER HALLUCINATIONS DANS LE TEXTE
+        original_text = self._reconstruct_cv_text(parsed_cv)
+        
+        # Extraire tous les textes enrichis
+        enriched_texts_to_check = []
+        enriched_fields = [
+            'profil_enrichi',
+            'titre_professionnel_enrichi',
+            'synthese_matching'
+        ]
+        
+        for field in enriched_fields:
+            if field in enriched_cv and enriched_cv[field]:
+                enriched_texts_to_check.append((field, str(enriched_cv[field])))
+        
+        # Checker les expériences
+        if 'experiences_enrichies' in enriched_cv:
+            for i, exp in enumerate(enriched_cv['experiences_enrichies']):
+                if 'responsabilites' in exp:
+                    for j, resp in enumerate(exp['responsabilites']):
+                        enriched_texts_to_check.append((f'experience[{i}].responsabilites[{j}]', str(resp)))
+                if 'environment' in exp:
+                    enriched_texts_to_check.append((f'experience[{i}].environment', str(exp['environment'])))
+        
+        # Checker les compétences
+        if 'competences_enrichies' in enriched_cv:
+            for category, skills in enriched_cv['competences_enrichies'].items():
+                if isinstance(skills, list):
+                    for skill in skills:
+                        enriched_texts_to_check.append((f'competence[{category}]', str(skill)))
+        
+        enriched_text = '\n'.join([text for _, text in enriched_texts_to_check])
+        
+        hallucinations = self.detect_hallucinations(original_text, enriched_text)
+        
+        if hallucinations:
+            print(f"   🚨 Hallucinations détectées: {hallucinations}", flush=True)
+            
+            # FIX: Retirer les hallucinations de tous les champs
+            for field, _ in enriched_texts_to_check:
+                if '.' in field:
+                    # Champ nested (experiences, competences)
+                    parts = field.replace('[', '.').replace(']', '').split('.')
+                    if parts[0] == 'experience' and len(parts) >= 4:
+                        idx = int(parts[1])
+                        if parts[2] == 'responsabilites':
+                            resp_idx = int(parts[3])
+                            if 'experiences_enrichies' in fixed_cv and idx < len(fixed_cv['experiences_enrichies']):
+                                if 'responsabilites' in fixed_cv['experiences_enrichies'][idx]:
+                                    if resp_idx < len(fixed_cv['experiences_enrichies'][idx]['responsabilites']):
+                                        original_resp = fixed_cv['experiences_enrichies'][idx]['responsabilites'][resp_idx]
+                                        fixed_cv['experiences_enrichies'][idx]['responsabilites'][resp_idx] = \
+                                            self.remove_hallucinations_from_text(str(original_resp), hallucinations)
+                        elif parts[2] == 'environment':
+                            if 'experiences_enrichies' in fixed_cv and idx < len(fixed_cv['experiences_enrichies']):
+                                original_env = fixed_cv['experiences_enrichies'][idx].get('environment', '')
+                                fixed_cv['experiences_enrichies'][idx]['environment'] = \
+                                    self.remove_hallucinations_from_text(str(original_env), hallucinations)
+                else:
+                    # Champ simple
+                    if field in fixed_cv:
+                        fixed_cv[field] = self.remove_hallucinations_from_text(str(fixed_cv[field]), hallucinations)
+            
+            print(f"   ✅ Hallucinations retirées de {len(enriched_texts_to_check)} champs", flush=True)
+        
+        # 3. GÉNÉRER RAPPORT
+        report = {
+            'is_valid': len(self.errors) == 0,
+            'warnings': self.warnings,
+            'errors': self.errors,
+            'fixes_applied': self.fixes_applied,
+            'hallucinations_detected': hallucinations,
+            'fields_checked': len(enriched_texts_to_check),
+            'certifications_validated': len(original_certs)
+        }
+        
+        if report['is_valid'] and not hallucinations:
+            print(f"   ✅ Validation réussie - Aucun problème détecté", flush=True)
+        elif hallucinations or self.warnings:
+            print(f"   ⚠️ Validation avec corrections - {len(self.warnings)} warnings, {len(self.fixes_applied)} fixes", flush=True)
+        else:
+            print(f"   ❌ Validation échouée - {len(self.errors)} erreurs critiques", flush=True)
+        
+        return fixed_cv, report
+    
+    def _reconstruct_cv_text(self, parsed_cv: Dict[str, Any]) -> str:
+        """Reconstruire le texte du CV original pour comparaison"""
+        text_parts = []
+        
+        if 'profil_resume' in parsed_cv:
+            text_parts.append(str(parsed_cv['profil_resume']))
+        
+        if 'titre_professionnel' in parsed_cv:
+            text_parts.append(str(parsed_cv['titre_professionnel']))
+        
+        if 'competences' in parsed_cv:
+            text_parts.extend([str(c) for c in parsed_cv['competences']])
+        
+        if 'experiences' in parsed_cv:
+            for exp in parsed_cv['experiences']:
+                text_parts.append(str(exp.get('poste', '')))
+                text_parts.append(str(exp.get('entreprise', '')))
+                if 'responsabilites' in exp:
+                    text_parts.extend([str(r) for r in exp['responsabilites']])
+        
+        if 'certifications' in parsed_cv:
+            for cert in parsed_cv['certifications']:
+                text_parts.append(str(cert.get('nom', cert.get('name', ''))))
+        
+        if 'formation' in parsed_cv:
+            for form in parsed_cv['formation']:
+                text_parts.append(str(form.get('diplome', '')))
+        
+        return '\n'.join([t for t in text_parts if t])
 
 
 def fix_table_width_to_auto(doc):
     """
     Change table width from fixed to auto to prevent horizontal shift after merge.
-    
-    This fixes the issue where Skills Matrix tables with fixed width (e.g., 8.1 inches)
-    get shifted right after merging because they don't fit within the page margins.
-    
-    Args:
-        doc: Document object to fix
-    
-    Returns:
-        int: Number of tables fixed
     """
     w = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
     tables_fixed = 0
@@ -46,20 +337,17 @@ def fix_table_width_to_auto(doc):
         tblPr = tbl.find(f'.//{w}tblPr')
         
         if tblPr is not None:
-            # Find and fix tblW (table width)
             tblW = tblPr.find(f'.//{w}tblW')
             if tblW is not None:
                 old_type = tblW.get(f'{w}type', 'unknown')
                 old_w = tblW.get(f'{w}w', 'unknown')
                 
-                # Change to auto width
                 tblW.set(f'{w}type', 'auto')
                 tblW.set(f'{w}w', '0')
                 
                 print(f"   🔧 Table width changed: {old_type}={old_w} → auto=0")
                 tables_fixed += 1
             
-            # Remove fixed layout if present
             tblLayout = tblPr.find(f'.//{w}tblLayout')
             if tblLayout is not None:
                 old_layout = tblLayout.get(f'{w}type', 'unknown')
@@ -70,19 +358,18 @@ def fix_table_width_to_auto(doc):
 
 
 class TMCUniversalEnricher:
-    """Enrichisseur universel de CV au format TMC"""
+    """Enrichisseur universel de CV au format TMC avec validation anti-hallucination"""
     
     def __init__(self, api_key: str = None):
         """Initialiser avec clé API Claude"""
         self.api_key = api_key or os.getenv('ANTHROPIC_API_KEY')
         if not self.api_key:
-            raise ValueError("❌ Clé API Claude manquante! Définissez ANTHROPIC_API_KEY dans les secrets Streamlit ou en variable d'environnement.")
+            raise ValueError("❌ Clé API Claude manquante!")
         
-        # Debug clé API
         print(f">>> ANTHROPIC_KEY_PRESENT: {bool(self.api_key)}, len: {len(self.api_key) if self.api_key else 0}", flush=True)
         
-        # Ne crée PAS le client ici (lazy loading)
         self._anthropic_client = None
+        self.validator = CVHallucinationValidator()  # ✅ NOUVEAU: Validateur intégré
     
     def _get_anthropic_client(self):
         """Lazy loading du client Anthropic"""
@@ -90,14 +377,12 @@ class TMCUniversalEnricher:
             try:
                 print(">>> Creating anthropic client", flush=True)
                 import anthropic
-                # Création SIMPLE du client pour version 0.25.9
                 self._anthropic_client = anthropic.Anthropic(api_key=self.api_key)
                 print(">>> Anthropic client created OK", flush=True)
             except Exception as e:
                 print(f">>> ERROR creating anthropic client: {repr(e)}", flush=True)
                 raise
         return self._anthropic_client
-    
     # ========================================
     # MODULE 1 : EXTRACTION UNIVERSELLE
     # ========================================
@@ -1865,6 +2150,24 @@ Return the corrected JSON directly:"""
         if missing_keys:
             print(f">>> WARNING: Missing critical keys: {missing_keys}", flush=True)
             print(f">>> Available keys: {list(enriched.keys())}", flush=True)
+        
+        
+        # ========================================
+        # ✅ V1.3.5: VALIDATION ANTI-HALLUCINATION
+        # ========================================
+        print(f"\n🔒 Applying anti-hallucination validation...", flush=True)
+        enriched, validation_report = self.validator.validate_and_fix(parsed_cv, enriched)
+        
+        # Ajouter le rapport de validation dans les métadonnées
+        if '_metadata' not in enriched:
+            enriched['_metadata'] = {}
+        enriched['_metadata']['validation'] = validation_report
+        
+        if validation_report['hallucinations_detected']:
+            print(f"   ⚠️ Corrections appliquées: {len(validation_report['fixes_applied'])} fixes", flush=True)
+        else:
+            print(f"   ✅ Validation passed - no hallucinations detected", flush=True)
+        # ========================================
         
         return enriched
 
