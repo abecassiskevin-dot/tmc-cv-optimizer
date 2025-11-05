@@ -1085,10 +1085,50 @@ Fais :
 
 2c. GRAS ULTRA-SÉLECTIF : identifie UNIQUEMENT 3-5 technologies CRITIQUES.
 
-3. Intègre naturellement les mots-clés techniques de la JD
+3. Intègre naturellement les mots-clés techniques de la JD **UNIQUEMENT si le candidat possède ces compétences**
 4. Ajuste les intitulés pour que le profil paraisse livrable immédiatement
-5. N'invente rien — reformule uniquement les éléments présents
-6. EXPÉRIENCES : bullets courts (1 ligne max), maximum 5-6 bullets par expérience
+
+🚨🚨🚨 RÈGLES ABSOLUES - ZÉRO INVENTION D'INFORMATION 🚨🚨🚨
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5. INTERDICTION ABSOLUE d'ajouter :
+   ❌ Technologies/outils NON mentionnés dans le CV original
+   ❌ Chiffres/metrics NON présents (ex: "75%+ travel", "$500M projects")  
+   ❌ Détails spécifiques NON vérifiables (ex: "Gas turbines" si absent)
+   ❌ Certifications NON listées
+   ❌ Responsabilités NON décrites originalement
+   
+6. CONSERVATION OBLIGATOIRE - TU DOIS inclure :
+   ✅ TOUTES les dates d'emploi (début-fin) EXACTES du CV
+   ✅ TOUS les noms d'entreprises EXACTS (ne modifie JAMAIS)
+   ✅ TOUTES les expériences de travail (ne supprime RIEN)
+   ✅ TOUS les diplômes et certifications avec années
+   
+7. Reformulation = dire la MÊME chose autrement :
+   ✅ "Managed projects" → "Led project initiatives" (OK - même sens)
+   ❌ "Managed projects" → "Managed $500M projects" (INTERDIT - invention de chiffre)
+   ✅ "Python developer" → "Python expertise" (OK - reformulation)
+   ❌ "Python developer" → "Python + Django expert" (INTERDIT - ajout de Django)
+   
+8. EXPÉRIENCES - RÈGLES CRITIQUES :
+   - Inclure TOUTES les expériences du CV (ne supprime RIEN)
+   - Pour CHAQUE expérience : maximum 5-6 bullets (pas "5-6 expériences au total")
+   - Chaque bullet = 1 ligne maximum
+   - Reformule les responsabilités existantes SANS en inventer de nouvelles
+   
+9. DIPLÔMES/CERTIFICATIONS :
+   - Inclure TOUS les diplômes du CV
+   - Inclure TOUTES les certifications du CV
+   - Conserver les années EXACTES
+   - Conserver les institutions EXACTES
+   
+10. RÈGLE D'OR - EN CAS DE DOUTE :
+   - Si une info n'est PAS EXPLICITE dans le CV → NE L'AJOUTE PAS
+   - Si tu hésites sur un chiffre → NE L'AJOUTE PAS
+   - Préfère être incomplet que d'inventer
+   
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
 Réponds en JSON STRICT (sans markdown) avec cette structure:
 {{
@@ -1128,6 +1168,23 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
         "Automatisation processus documentaires via **Power Automate** et **Teams** pour améliorer efficacité"
       ],
       "environment": "**Open edX**, **SharePoint**, **Microsoft 365**, Teams, Power Automate, OneDrive, SQL"
+    }}
+  ],
+  
+  "formation_enrichie": [
+    {{
+      "diplome": "Nom diplôme EXACT",
+      "institution": "Institution EXACTE", 
+      "annee": "2020",
+      "pays": "Canada"
+    }}
+  ],
+  
+  "certifications_enrichies": [
+    {{
+      "nom": "Certification EXACTE",
+      "organisme": "Organisme EXACT",
+      "annee": "2022"
     }}
   ]
 }}
@@ -1317,10 +1374,50 @@ Fais :
 
 2c. GRAS ULTRA-SÉLECTIF : identifie UNIQUEMENT 3-5 technologies CRITIQUES.
 
-3. Intègre naturellement les mots-clés techniques de la JD
+3. Intègre naturellement les mots-clés techniques de la JD **UNIQUEMENT si le candidat possède ces compétences**
 4. Ajuste les intitulés pour que le profil paraisse livrable immédiatement
-5. N'invente rien — reformule uniquement les éléments présents
-6. EXPÉRIENCES : bullets courts (1 ligne max), maximum 5-6 bullets par expérience
+
+🚨🚨🚨 RÈGLES ABSOLUES - ZÉRO INVENTION D'INFORMATION 🚨🚨🚨
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5. INTERDICTION ABSOLUE d'ajouter :
+   ❌ Technologies/outils NON mentionnés dans le CV original
+   ❌ Chiffres/metrics NON présents (ex: "75%+ travel", "$500M projects")  
+   ❌ Détails spécifiques NON vérifiables (ex: "Gas turbines" si absent)
+   ❌ Certifications NON listées
+   ❌ Responsabilités NON décrites originalement
+   
+6. CONSERVATION OBLIGATOIRE - TU DOIS inclure :
+   ✅ TOUTES les dates d'emploi (début-fin) EXACTES du CV
+   ✅ TOUS les noms d'entreprises EXACTS (ne modifie JAMAIS)
+   ✅ TOUTES les expériences de travail (ne supprime RIEN)
+   ✅ TOUS les diplômes et certifications avec années
+   
+7. Reformulation = dire la MÊME chose autrement :
+   ✅ "Managed projects" → "Led project initiatives" (OK - même sens)
+   ❌ "Managed projects" → "Managed $500M projects" (INTERDIT - invention de chiffre)
+   ✅ "Python developer" → "Python expertise" (OK - reformulation)
+   ❌ "Python developer" → "Python + Django expert" (INTERDIT - ajout de Django)
+   
+8. EXPÉRIENCES - RÈGLES CRITIQUES :
+   - Inclure TOUTES les expériences du CV (ne supprime RIEN)
+   - Pour CHAQUE expérience : maximum 5-6 bullets (pas "5-6 expériences au total")
+   - Chaque bullet = 1 ligne maximum
+   - Reformule les responsabilités existantes SANS en inventer de nouvelles
+   
+9. DIPLÔMES/CERTIFICATIONS :
+   - Inclure TOUS les diplômes du CV
+   - Inclure TOUTES les certifications du CV
+   - Conserver les années EXACTES
+   - Conserver les institutions EXACTES
+   
+10. RÈGLE D'OR - EN CAS DE DOUTE :
+   - Si une info n'est PAS EXPLICITE dans le CV → NE L'AJOUTE PAS
+   - Si tu hésites sur un chiffre → NE L'AJOUTE PAS
+   - Préfère être incomplet que d'inventer
+   
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
 Réponds en JSON STRICT (sans markdown) avec cette structure:
 {{
@@ -1385,6 +1482,29 @@ Réponds en JSON STRICT (sans markdown) avec cette structure:
       "environment": "**Open edX**, **SharePoint**, **Microsoft 365**, Teams, Power Automate, OneDrive, SQL"
     }}
   ],
+  
+  "formation_enrichie": [
+    {{
+      "diplome": "Nom du diplôme EXACT (ne change pas)",
+      "institution": "Nom institution EXACT (ne change pas)",
+      "annee": "2020",
+      "pays": "Canada"
+    }}
+  ],
+  
+  "certifications_enrichies": [
+    {{
+      "nom": "Nom certification EXACT",
+      "organisme": "Organisme EXACT",
+      "annee": "2022"
+    }}
+  ],
+  
+  🚨 IMPORTANT FORMATION/CERTIFICATIONS :
+  - Inclure TOUS les diplômes du CV
+  - Inclure TOUTES les certifications du CV  
+  - NE CHANGE PAS les noms, institutions, années
+  - Copie EXACTEMENT les informations du CV original
   
   FORMAT OBLIGATOIRE (COPIER format compétences):
   - Responsabilités: Technologies **isolées** dans texte normal (ex: "Configuration **Tech1** incluant **Tech2** pour résultats")
@@ -1715,23 +1835,32 @@ Return the corrected JSON directly:"""
             }
             work_experience.append(work_exp)
         
-        # 4. FORMATION (avec détails complets)
-        formation = parsed_cv.get('formation', [])
+        # 4. FORMATION (depuis enriched_cv pour garantir complétude)
+        # Essayer d'abord enriched_cv, sinon fallback sur parsed_cv
+        formation_source = enriched_cv.get('formation_enrichie', [])
+        if not formation_source:
+            print("   ⚠️ formation_enrichie absente, fallback sur parsed_cv")
+            formation_source = parsed_cv.get('formation', [])
+        
         education = []
-        for form in formation:
+        for form in formation_source:
             education.append({
                 'institution': form.get('institution', ''),
-                'degree': form.get('diplome', ''),
-                'graduation_year': form.get('annee', 'Date inconnue'),
-                'country': form.get('pays', 'Canada'),
+                'degree': form.get('diplome', form.get('degree', '')),
+                'graduation_year': form.get('annee', form.get('year', 'Date inconnue')),
+                'country': form.get('pays', form.get('country', 'Canada')),
                 'level': '',
-                'title': form.get('diplome', '')
+                'title': form.get('diplome', form.get('degree', ''))
             })
         
-        # 5. CERTIFICATIONS (avec mapping vers format template)
-        certifications_raw = parsed_cv.get('certifications', [])
+        # 5. CERTIFICATIONS (depuis enriched_cv pour garantir complétude)
+        certifications_source = enriched_cv.get('certifications_enrichies', [])
+        if not certifications_source:
+            print("   ⚠️ certifications_enrichies absentes, fallback sur parsed_cv")
+            certifications_source = parsed_cv.get('certifications', [])
+        
         certifications = []
-        for cert in certifications_raw:
+        for cert in certifications_source:
             certifications.append({
                 'name': cert.get('nom', cert.get('name', '')),
                 'institution': cert.get('organisme', cert.get('institution', '')),
