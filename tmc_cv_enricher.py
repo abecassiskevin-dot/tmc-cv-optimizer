@@ -607,7 +607,11 @@ Exemple:
 
 ⚠️ VÉRIFICATIONS FINALES OBLIGATOIRES:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Somme des poids = EXACTEMENT 100%
+1. 🔴 CRITIQUE: Somme des poids = EXACTEMENT 100% (PAS 99%, PAS 101%, PAS 110%, EXACTEMENT 100%)
+   - Additionne TOUS les "poids" avant de répondre
+   - Si total ≠ 100% → AJUSTE les poids proportionnellement pour totaliser exactement 100%
+   - Exemple: Si tu as 110%, divise chaque poids par 1.1 (25%→22.7%, 20%→18.2%, etc.)
+   - Vérifie 2 fois: somme finale des poids DOIT être 100
 2. Score_matching = somme EXACTE des scores pondérés
 3. Si score > 80 → TRIPLE-CHECK: y a-t-il vraiment des preuves d'expertise exceptionnelle?
 4. Si score > 90 → QUADRUPLE-CHECK: est-ce vraiment un candidat top 1% mondial? (la réponse devrait presque toujours être NON)
@@ -704,7 +708,7 @@ Retourne UNIQUEMENT un JSON avec cette structure (sans texte avant/après):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - "match" peut être: "excellent" (≥85/100), "bon" (65-84), "partiel" (40-64), "incompatible" (<40)
 - Tous les scores doivent être des NOMBRES (pas de strings)
-- La somme des poids doit faire exactement 100
+- 🔴 La somme des poids doit faire EXACTEMENT 100 (vérifie 2 fois avant de répondre)
 - Le score_matching doit être la somme exacte des scores de tous les domaines
 - Commentaire: minimum 2-3 phrases complètes avec détails factuels précis du CV
 - Synthèse: MAXIMUM 4-5 lignes (80-100 mots), format executive summary
@@ -784,22 +788,32 @@ Génère l'analyse maintenant:"""
                 matching_result = json.loads(response_text)
                 print(f">>> JSON parsed successfully!", flush=True)
                 
-                # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence
-                # Somme des scores de tous les domaines
+                # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence avec normalisation
                 if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
+                    # Calculer la somme des poids
+                    total_weight = sum(d.get('poids', 0) for d in matching_result['domaines_analyses'])
+                    
+                    # Calculer la somme brute des scores
                     calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
+                    
+                    # ✅ NORMALISATION: Si les poids dépassent 100%, normaliser le score
+                    if total_weight > 100:
+                        print(f"⚠️ Poids totaux: {total_weight}% → Normalisation à 100%")
+                        # Normaliser: (score / total_weight) * 100
+                        calculated_score = (calculated_score / total_weight) * 100
+                    
                     original_score = matching_result.get('score_matching', 0)
                     
                     # Si différence > 2 points, utiliser le score calculé
                     if abs(calculated_score - original_score) > 2:
-                        print(f"⚠️ Score mismatch detected: Claude={original_score}, Calculated={calculated_score}")
-                        print(f"   Using calculated score for consistency: {calculated_score}/100")
-                        matching_result['score_matching'] = round(calculated_score)
+                        print(f"⚠️ Score mismatch detected: Claude={original_score}, Calculated={round(calculated_score)}")
+                        print(f"   Using calculated score for consistency: {round(calculated_score)}/100")
+                        matching_result['score_matching'] = min(round(calculated_score), 100)
                     else:
                         # Petite différence acceptable (arrondis)
-                        matching_result['score_matching'] = round(calculated_score)
+                        matching_result['score_matching'] = min(round(calculated_score), 100)
                     
-                    # ✅ V1.3.4.2 FIX: CAP SCORE AT 100 MAXIMUM
+                    # ✅ V1.3.4.2 FIX: CAP SCORE AT 100 MAXIMUM (redondant mais sécurité)
                     if matching_result['score_matching'] > 100:
                         print(f"⚠️ Score exceeded 100: {matching_result['score_matching']} → Capping at 100")
                         matching_result['score_matching'] = 100
