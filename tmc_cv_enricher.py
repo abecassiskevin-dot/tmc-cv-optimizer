@@ -788,39 +788,52 @@ Génère l'analyse maintenant:"""
                 matching_result = json.loads(response_text)
                 print(f">>> JSON parsed successfully!", flush=True)
                 
-                # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence avec normalisation
+                # V1.3.5 FIX ULTIME: Recalculer TOUS les scores pondérés pour garantir cohérence
                 if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
-                    # Calculer la somme des poids
+                    # Vérifier si Claude a mis les scores BRUTS (0-100) au lieu des scores pondérés
+                    # Indice: Si la somme des scores > 100, ce sont des scores bruts
+                    
                     total_weight = sum(d.get('poids', 0) for d in matching_result['domaines_analyses'])
+                    sum_scores = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
                     
-                    # Calculer la somme brute des scores
-                    calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
+                    # Si somme des scores > 100 OU > total_weight → Ce sont des scores BRUTS, il faut recalculer
+                    if sum_scores > total_weight:
+                        print(f"⚠️ Scores bruts détectés (somme={sum_scores}) → Recalcul des scores pondérés")
+                        
+                        # Recalculer chaque score pondéré: (score_brut × poids) / 100
+                        for domain in matching_result['domaines_analyses']:
+                            score_brut = domain.get('score', 0)
+                            poids = domain.get('poids', 0)
+                            # Le score doit être le score pondéré, pas le brut
+                            score_pondere = (score_brut * poids) / 100
+                            domain['score'] = round(score_pondere)
+                            domain['score_max'] = poids
+                            print(f"   {domain['domaine'][:40]}: {score_brut}/100 × {poids}% = {round(score_pondere)}/{poids}")
+                        
+                        # Recalculer le total
+                        calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
+                    else:
+                        # Les scores sont déjà pondérés
+                        calculated_score = sum_scores
                     
-                    # ✅ NORMALISATION: Si les poids dépassent 100%, normaliser le score
+                    # Normaliser si les poids dépassent 100%
                     if total_weight > 100:
                         print(f"⚠️ Poids totaux: {total_weight}% → Normalisation à 100%")
-                        # Normaliser: (score / total_weight) * 100
                         calculated_score = (calculated_score / total_weight) * 100
                     
                     original_score = matching_result.get('score_matching', 0)
                     
-                    # Si différence > 2 points, utiliser le score calculé
-                    if abs(calculated_score - original_score) > 2:
-                        print(f"⚠️ Score mismatch detected: Claude={original_score}, Calculated={round(calculated_score)}")
-                        print(f"   Using calculated score for consistency: {round(calculated_score)}/100")
-                        matching_result['score_matching'] = min(round(calculated_score), 100)
-                    else:
-                        # Petite différence acceptable (arrondis)
-                        matching_result['score_matching'] = min(round(calculated_score), 100)
+                    # Utiliser le score calculé (toujours plus fiable)
+                    final_score = min(round(calculated_score), 100)
                     
-                    # ✅ V1.3.4.2 FIX: CAP SCORE AT 100 MAXIMUM (redondant mais sécurité)
-                    if matching_result['score_matching'] > 100:
-                        print(f"⚠️ Score exceeded 100: {matching_result['score_matching']} → Capping at 100")
-                        matching_result['score_matching'] = 100
+                    if abs(final_score - original_score) > 2:
+                        print(f"⚠️ Score mismatch: Claude={original_score}, Calculated={final_score}")
+                        print(f"   Using calculated score: {final_score}/100")
                     
-                    # ✅ V1.3.4.3 FIX: Update synthese_matching with correct score
-                    # If score was recalculated, update any score mentions in the synthesis
-                    if abs(calculated_score - original_score) > 2 and 'synthese_matching' in matching_result:
+                    matching_result['score_matching'] = final_score
+                    
+                    # ✅ Update synthese_matching with correct score if needed
+                    if abs(final_score - original_score) > 2 and 'synthese_matching' in matching_result:
                         synthese = matching_result['synthese_matching']
                         # Replace score mentions in common formats
                         import re
