@@ -787,6 +787,11 @@ Génère l'analyse maintenant:"""
                 # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence
                 # Somme des scores de tous les domaines
                 if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
+                    # 🔍 DEBUG: Print actual domain scores
+                    print("🔍 DEBUG - Domaines reçus de Claude:")
+                    for d in matching_result['domaines_analyses']:
+                        print(f"   {d.get('domaine', 'N/A')[:40]}: score={d.get('score', 'N/A')}, poids={d.get('poids', 'N/A')}")
+                    
                     calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
                     original_score = matching_result.get('score_matching', 0)
                     
