@@ -383,7 +383,16 @@ RÈGLES CRITIQUES:
 - Pour les diplômes: nom COMPLET + année EXACTE
 - Extrait TOUT (ne rate rien)
 - Si une section est vide, mets une liste vide []
-- Format JSON strict uniquement"""
+- Format JSON strict uniquement
+
+🚨 RÈGLE JSON CRITIQUE - ÉCHAPPEMENT DES CARACTÈRES SPÉCIAUX:
+- TOUJOURS échapper les guillemets doubles dans le texte avec \" (backslash-quote)
+- TOUJOURS échapper les backslashes avec \\\\ (double backslash)
+- TOUJOURS échapper les retours à la ligne avec \\n
+- Exemple: "Responsable de l'implantation" devient "Responsable de l\\'implantation"
+- Le JSON doit être VALIDE et parsable sans erreur
+- Si un texte contient des apostrophes ('), laisse-les tel quel (pas besoin d'échapper)
+- NE JAMAIS couper une string au milieu - toujours terminer avec le guillemet fermant"""
 
             print(f">>> Calling Claude API with timeout=300s...", flush=True)
             response = client.messages.create(
