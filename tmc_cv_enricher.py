@@ -436,7 +436,7 @@ CRITICAL RULES:
 4. Return ONLY JSON - no markdown, no explanations
 
 CV TEXT:
-{cv_text[:6000]}
+{cv_text}
 
 Return the structured JSON now:"""
             
