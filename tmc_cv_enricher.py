@@ -7,6 +7,7 @@ Lit n'importe quel CV → Enrichit avec IA → Génère CV TMC professionnel
 import os
 import sys
 import json
+import json_repair  # Pour réparer les JSON malformés
 from docxtpl import DocxTemplate, RichText
 from docx import Document
 import jinja2
@@ -410,7 +411,7 @@ RÈGLES CRITIQUES:
         response_text = response_text.strip()
         
         try:
-            parsed_data = json.loads(response_text)
+            parsed_data = json_repair.loads(response_text)
             print(f"✅ Parsing réussi!")
             print(f"   Nom: [ANONYMIZED]")
             print(f"   Langues: {', '.join(parsed_data.get('langues', []))}")
@@ -504,7 +505,7 @@ IMPORTANT: Assure-toi que TOUS les guillemets sont bien fermés et que toutes le
                     fixed_text = fixed_text[:-3]
                 fixed_text = fixed_text.strip()
                 
-                parsed_data = json.loads(fixed_text)
+                parsed_data = json_repair.loads(fixed_text)
                 print(f"✅ JSON fixed and parsed successfully!")
                 print(f"   Nom: [ANONYMIZED]")
                 print(f"   Langues: {', '.join(parsed_data.get('langues', []))}")
