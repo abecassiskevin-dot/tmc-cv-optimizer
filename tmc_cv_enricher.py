@@ -433,7 +433,7 @@ Return ONLY the corrected JSON, nothing else."""
                 fix_response = client.messages.create(
                     model="claude-sonnet-4-5-20250929",
                     max_tokens=8000,
-                    timeout=120.0,
+                    timeout=300.0,
                     messages=[{"role": "user", "content": fix_prompt}]
                 )
                 
