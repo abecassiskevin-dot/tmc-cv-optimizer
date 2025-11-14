@@ -419,9 +419,48 @@ RÈGLES CRITIQUES:
             print(f"   Expériences: {len(parsed_data.get('experiences', []))}")
             return parsed_data
         except json.JSONDecodeError as e:
-            print(f"⚠️ Erreur JSON: {e}")
-            print(f"Réponse brute: {response_text[:500]}")
-            return {}
+            print(f"⚠️ Erreur JSON parsing CV: {e}")
+            print(f"   Tentative de fix automatique...")
+            
+            # Retry with JSON fix
+            fix_prompt = f"""The following JSON is malformed. Please fix it and return ONLY valid JSON with no markdown:
+
+{response_text}
+
+Return ONLY the corrected JSON, nothing else."""
+            
+            try:
+                fix_response = client.messages.create(
+                    model="claude-sonnet-4-5-20250929",
+                    max_tokens=8000,
+                    timeout=120.0,
+                    messages=[{"role": "user", "content": fix_prompt}]
+                )
+                
+                fixed_text = fix_response.content[0].text.strip()
+                
+                # Clean markdown again
+                if fixed_text.startswith('```json'):
+                    fixed_text = fixed_text[7:]
+                if fixed_text.startswith('```'):
+                    fixed_text = fixed_text[3:]
+                if fixed_text.endswith('```'):
+                    fixed_text = fixed_text[:-3]
+                fixed_text = fixed_text.strip()
+                
+                parsed_data = json.loads(fixed_text)
+                print(f"✅ JSON fixed and parsed successfully!")
+                print(f"   Nom: [ANONYMIZED]")
+                print(f"   Langues: {', '.join(parsed_data.get('langues', []))}")
+                print(f"   Lieu: [ANONYMIZED]")
+                print(f"   Compétences: {len(parsed_data.get('competences', []))}")
+                print(f"   Expériences: {len(parsed_data.get('experiences', []))}")
+                return parsed_data
+                
+            except Exception as fix_error:
+                print(f"❌ JSON fix also failed: {fix_error}")
+                print(f"   Returning empty CV data")
+                return {}
 
     # ========================================
     # MODULE 3 : ENRICHISSEMENT (TON PROMPT)
