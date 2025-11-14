@@ -422,19 +422,30 @@ RÈGLES CRITIQUES:
             print(f"⚠️ Erreur JSON parsing CV: {e}")
             print(f"   Tentative de fix automatique...")
             
-            # Retry with JSON fix
-            fix_prompt = f"""The following JSON is malformed. Please fix it and return ONLY valid JSON with no markdown:
+            # Retry with re-generation instead of fixing
+            print(f"   Strategy: Re-generating clean JSON instead of fixing...")
+            
+            regen_prompt = f"""You previously generated malformed JSON with syntax errors.
 
-{response_text}
+TASK: Extract CV information again and return ONLY valid JSON.
 
-Return ONLY the corrected JSON, nothing else."""
+CRITICAL RULES:
+1. ALL strings must be properly closed with quotes
+2. Use proper escaping for quotes inside strings (\")
+3. Ensure commas between all fields
+4. Return ONLY JSON - no markdown, no explanations
+
+CV TEXT:
+{cv_text[:6000]}
+
+Return the structured JSON now:"""
             
             try:
                 fix_response = client.messages.create(
                     model="claude-sonnet-4-5-20250929",
                     max_tokens=8000,
                     timeout=300.0,
-                    messages=[{"role": "user", "content": fix_prompt}]
+                    messages=[{"role": "user", "content": regen_prompt}]
                 )
                 
                 fixed_text = fix_response.content[0].text.strip()
@@ -459,6 +470,8 @@ Return ONLY the corrected JSON, nothing else."""
                 
             except Exception as fix_error:
                 print(f"❌ JSON fix also failed: {fix_error}")
+                print(f"   Original error was at char {str(e)}")
+                print(f"   Fix response length: {len(fixed_text) if 'fixed_text' in locals() else 'N/A'}")
                 print(f"   Returning empty CV data")
                 return {}
 
