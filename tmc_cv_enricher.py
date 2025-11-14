@@ -425,20 +425,65 @@ RÈGLES CRITIQUES:
             # Retry with re-generation instead of fixing
             print(f"   Strategy: Re-generating clean JSON instead of fixing...")
             
-            regen_prompt = f"""You previously generated malformed JSON with syntax errors.
+            regen_prompt = f"""Tu es un expert en analyse de CV. Extrait TOUTES les informations de ce CV et structure-les en JSON.
 
-TASK: Extract CV information again and return ONLY valid JSON.
-
-CRITICAL RULES:
-1. ALL strings must be properly closed with quotes
-2. Use proper escaping for quotes inside strings (\")
-3. Ensure commas between all fields
-4. Return ONLY JSON - no markdown, no explanations
-
-CV TEXT:
+CV À ANALYSER:
 {cv_text}
 
-Return the structured JSON now:"""
+IMPORTANT CRITIQUE:
+- Le NOM peut être caché dans un tableau HTML ou être stylisé. Cherche PARTOUT.
+- Le LIEU DE RÉSIDENCE est OBLIGATOIRE : cherche "Montréal", "Montreal", villes + pays (ex: "Montreal CA", "Montréal, Canada", "Toronto ON", etc.). Si introuvable, mets "Location not specified".
+- Les LANGUES sont OBLIGATOIRES : cherche "Français", "French", "English", "Anglais", "Bilingual", "Bilingue", etc. Si introuvable, mets ["Not specified"].
+
+Extrait et structure en JSON STRICT (sans markdown):
+{{
+  "nom_complet": "Nom Prénom du candidat (cherche PARTOUT, même dans tableaux/HTML)",
+  "titre_professionnel": "Titre/poste actuel",
+  "profil_resume": "Résumé du profil si présent (sinon vide)",
+  "lieu_residence": "OBLIGATOIRE - Ville, Pays (ex: Montréal, Canada) ou Montreal CA. Cherche codes pays (CA, US, FR). Si vraiment introuvable: 'Location not specified'",
+  "langues": ["OBLIGATOIRE - Français", "Anglais", ... Cherche 'bilingual', 'French', 'English', etc. Si introuvable: ['Not specified']],
+  "competences": ["compétence1", "compétence2", "compétence3", ...],
+  "experiences": [
+    {{
+      "periode": "2020-2023",
+      "entreprise": "Nom entreprise",
+      "poste": "Titre du poste",
+      "responsabilites": ["tâche 1", "tâche 2", "tâche 3"]
+    }}
+  ],
+  "formation": [
+    {{
+      "diplome": "Nom COMPLET du diplôme",
+      "institution": "Nom école/université",
+      "annee": "2020 (ou période exacte)",
+      "pays": "Canada"
+    }}
+  ],
+  "certifications": [
+    {{
+      "nom": "Nom certification",
+      "organisme": "Organisme",
+      "annee": "2023"
+    }}
+  ],
+  "projets": [
+    {{
+      "nom": "Nom projet",
+      "description": "Description courte"
+    }}
+  ]
+}}
+
+RÈGLES CRITIQUES:
+- Le NOM est PRIORITAIRE - cherche dans tout le texte (tableaux, début, fin)
+- LIEU DE RÉSIDENCE : cherche formats "Ville, Pays", "Montreal CA", "Montréal QC", codes postaux (H2X, etc.)
+- LANGUES : cherche "Languages", "Langues", "French", "English", "Bilingual", même dans sections compétences
+- Pour les diplômes: nom COMPLET + année EXACTE
+- Extrait TOUT (ne rate rien)
+- Si une section est vide, mets une liste vide []
+- Format JSON strict uniquement
+
+IMPORTANT: Assure-toi que TOUS les guillemets sont bien fermés et que toutes les virgules sont présentes."""
             
             try:
                 fix_response = client.messages.create(
