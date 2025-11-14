@@ -321,12 +321,7 @@ class TMCUniversalEnricher:
     # ========================================
     
     def parse_cv_with_claude(self, cv_text: str) -> Dict[str, Any]:
-        """Parser le CV avec Claude pour extraire les infos structurées
-        
-        Retourne un dict avec soit:
-        - Les données parsées si succès
-        - {'_raw_text': cv_text} si échec (fallback pour le matching)
-        """
+        """Parser le CV avec Claude pour extraire les infos structurées"""
         print("🤖 Parsing du CV avec Claude AI...", flush=True)
         
         try:
@@ -388,16 +383,7 @@ RÈGLES CRITIQUES:
 - Pour les diplômes: nom COMPLET + année EXACTE
 - Extrait TOUT (ne rate rien)
 - Si une section est vide, mets une liste vide []
-- Format JSON strict uniquement
-
-🚨 RÈGLE JSON CRITIQUE - ÉCHAPPEMENT DES CARACTÈRES SPÉCIAUX:
-- TOUJOURS échapper les guillemets doubles dans le texte avec \" (backslash-quote)
-- TOUJOURS échapper les backslashes avec \\\\ (double backslash)
-- TOUJOURS échapper les retours à la ligne avec \\n
-- Exemple: "Responsable de l'implantation" devient "Responsable de l\\'implantation"
-- Le JSON doit être VALIDE et parsable sans erreur
-- Si un texte contient des apostrophes ('), laisse-les tel quel (pas besoin d'échapper)
-- NE JAMAIS couper une string au milieu - toujours terminer avec le guillemet fermant"""
+- Format JSON strict uniquement"""
 
             print(f">>> Calling Claude API with timeout=300s...", flush=True)
             response = client.messages.create(
@@ -435,53 +421,7 @@ RÈGLES CRITIQUES:
         except json.JSONDecodeError as e:
             print(f"⚠️ Erreur JSON: {e}")
             print(f"Réponse brute: {response_text[:500]}")
-            
-            # 🔧 TENTATIVE DE RÉPARATION AUTOMATIQUE DU JSON
-            print(f"🔧 Tentative de réparation du JSON...")
-            
-            try:
-                # Demander à Claude de réparer le JSON
-                repair_prompt = f"""Le JSON suivant est malformé. Répare-le en:
-1. Échappant TOUS les caractères spéciaux (apostrophes avec \\', guillemets avec \\", backslash avec \\\\)
-2. Complétant les strings non-terminées
-3. Fermant tous les crochets et accolades
-4. Retournant UNIQUEMENT le JSON valide, sans markdown ni explication
-
-JSON À RÉPARER:
-{response_text}
-
-Retourne UNIQUEMENT le JSON réparé:"""
-
-                repair_response = client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=8000,
-                    timeout=60.0,
-                    messages=[{"role": "user", "content": repair_prompt}]
-                )
-                
-                repaired_text = repair_response.content[0].text.strip()
-                
-                # Nettoyer le markdown
-                if repaired_text.startswith('```json'):
-                    repaired_text = repaired_text[7:]
-                if repaired_text.startswith('```'):
-                    repaired_text = repaired_text[3:]
-                if repaired_text.endswith('```'):
-                    repaired_text = repaired_text[:-3]
-                repaired_text = repaired_text.strip()
-                
-                # Essayer de parser
-                parsed_data = json.loads(repaired_text)
-                print(f"✅ JSON réparé avec succès!")
-                print(f"   Nom: [ANONYMIZED]")
-                print(f"   Langues: {', '.join(parsed_data.get('langues', []))}")
-                print(f"   Compétences: {len(parsed_data.get('competences', []))}")
-                return parsed_data
-                
-            except Exception as repair_error:
-                print(f"❌ Échec de réparation: {repair_error}")
-                print(f"⚠️ FALLBACK: Utilisation du texte brut pour le matching")
-                return {'_raw_text': cv_text}  # Retourner le texte brut comme fallback
+            return {}
 
     # ========================================
     # MODULE 3 : ENRICHISSEMENT (TON PROMPT)
@@ -512,30 +452,14 @@ Retourne UNIQUEMENT le JSON réparé:"""
         try:
             client = self._get_anthropic_client()
             
-            # 🔧 FALLBACK: Si le parsing a échoué, utiliser le texte brut
-            if '_raw_text' in parsed_cv:
-                print(f"   ⚠️ Utilisation du CV brut (parsing JSON a échoué)")
-                cv_text = parsed_cv['_raw_text']
-            else:
-                # Reconstruire le CV en texte pour le prompt
-                cv_text = f"""
+            # Reconstruire le CV en texte pour le prompt
+            cv_text = f"""
 PROFIL: {parsed_cv.get('profil_resume', '')}
 
 TITRE: {parsed_cv.get('titre_professionnel', '')}
 
 COMPÉTENCES:
 {chr(10).join(['- ' + comp for comp in parsed_cv.get('competences', [])])}
-
-EXPÉRIENCES:
-"""
-                for exp in parsed_cv.get('experiences', []):
-                    cv_text += f"\n{exp.get('periode', '')} | {exp.get('entreprise', '')} | {exp.get('poste', '')}\n"
-                    for resp in exp.get('responsabilites', []):
-                        cv_text += f"  - {resp}\n"
-                
-                cv_text += "\nFORMATION:\n"
-                for form in parsed_cv.get('formation', []):
-                    cv_text += f"- {form.get('diplome', '')} | {form.get('institution', '')} | {form.get('annee', '')}\n"
 
 EXPÉRIENCES:
 """
@@ -863,11 +787,6 @@ Génère l'analyse maintenant:"""
                 # V1.3.4.1 FIX: Recalculer le score_matching pour garantir cohérence
                 # Somme des scores de tous les domaines
                 if 'domaines_analyses' in matching_result and matching_result['domaines_analyses']:
-                    # 🔍 DEBUG: Print actual domain scores
-                    print("🔍 DEBUG - Domaines reçus de Claude:")
-                    for d in matching_result['domaines_analyses']:
-                        print(f"   {d.get('domaine', 'N/A')[:40]}: score={d.get('score', 'N/A')}, poids={d.get('poids', 'N/A')}")
-                    
                     calculated_score = sum(d.get('score', 0) for d in matching_result['domaines_analyses'])
                     original_score = matching_result.get('score_matching', 0)
                     
